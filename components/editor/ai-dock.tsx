@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Sparkles, X } from "lucide-react";
-import { ChatInterface } from "@/app/(admin)/chat/chat-interface";
+import { ChatInterface } from "@/app/redaktion/chat/chat-interface";
 
 type Message = { role: "user" | "assistant"; content: string };
 

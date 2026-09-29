@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 
-export async function GET(_request: Request, context: RouteContext<"/api/articles/[slug]">) {
+export async function GET(_request: Request, context: { params: Promise<{ slug: string }> }) {
   const { slug } = await context.params;
   const article = await db.article.findFirst({
     where: { slug, status: "Publiceret" },

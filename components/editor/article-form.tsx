@@ -2,14 +2,15 @@
 
 import { useActionState, useState } from "react";
 import { Save, Send } from "lucide-react";
-import { saveArticle, type ArticleFormState } from "@/app/(admin)/artikler/actions";
+import { saveArticle, type ArticleFormState } from "@/app/redaktion/artikler/actions";
 import { BlockEditor } from "./block-editor";
 import type { Block } from "@/lib/blocks/schema";
+import { CONTENT_TYPES, type Marking } from "@/lib/marking";
 
 type Option = { id: string; navn: string };
 type ArticleValue = {
   id: string | null; titel: string; manchet: string; slug: string; blocks: Block[]; status: string;
-  indholdstype: string; aiBrug: string[]; marking: { sponsor?: string; labelTekst?: string } | null;
+  indholdstype: string; aiBrug: string[]; marking: Marking | null;
   pinned: boolean; breaking: boolean; seoTitel: string; seoBeskrivelse: string; sprog: string;
   kategoriId: string; forfatterId: string; coverMediaId: string; tagIds: string[]; geoTagIds: string[];
 };
@@ -22,7 +23,6 @@ export function ArticleForm({ article, categories, authors, tags, geoTags, media
   const action = saveArticle.bind(null, article.id);
   const [state, formAction, pending] = useActionState<ArticleFormState, FormData>(action, {});
   const [contentType, setContentType] = useState(article.indholdstype);
-  const isCommercial = contentType === "Partner" || contentType === "Sponsoreret";
   return (
     <form action={formAction} className="editor-form">
       <div className="editor-main">
@@ -46,8 +46,35 @@ export function ArticleForm({ article, categories, authors, tags, geoTags, media
           <fieldset className="field checkbox-grid"><legend>Geografi</legend>{geoTags.map((item) => <label key={item.id}><input type="checkbox" name="geoTagIds" value={item.id} defaultChecked={article.geoTagIds.includes(item.id)} /> {item.navn}</label>)}</fieldset>
         </section>
         <section className="sidebar-section"><h2>Indholdstype og mærkning</h2>
-          <div className="field"><label htmlFor="indholdstype">Indholdstype</label><select className="input" id="indholdstype" name="indholdstype" value={contentType} onChange={(event) => setContentType(event.target.value)}>{["Uafhængig", "Partner", "Sponsoreret", "Brugerindsendt", "PR"].map((item) => <option key={item}>{item}</option>)}</select></div>
-          {isCommercial && <div className="commercial-fields"><p className="help-text">Obligatorisk før publicering.</p><div className="field"><label htmlFor="markingSponsor">Sponsor/partner</label><input className="input" id="markingSponsor" name="markingSponsor" defaultValue={article.marking?.sponsor} /></div><div className="field"><label htmlFor="markingLabel">Synlig mærkning</label><input className="input" id="markingLabel" name="markingLabel" defaultValue={article.marking?.labelTekst} placeholder={contentType === "Partner" ? "Partnerindhold" : "Sponsoreret indhold"} /></div></div>}
+          <div className="field"><label htmlFor="indholdstype">Indholdstype</label><select className="input" id="indholdstype" name="indholdstype" value={contentType} onChange={(event) => setContentType(event.target.value)}>{CONTENT_TYPES.map((item) => <option key={item}>{item}</option>)}</select></div>
+          {contentType === "Partner" && (
+            <div className="commercial-fields">
+              <p className="help-text">Obligatorisk før publicering.</p>
+              <div className="field"><label htmlFor="markingSponsor">Sponsor/partner</label><input className="input" id="markingSponsor" name="markingSponsor" defaultValue={"sponsor" in (article.marking ?? {}) ? (article.marking as { sponsor: string }).sponsor : ""} required /></div>
+              <div className="field"><label htmlFor="markingLabel">Synlig mærkning</label><input className="input" id="markingLabel" name="markingLabel" defaultValue={"labelTekst" in (article.marking ?? {}) ? (article.marking as { labelTekst: string }).labelTekst : "Finansieret af"} placeholder="fx Finansieret af" required /></div>
+              <div className="field"><label htmlFor="markingAftaleId">Støtteaftale ID</label><input className="input" id="markingAftaleId" name="markingAftaleId" defaultValue={"aftaleId" in (article.marking ?? {}) ? (article.marking as { aftaleId?: string }).aftaleId ?? "" : ""} required /></div>
+            </div>
+          )}
+          {contentType === "Sponsoreret" && (
+            <div className="commercial-fields">
+              <p className="help-text">Obligatorisk før publicering.</p>
+              <div className="field"><label htmlFor="markingSponsor">Sponsor/partner</label><input className="input" id="markingSponsor" name="markingSponsor" defaultValue={"sponsor" in (article.marking ?? {}) ? (article.marking as { sponsor: string }).sponsor : ""} required /></div>
+              <div className="field"><label htmlFor="markingLabel">Synlig mærkning</label><input className="input" id="markingLabel" name="markingLabel" defaultValue={"labelTekst" in (article.marking ?? {}) ? (article.marking as { labelTekst: string }).labelTekst : "ANNONCE"} placeholder="fx ANNONCE" required /></div>
+            </div>
+          )}
+          {(contentType === "Brugerindsendt" || contentType === "PR") && (
+            <div className="commercial-fields">
+              <p className="help-text">Obligatorisk før publicering.</p>
+              <div className="field"><label htmlFor="markingAfsender">Afsender / indsender</label><input className="input" id="markingAfsender" name="markingAfsender" defaultValue={"afsender" in (article.marking ?? {}) ? (article.marking as { afsender: string }).afsender : ""} required /></div>
+            </div>
+          )}
+          {contentType === "AI-assisteret" && (
+            <div className="commercial-fields">
+              <p className="help-text">Obligatorisk før publicering (del 9 §2).</p>
+              <div className="field"><label htmlFor="markingGodkendtAf">Godkendt af (journalist/redaktør)</label><input className="input" id="markingGodkendtAf" name="markingGodkendtAf" defaultValue={"godkendtAf" in (article.marking ?? {}) ? (article.marking as { godkendtAf: string }).godkendtAf : ""} required /></div>
+              <div className="field"><label htmlFor="markingKilder">Kilder (én URL/reference pr. linje)</label><textarea className="input" id="markingKilder" name="markingKilder" rows={3} defaultValue={"kilder" in (article.marking ?? {}) ? ((article.marking as { kilder: string[] }).kilder ?? []).join("\n") : ""} placeholder="https://..." required /></div>
+            </div>
+          )}
         </section>
         <section className="sidebar-section"><h2>AI-brug</h2><fieldset className="checkbox-grid"><legend style={{ fontSize: 11, opacity: 0.6 }}>Markér hvad AI har været brugt til</legend>{["Sproglig korrektur", "Omskrivning", "Transskribering", "Udkast"].map((item) => <label key={item}><input type="checkbox" name="aiBrug" value={item} defaultChecked={article.aiBrug.includes(item)} /> {item}</label>)}</fieldset></section>
         <section className="sidebar-section"><h2>SEO og publicering</h2>

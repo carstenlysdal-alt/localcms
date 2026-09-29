@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Upload } from "lucide-react";
-import { createMedia, type MediaFormState } from "@/app/(admin)/medier/actions";
+import { createMedia, type MediaFormState } from "@/app/redaktion/medier/actions";
 
 export function MediaCreateForm() {
   const [state, action, pending] = useActionState<MediaFormState, FormData>(createMedia, {});

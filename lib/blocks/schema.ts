@@ -8,7 +8,7 @@ export const blockSchemas = {
   heading: base.extend({ type: z.literal("heading"), data: z.object({ text: z.string(), level: z.union([z.literal(2), z.literal(3)]) }) }),
   subheading: base.extend({ type: z.literal("subheading"), data: z.object({ text: z.string() }) }),
   manchet: base.extend({ type: z.literal("manchet"), data: z.object({ text: z.string() }) }),
-  quote: base.extend({ type: z.literal("quote"), data: z.object({ quote: z.string(), attribution: z.string().optional() }) }),
+  quote: base.extend({ type: z.literal("quote"), data: z.object({ quote: z.string(), attribution: z.string().optional(), kildeUrl: z.string().optional(), dato: z.string().optional() }) }),
   factbox: base.extend({ type: z.literal("factbox"), data: z.object({ title: z.string(), content: z.string() }) }),
   image: base.extend({ type: z.literal("image"), data: z.object({ mediaId: z.string().optional(), url: mediaUrl, alt: z.string().min(1), caption: z.string().optional() }) }),
   infobox: base.extend({ type: z.literal("infobox"), data: z.object({ title: z.string(), content: z.string() }) }),

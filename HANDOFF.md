@@ -1,10 +1,41 @@
-# HANDOFF — Lysdals CMS fundament
+# HANDOFF — Lysdals CMS fundament og [By]Lokalt Nyhedsfrontend
 
-> **Status:** Fundamentet, CMS-03, CMS-06, Y Business-redesign, AI Chat, Emner og Signaler er implementeret.
-> **Dato:** 2026-08-03. **Repo:** `/Users/Lysdal/GITS/Local2027/cms/` (Next.js 16).
+> **Status:** Fase 1 (Fundament: F-01 til F-08) og Fase 2 (Nyhedskernen: P-01 til P-10, K-01 til K-16) er fuldt implementeret og testet.
+> **Dato:** 2026-09-29. **Repo:** `/Users/Lysdal/GITS/Local2027/cms/` (Next.js 16).
 
 Denne fil er overleveringsloggen. Læs den FØR du bygger videre — den indeholder
 alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste trin.
+
+## Arbejdslog — Fase 1 (Fundament) & Fase 2 (Nyhedskernen), 2026-09-29
+
+### 1. Fundament (Fase 1: F-01 til F-08)
+- **F-01 (Admin-flytning):** Redaktions-interfacet er flyttet fra `cms/app/(admin)` til `cms/app/redaktion/*`. `proxy.ts` beskytter `["/redaktion/:path*", "/partner/:path*"]`. Login omdirigerer til `/redaktion/artikler`.
+- **F-02 (Site lookup):** `cms/lib/site.ts` implementerer cached `getCurrentSite()` med host-header resolution, dev/localhost fallback til `slagelselokalt.dk`, og `parseSiteColors`.
+- **F-03 & F-04 (Designsystem & Fonte):** `cms/styles/site.css` oprettet med alle tokens fra `DESIGN.md` §2 & §10. Skrifttyperne **Bricolage Grotesque** (display/overskrifter/badges) og **Literata** (brødtekst/manchet) integreret via `next/font/google`. Kun lys tilstand (`color-scheme: light`).
+- **F-05 & F-06 (Prisma & Taksonomi):** `Category` udvidet med `parentId`, `sortering`, `beskrivelse`, `iNavigation`. `GeoTag` udvidet med `slug`, `lat`, `lng`. `Author` og `Tag` udvidet med `slug`. `Instance` udvidet med `kvoteloftProcent`, `sideTekster`, `netvaerk`. Taksonomi-validering i `lib/taxonomy.ts` (maks 2 niveauer).
+- **F-07 (Mærkningshåndhævelse):** `lib/marking.ts` og `lib/blocks/schema.ts` udvidet med alle 5 mærkede indholdstyper (`Partner`, `Sponsoreret`, `Brugerindsendt`, `AI-assisteret`, `PR`). Kilde-URL og dato kræves på citater i AI-assisterede artikler. AI-artikler blokeres i Krimi og Sundhed.
+- **F-08 (Seed & aktiver):** 47 realistiske artikler oprettet på tværs af alle 6 sektioner, 26 undersektioner, 8 Slagelse-områder og 4 forfattere. Lokale SVG-aktiver i `public/media/` og `public/avatars/`.
+
+### 2. Nyhedskernen (Fase 2: P-01 til P-10, K-01 til K-16)
+- **K-01 (SiteHeader):** Ordmærke, handlinger (Søg, Indsend tip, Bliv støtte), vandret sektionsbar med scroll og aktiv accent-underlinje. Skip-link til `#hovedindhold`.
+- **K-02 & K-03 (BottomNav & SectionSheet):** Mobilnavigation under 1024px med safe-area padding. "Sektioner" åbner fuldt tilgængeligt modal bottom-sheet med sektioner, undersektioner, områder og om-links.
+- **K-04 (SiteFooter):** Fire-kolonne footer med vision, sektioner, deltagelse, om-mediet, presseetisk deklaration, disclaimer og netværkslinks til søstersites.
+- **K-05 (ArticleCard):** 4 varianter (`hoved`, `standard`, `kompakt`, `tekst`). Klikbar via `::after` på titel-linket. Understøtter alle mærkninger, breaking-badge, relativ tid og forfatterportræt på Debat-sektionen.
+- **K-06 (ContentLabel & MarkingBox):** Mærkningsbadges på kort samt fuld forklarende boks øverst i artikler iht. `governance.md §1`.
+- **K-07 (SectionHeader):** H1, vandret scrollende undersektionspiller ("Alle" + underkategorier) og områdefilter-dropdown (`?omraade=`).
+- **K-08 & K-09 (LatestTicker & ShortNewsList):** Seneste nyt ticker med pulserende prik samt zone 4 "Kort nyt"-liste med tæt typografi.
+- **K-10, K-11 & K-12 (Byline, DateDivider, LoadMore):** Forfatterfoto (40px), publiceret/opdateret tid, datomarkører ("I dag", "I går", ugedag) og "Vis flere"-knap med URL-paginering.
+- **K-15 & K-16 (Breadcrumbs & SiteBlockRenderer):** Semantisk brødkrumme med schema.org JSON-LD samt dedikeret offentlig blok-renderer til artiklers 8 bloktyper (afsnit, headings, 16:9/3:2 billeder med kredit, citater med kildehenvisning, lister og faktabokse).
+- **P-01 (Forside `/`):** Bygget efter `DESIGN.md` §6a.4 zoner: Zone 1 (Seneste nyt) → Zone 2 (Tophistorie) → Zone 3 (Område) + Zone 4 (Kort nyt) → Zone 7 (Sektionsblokke for Nyheder, Sport, Erhverv, Kultur, Foreningsliv, Debat) → Zone 5 (Fra borgerne) → Zone 10 (Nyhedsbrev).
+- **P-02 (Sektionsside `/[sektion]`):** H1, pillebar, områdefilter, 1+2 top, undersektionsblokke (side 1), kronologisk liste med datomarkører og desktop sidespalte ("Mest læst" + nyhedsbrev).
+- **P-03 & P-04 (Undersektion & Artikelside `/[sektion]/[slug]`):** Intelligent router der detekterer undersektioner vs. artikler. Artikelsiden indeholder brødkrumme, mærkningsboks, H1, manchet, byline, coverbillede, brødtekstblokke, emne-/områdetags, relaterede artikler, nyhedsbrev og `NewsArticle` schema JSON-LD.
+- **P-05 (Områdeside `/omraade/[slug]`):** Lokal side for Korsør, Skælskør osv. med filtrerede artikler og datomarkører.
+- **P-06 (Emneside `/emne/[slug]`):** Emneside baseret på Tag.
+- **P-07 (Forfatterside `/forfatter/[slug]`):** Journalistprofil med portræt, bio og publicerede artikler.
+- **P-08 (Søgning `/soeg`):** Fritekstsøgning med filtre på sektion og område.
+- **P-09 (404-side):** Pæn fejlside i sitets design med navigation tilbage.
+- **P-10 (RSS-feeds):** `/feed.xml` og `/[sektion]/feed.xml` genererer valid RSS 2.0 XML.
+- **Kvalitetskontrol:** Testsuite udvidet til 21 tests (`npm test` passer 100%). `npm run lint` har 0 fejl, `npx tsc --noEmit` har 0 fejl, `npm run build` bygger fejlfrit alle 22 routes.
 
 ## Driftslog — lokal ejerbruger, 2026-08-03
 

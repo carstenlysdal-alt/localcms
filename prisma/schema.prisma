@@ -27,6 +27,9 @@ model Instance {
   kategoriTaksonomi Json  // string[] af topkategorier
   sprog          String   @default("da")
   markingTekster Json     // { sponsorLabel, partnerLabel, principperUrl, … }
+  kvoteloftProcent Int   @default(25)
+  sideTekster      Json?  // om-mediet, principper, kontakt (redigerbare)
+  netvaerk         Json?  // [{ navn, domaene }] søstersites
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -77,30 +80,39 @@ model User {
 }
 
 model Author {
-  id          String    @id @default(cuid())
-  navn        String
-  forfatterType String  @default("Freelance") // Fast | Freelance
-  bio         String?
+  id              String       @id @default(cuid())
+  navn            String
+  slug            String?
+  forfatterType   String       @default("Freelance") // Fast | Freelance
+  bio             String?
   profilbilledeUrl String?
-  kontakt     String?
-  instansId   String
-  instans     Instance  @relation(fields: [instansId], references: [id])
-  user        User?
-  articles    Article[]
-  assignments Assignment[]
-  honorEntries HonorEntry[]
-  createdAt   DateTime  @default(now())
+  kontakt         String?
+  instansId       String
+  instans         Instance     @relation(fields: [instansId], references: [id])
+  user            User?
+  articles        Article[]
+  assignments     Assignment[]
+  honorEntries    HonorEntry[]
+  createdAt       DateTime     @default(now())
+
+  @@unique([instansId, slug])
 }
 
 // ── CMS-02: taksonomi ───────────────────────────────────────────────────────
 model Category {
-  id        String    @id @default(cuid())
-  navn      String
-  slug      String
-  instansId String
-  instans   Instance  @relation(fields: [instansId], references: [id])
-  articles  Article[]
-  createdAt DateTime  @default(now())
+  id          String     @id @default(cuid())
+  navn        String
+  slug        String
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  sortering   Int        @default(0)
+  beskrivelse String?
+  iNavigation Boolean    @default(true)
+  instansId   String
+  instans     Instance   @relation(fields: [instansId], references: [id])
+  articles    Article[]
+  createdAt   DateTime   @default(now())
 
   @@unique([instansId, slug])
 }
@@ -108,6 +120,7 @@ model Category {
 model Tag {
   id        String    @id @default(cuid())
   navn      String
+  slug      String?
   instansId String
   instans   Instance  @relation(fields: [instansId], references: [id])
   articles  Article[]
@@ -119,11 +132,15 @@ model Tag {
 model GeoTag {
   id        String   @id @default(cuid())
   navn      String   // delområde
+  slug      String
+  lat       Float?
+  lng       Float?
   instansId String
   instans   Instance @relation(fields: [instansId], references: [id])
   articles  Article[]
   createdAt DateTime @default(now())
 
+  @@unique([instansId, slug])
   @@unique([instansId, navn])
 }
 

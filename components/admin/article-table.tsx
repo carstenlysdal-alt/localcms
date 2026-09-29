@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MoreHorizontal, Pin, Radio } from "lucide-react";
 import type { Article, Author, Media } from "@prisma/client";
-import { toggleArticleFlag } from "@/app/(admin)/artikler/actions";
+import { toggleArticleFlag } from "@/app/redaktion/artikler/actions";
 
 type Row = Article & { forfatter: Author | null; coverMedia: Media | null };
 
@@ -58,7 +58,7 @@ export function ArticleTable({ articles, canManageFrontpage }: { articles: Row[]
               <div className="article-card-title">
                 {article.breaking && <span className="badge badge-breaking">Breaking</span>}
                 {article.pinned && !article.breaking && <Pin size={12} style={{ color: "var(--color-accent-2-600)", flexShrink: 0 }} />}
-                <Link className="article-title-link" href={`/artikler/${article.id}`}>{article.titel}</Link>
+                <Link className="article-title-link" href={`/redaktion/artikler/${article.id}`}>{article.titel}</Link>
               </div>
               {article.manchet && <span className="table-subtitle" style={{ maxWidth: 520 }}>{article.manchet}</span>}
               <div className="article-card-meta">
@@ -80,7 +80,7 @@ export function ArticleTable({ articles, canManageFrontpage }: { articles: Row[]
                 <form action={toggleArticleFlag.bind(null, article.id, "breaking")}>
                   <button className={`btn btn-icon btn-ghost ${article.breaking ? "is-active" : ""}`} disabled={!canManageFrontpage} title={article.breaking ? "Fjern breaking" : "Markér breaking"}><Radio size={16} /></button>
                 </form>
-                <Link className="btn btn-icon btn-ghost" href={`/artikler/${article.id}`} title="Redigér"><MoreHorizontal size={18} /></Link>
+                <Link className="btn btn-icon btn-ghost" href={`/redaktion/artikler/${article.id}`} title="Redigér"><MoreHorizontal size={18} /></Link>
               </div>
             </div>
           </div>

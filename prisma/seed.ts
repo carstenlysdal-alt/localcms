@@ -1,11 +1,110 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { PERMISSIONS } from "../lib/permissions";
 
 const db = new PrismaClient();
 
-const categories = ["Nyheder", "Politik", "Erhverv", "Kultur", "Sport", "Debat"];
-const areas = ["Slagelse", "Korsør", "Skælskør", "Hashøj", "Vemmelev"];
+const areas = [
+  { navn: "Slagelse By", slug: "slagelse-by", lat: 55.4038, lng: 11.3544 },
+  { navn: "Korsør", slug: "korsoer", lat: 55.3292, lng: 11.1378 },
+  { navn: "Skælskør", slug: "skaelskoer", lat: 55.2536, lng: 11.2947 },
+  { navn: "Dalmose", slug: "dalmose", lat: 55.2936, lng: 11.4192 },
+  { navn: "Vemmelev", slug: "vemmelev", lat: 55.3528, lng: 11.2361 },
+  { navn: "Boeslunde", slug: "boeslunde", lat: 55.3022, lng: 11.2783 },
+  { navn: "Agersø", slug: "agersoe", lat: 55.2158, lng: 11.1969 },
+  { navn: "Omø", slug: "omoe", lat: 55.1583, lng: 11.1611 },
+];
+
+const categoryTree = [
+  {
+    navn: "Nyheder",
+    slug: "nyheder",
+    beskrivelse: "Nyheder fra hele kommunen",
+    sortering: 1,
+    children: [
+      { navn: "Politik", slug: "politik", sortering: 1 },
+      { navn: "Krimi og retsvæsen", slug: "krimi-og-retsvaesen", sortering: 2 },
+      { navn: "Trafik", slug: "trafik", sortering: 3 },
+      { navn: "Skole og børn", slug: "skole-og-boern", sortering: 4 },
+      { navn: "Sundhed", slug: "sundhed", sortering: 5 },
+      { navn: "Bolig og byudvikling", slug: "bolig-og-byudvikling", sortering: 6 },
+      { navn: "Natur og klima", slug: "natur-og-klima", sortering: 7 },
+    ],
+  },
+  {
+    navn: "Erhverv",
+    slug: "erhverv",
+    beskrivelse: "Erhvervsliv og arbejdsmarked",
+    sortering: 2,
+    children: [
+      { navn: "Handel", slug: "handel", sortering: 1 },
+      { navn: "Job og arbejdsmarked", slug: "job-og-arbejdsmarked", sortering: 2 },
+      { navn: "Iværksættere", slug: "ivaerksaettere", sortering: 3 },
+      { navn: "Landbrug", slug: "landbrug", sortering: 4 },
+      { navn: "Byggeri og ejendomme", slug: "byggeri-og-ejendomme", sortering: 5 },
+    ],
+  },
+  {
+    navn: "Sport",
+    slug: "sport",
+    beskrivelse: "Lokalsport og motion",
+    sortering: 3,
+    children: [
+      { navn: "Fodbold", slug: "fodbold", sortering: 1 },
+      { navn: "Håndbold", slug: "haandbold", sortering: 2 },
+      { navn: "Motion og løb", slug: "motion-og-loeb", sortering: 3 },
+      { navn: "Anden sport", slug: "anden-sport", sortering: 4 },
+    ],
+  },
+  {
+    navn: "Kultur",
+    slug: "kultur",
+    beskrivelse: "Kultur, musik og oplevelser",
+    sortering: 4,
+    children: [
+      { navn: "Musik", slug: "musik", sortering: 1 },
+      { navn: "Scene og film", slug: "scene-og-film", sortering: 2 },
+      { navn: "Kunst og museer", slug: "kunst-og-museer", sortering: 3 },
+      { navn: "Mad og drikke", slug: "mad-og-drikke", sortering: 4 },
+    ],
+  },
+  {
+    navn: "Foreningsliv",
+    slug: "foreningsliv",
+    beskrivelse: "Frivillige og foreninger",
+    sortering: 5,
+    children: [
+      { navn: "Frivillige", slug: "frivillige", sortering: 1 },
+      { navn: "Idrætsforeninger", slug: "idraetsforeninger", sortering: 2 },
+      { navn: "Kulturforeninger", slug: "kulturforeninger", sortering: 3 },
+      { navn: "Lokalråd", slug: "lokalraad", sortering: 4 },
+    ],
+  },
+  {
+    navn: "Debat",
+    slug: "debat",
+    beskrivelse: "Meninger, debat og læserbreve",
+    sortering: 6,
+    children: [
+      { navn: "Leder", slug: "leder", sortering: 1 },
+      { navn: "Kommentarer", slug: "kommentarer", sortering: 2 },
+      { navn: "Læserbreve", slug: "laeserbreve", sortering: 3 },
+    ],
+  },
+];
+
+const mediaItems = [
+  { id: "media-byraad", url: "/media/byraad.svg", filnavn: "byraad.svg", altTekst: "Slagelse Rådhus set fra forpladsen", billedtekst: "Slagelse Byråd i samling på rådhuset.", filtype: "billede" },
+  { id: "media-havn", url: "/media/havn.svg", filnavn: "havn.svg", altTekst: "Korsør Havn med Storebæltsbroen i baggrunden", billedtekst: "Udsigt over Korsør Havn en tidlig formiddag.", filtype: "billede" },
+  { id: "media-erhverv", url: "/media/erhverv.svg", filnavn: "erhverv.svg", altTekst: "Erhvervsbygninger og kontorer", billedtekst: "Det lokale erhvervsliv oplever vækst.", filtype: "billede" },
+  { id: "media-sport", url: "/media/sport.svg", filnavn: "sport.svg", altTekst: "Slagelse Stadion med løbebane", billedtekst: "Sportsanlægget klar til aftenens kamp.", filtype: "billede" },
+  { id: "media-kultur", url: "/media/kultur.svg", filnavn: "kultur.svg", altTekst: "Kulturhuset i aftensol", billedtekst: "Kulturnat samler borgere i alle aldre.", filtype: "billede" },
+  { id: "media-forening", url: "/media/forening.svg", filnavn: "forening.svg", altTekst: "Frivillige borgere samlet til arbejdsdag", billedtekst: "Foreningslivet er grundpillen i lokalsamfundet.", filtype: "billede" },
+  { id: "media-natur", url: "/media/natur.svg", filnavn: "natur.svg", altTekst: "Kystlinje og strandeng ved Skælskør", billedtekst: "Vestsjællands natur indbyder til gåture.", filtype: "billede" },
+  { id: "media-skole", url: "/media/skole.svg", filnavn: "skole.svg", altTekst: "Moderne folkeskolebygning", billedtekst: "Ny teknologi og fællesskaber på folkeskolerne.", filtype: "billede" },
+  { id: "media-trafik", url: "/media/trafik.svg", filnavn: "trafik.svg", altTekst: "Hovedfærdselsåre og cykelsti", billedtekst: "Trafiksikkerheden opgraderes i flere kryds.", filtype: "billede" },
+  { id: "media-debat", url: "/media/debat.svg", filnavn: "debat.svg", altTekst: "Talebobler der symboliserer debat", billedtekst: "Borgernes stemme og debatindlæg.", filtype: "billede" },
+];
 
 const roles = [
   { navn: "Ansvarshavende redaktør", permissions: Object.values(PERMISSIONS) },
@@ -21,23 +120,50 @@ const roles = [
 async function main() {
   const instance = await db.instance.upsert({
     where: { id: "slagelse-reference" },
-    update: {},
-    create: {
-      id: "slagelse-reference",
-      navn: "Slagelse Lokalmedie",
-      domaene: "slagelse.test",
-      farver: { accent: "#ec3013", bg: "#f3f2f2", text: "#201e1d" },
-      typografi: { heading: "Archivo", body: "Archivo" },
-      geografiskDækning: areas,
-      kategoriTaksonomi: categories,
+    update: {
+      navn: "SlagelseLokalt",
+      domaene: "slagelselokalt.dk",
+      farver: { accent: "#9E3D1B", accentStrong: "#7F2F13", accentSoft: "#F6E3D8", onAccent: "#FFFFFF" },
+      typografi: { heading: "Bricolage Grotesque", body: "Literata" },
+      geografiskDækning: areas.map((a) => a.navn),
+      kategoriTaksonomi: categoryTree.map((c) => c.navn),
+      kvoteloftProcent: 25,
       markingTekster: {
         sponsorLabel: "Sponsoreret indhold",
-        partnerLabel: "Partnerindhold",
-        principperUrl: "/redaktionelle-principper",
+        partnerLabel: "Finansieret af",
+        principperUrl: "/om-mediet/redaktionelle-principper",
       },
+      sideTekster: {
+        omMediet: "SlagelseLokalt er et lokalt nyhedsmedie med fuld journalistisk uafhængighed.",
+        principper: "Vi følger god presseskik og mærker alt betalt og assisteret indhold tydeligt.",
+        kontakt: "Kontakt redaktionen på redaktion@slagelselokalt.dk eller telefon 58 50 00 00.",
+      },
+      netvaerk: [{ navn: "NæstvedLokalt", domaene: "naestvedlokalt.dk" }],
+    },
+    create: {
+      id: "slagelse-reference",
+      navn: "SlagelseLokalt",
+      domaene: "slagelselokalt.dk",
+      farver: { accent: "#9E3D1B", accentStrong: "#7F2F13", accentSoft: "#F6E3D8", onAccent: "#FFFFFF" },
+      typografi: { heading: "Bricolage Grotesque", body: "Literata" },
+      geografiskDækning: areas.map((a) => a.navn),
+      kategoriTaksonomi: categoryTree.map((c) => c.navn),
+      kvoteloftProcent: 25,
+      markingTekster: {
+        sponsorLabel: "Sponsoreret indhold",
+        partnerLabel: "Finansieret af",
+        principperUrl: "/om-mediet/redaktionelle-principper",
+      },
+      sideTekster: {
+        omMediet: "SlagelseLokalt er et lokalt nyhedsmedie med fuld journalistisk uafhængighed.",
+        principper: "Vi følger god presseskik og mærker alt betalt og assisteret indhold tydeligt.",
+        kontakt: "Kontakt redaktionen på redaktion@slagelselokalt.dk eller telefon 58 50 00 00.",
+      },
+      netvaerk: [{ navn: "NæstvedLokalt", domaene: "naestvedlokalt.dk" }],
     },
   });
 
+  // Roller
   const roleMap = new Map<string, string>();
   for (const role of roles) {
     const saved = await db.role.upsert({
@@ -48,29 +174,125 @@ async function main() {
     roleMap.set(role.navn, saved.id);
   }
 
-  for (const navn of categories) {
-    const slug = navn.toLocaleLowerCase("da").replaceAll("æ", "ae").replaceAll("ø", "oe").replaceAll("å", "aa").replace(/[^a-z0-9]+/g, "-");
-    await db.category.upsert({
-      where: { instansId_slug: { instansId: instance.id, slug } },
-      update: { navn },
-      create: { navn, slug, instansId: instance.id },
+  // Mediebibliotek
+  const mediaMap = new Map<string, string>();
+  for (const item of mediaItems) {
+    const m = await db.media.upsert({
+      where: { id: item.id },
+      update: { url: item.url, filnavn: item.filnavn, altTekst: item.altTekst, billedtekst: item.billedtekst, filtype: item.filtype, instansId: instance.id },
+      create: { id: item.id, url: item.url, filnavn: item.filnavn, altTekst: item.altTekst, billedtekst: item.billedtekst, filtype: item.filtype, kildeType: "Lokal", instansId: instance.id },
     });
-  }
-  for (const navn of areas) {
-    await db.geoTag.upsert({
-      where: { instansId_navn: { instansId: instance.id, navn } },
-      update: {},
-      create: { navn, instansId: instance.id },
-    });
-  }
-  for (const navn of ["Kommunalpolitik", "Byliv", "Iværksætteri", "Familie"]) {
-    await db.tag.upsert({
-      where: { instansId_navn: { instansId: instance.id, navn } },
-      update: {},
-      create: { navn, instansId: instance.id },
-    });
+    mediaMap.set(item.id, m.id);
   }
 
+  // Forfattere
+  const authorsData = [
+    { id: "author-carsten", navn: "Carsten Lysdal", slug: "carsten-lysdal", type: "Fast", bio: "Ansvarshavende redaktør på SlagelseLokalt.", avatar: "/avatars/carsten.svg" },
+    { id: "author-rikke", navn: "Rikke Møller", slug: "rikke-moeller", type: "Fast", bio: "Nyhedsredaktør med fokus på kommunalpolitik og erhverv.", avatar: "/avatars/rikke.svg" },
+    { id: "author-jonas", navn: "Jonas Vestergaard", slug: "jonas-vestergaard", type: "Freelance", bio: "Freelancejournalist med base i Korsør, dækker kultur og sport.", avatar: "/avatars/jonas.svg" },
+    { id: "author-mette", navn: "Mette Lind", slug: "mette-lind", type: "Freelance", bio: "Lokalreporter med særligt kendskab til foreningsliv og natur.", avatar: "/avatars/mette.svg" },
+  ];
+  const authorMap = new Map<string, string>();
+  for (const a of authorsData) {
+    const saved = await db.author.upsert({
+      where: { id: a.id },
+      update: { navn: a.navn, slug: a.slug, forfatterType: a.type, bio: a.bio, profilbilledeUrl: a.avatar, instansId: instance.id },
+      create: { id: a.id, navn: a.navn, slug: a.slug, forfatterType: a.type, bio: a.bio, profilbilledeUrl: a.avatar, instansId: instance.id },
+    });
+    authorMap.set(a.id, saved.id);
+  }
+
+  // Brugere
+  const passwordHash = await hash("cms-demo-2026", 12);
+  await db.user.upsert({
+    where: { email: "redaktoer@slagelse.test" },
+    update: { passwordHash, roleId: roleMap.get("Ansvarshavende redaktør")!, authorId: authorMap.get("author-rikke")! },
+    create: { email: "redaktoer@slagelse.test", navn: "Rikke Møller", passwordHash, roleId: roleMap.get("Ansvarshavende redaktør")!, instansId: instance.id, authorId: authorMap.get("author-rikke")! },
+  });
+  await db.user.upsert({
+    where: { email: "journalist@slagelse.test" },
+    update: { passwordHash, roleId: roleMap.get("Freelancejournalist")!, authorId: authorMap.get("author-jonas")! },
+    create: { email: "journalist@slagelse.test", navn: "Jonas Vestergaard", passwordHash, roleId: roleMap.get("Freelancejournalist")!, instansId: instance.id, authorId: authorMap.get("author-jonas")! },
+  });
+  await db.user.upsert({
+    where: { email: "carsten@slagelse.test" },
+    update: { passwordHash, roleId: roleMap.get("Ansvarshavende redaktør")!, authorId: authorMap.get("author-carsten")! },
+    create: { email: "carsten@slagelse.test", navn: "Carsten Lysdal", passwordHash, roleId: roleMap.get("Ansvarshavende redaktør")!, instansId: instance.id, authorId: authorMap.get("author-carsten")! },
+  });
+
+  // Kategoritræ
+  const categoryMap = new Map<string, string>();
+  for (const parent of categoryTree) {
+    const p = await db.category.upsert({
+      where: { instansId_slug: { instansId: instance.id, slug: parent.slug } },
+      update: { navn: parent.navn, beskrivelse: parent.beskrivelse, sortering: parent.sortering, parentId: null },
+      create: { navn: parent.navn, slug: parent.slug, beskrivelse: parent.beskrivelse, sortering: parent.sortering, instansId: instance.id },
+    });
+    categoryMap.set(parent.slug, p.id);
+
+    for (const child of parent.children) {
+      const c = await db.category.upsert({
+        where: { instansId_slug: { instansId: instance.id, slug: child.slug } },
+        update: { navn: child.navn, sortering: child.sortering, parentId: p.id },
+        create: { navn: child.navn, slug: child.slug, sortering: child.sortering, parentId: p.id, instansId: instance.id },
+      });
+      categoryMap.set(child.slug, c.id);
+    }
+  }
+
+  // Områder (GeoTags)
+  const areaMap = new Map<string, string>();
+  for (const area of areas) {
+    const g = await db.geoTag.upsert({
+      where: { instansId_slug: { instansId: instance.id, slug: area.slug } },
+      update: { navn: area.navn, lat: area.lat, lng: area.lng },
+      create: { navn: area.navn, slug: area.slug, lat: area.lat, lng: area.lng, instansId: instance.id },
+    });
+    areaMap.set(area.slug, g.id);
+  }
+
+  // Tags
+  const tagList = ["Kommunalpolitik", "Storebælt", "Handelsliv", "Børnefamilier", "Bæredygtighed", "Frivillighed", "Kulturarv", "Lokalsport"];
+  const tagMap = new Map<string, string>();
+  for (const navn of tagList) {
+    const slug = navn.toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "oe").replace(/å/g, "aa");
+    const t = await db.tag.upsert({
+      where: { instansId_navn: { instansId: instance.id, navn } },
+      update: { slug },
+      create: { navn, slug, instansId: instance.id },
+    });
+    tagMap.set(slug, t.id);
+  }
+
+  // Støtteaftaler og organisationer
+  const org1 = await db.organization.upsert({
+    where: { id: "org-sparekassen" },
+    update: {},
+    create: { id: "org-sparekassen", navn: "Sparekassen Sjælland-Fyn", branche: "Finans", kontakt: "erhverv@spks.dk", instansId: instance.id },
+  });
+  await db.organization.upsert({
+    where: { id: "org-bilcenter" },
+    update: {},
+    create: { id: "org-bilcenter", navn: "Vestsjællands Bilcenter", branche: "Autoforhandler", kontakt: "salg@vestbil.dk", instansId: instance.id },
+  });
+  await db.supportAgreement.upsert({
+    where: { id: "sa-sparekassen" },
+    update: {},
+    create: {
+      id: "sa-sparekassen",
+      organisationNavn: "Sparekassen Sjælland-Fyn",
+      pakkeNiveau: "Fællesskab",
+      startDato: new Date("2026-01-01"),
+      arligKvote: 10,
+      forbrugtKvote: 2,
+      kontaktperson: "Klaus Mortensen",
+      pris: 30000,
+      organizationId: org1.id,
+      instansId: instance.id,
+    },
+  });
+
+  // Takster for opgaver
   const rates = [
     ["Kort nyhedsartikel", 300, 500, 400], ["Standardartikel", 600, 1000, 800],
     ["Dybdegående artikel/reportage", 1500, 2500, 2000], ["Interview", 800, 1400, 1100],
@@ -86,68 +308,824 @@ async function main() {
     });
   }
 
-  const editorAuthor = await db.author.upsert({
-    where: { id: "author-editor" }, update: {},
-    create: { id: "author-editor", navn: "Rikke Redaktør", forfatterType: "Fast", instansId: instance.id },
-  });
-  const journalistAuthor = await db.author.upsert({
-    where: { id: "author-journalist" }, update: {},
-    create: { id: "author-journalist", navn: "Jonas Journalist", forfatterType: "Freelance", instansId: instance.id },
-  });
+  // 42 Realistiske artikler fordelt over alle sektioner, undersektioner og områder
+  const articlesSeed = [
+    // --- NYHEDER (7 undersektioner) ---
+    {
+      slug: "nyt-flertal-vil-investere-45-millioner-i-bymidten",
+      titel: "Nyt flertal på rådhuset vil investere 45 millioner i bymidten",
+      manchet: "En bred aftale mellem fem partier skal puste nyt liv i gågaden og torvet med mere grønt og færre tomme butiksvinduer.",
+      sectionSlug: "politik",
+      areaSlug: "slagelse-by",
+      authorId: "author-rikke",
+      mediaId: "media-byraad",
+      pinned: true,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 0,
+      hoursAgo: 2,
+    },
+    {
+      slug: "voldsom-koedannelse-paa-storebaeltsbroen-efter-uheld",
+      titel: "Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld",
+      manchet: "To biler stødte sammen tidligt tirsdag morgen. Vejhjælp arbejder på stedet, og der meldes om op mod 45 minutters forsinkelse.",
+      sectionSlug: "trafik",
+      areaSlug: "korsoer",
+      authorId: "author-jonas",
+      mediaId: "media-trafik",
+      pinned: false,
+      breaking: true,
+      indholdstype: "Uafhængig",
+      daysAgo: 0,
+      hoursAgo: 1,
+    },
+    {
+      slug: "indbrudsboelge-i-sommerhuse-paa-skaelskoer-naes",
+      titel: "Flere sommerhuse udsat for indbrud i weekenden ved Skælskør Næs",
+      manchet: "Politiet efterlyser vidner efter fire indbrud, hvor der primært er stjålet havemøbler og designerlamper.",
+      sectionSlug: "krimi-og-retsvaesen",
+      areaSlug: "skaelskoer",
+      authorId: "author-carsten",
+      mediaId: "media-byraad",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 1,
+    },
+    {
+      slug: "ny-skoleleder-paa-marievangsskolen-vil-fokusere-paa-trivsel",
+      titel: "Ny skoleleder på Marievangsskolen: 'Vi skal have roen og læselysten tilbage'",
+      manchet: "Efter en turbulent periode med vikarer tiltræder 48-årige Anne Kirstine Holm som ny leder for Slagelses største folkeskole.",
+      sectionSlug: "skole-og-boern",
+      areaSlug: "slagelse-by",
+      authorId: "author-mette",
+      mediaId: "media-skole",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 2,
+    },
+    {
+      slug: "sundhedscenter-i-korsoer-udvider-aabningstiderne",
+      titel: "Sundhedscenter i Korsør udvider åbningstider for blodprøvetagning",
+      manchet: "Fra næste uge kan pendlere få taget prøver allerede fra klokken 06.30, oplyser Region Sjælland.",
+      sectionSlug: "sundhed",
+      areaSlug: "korsoer",
+      authorId: "author-rikke",
+      mediaId: "media-byraad",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 3,
+    },
+    {
+      slug: "planer-om-80-nye-traehuse-ved-dalmose-sendt-i-hoering",
+      titel: "Planer om 80 bæredygtige træhuse ved Dalmose sendt i offentlig høring",
+      manchet: "Et nyt boligområde med fælleshus og regnvandssøer kan blive virkelighed for Dalmose inden 2028.",
+      sectionSlug: "bolig-og-byudvikling",
+      areaSlug: "dalmose",
+      authorId: "author-jonas",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 4,
+    },
+    {
+      slug: "kystbeskyttelse-ved-skaelskoer-fjord-faar-groent-lys",
+      titel: "Kystbeskyttelse ved Skælskør Fjord sikrer lavtliggende huse mod stormflod",
+      manchet: "Projektet til 18 millioner kroner kombinerer diger og rekreative stier langs det sårbare kystbælte.",
+      sectionSlug: "natur-og-klima",
+      areaSlug: "skaelskoer",
+      authorId: "author-mette",
+      mediaId: "media-natur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 5,
+    },
 
-  const passwordHash = await hash("cms-demo-2026", 12);
-  await db.user.upsert({
-    where: { email: "redaktoer@slagelse.test" },
-    update: { passwordHash, roleId: roleMap.get("Ansvarshavende redaktør")!, authorId: editorAuthor.id },
-    create: { email: "redaktoer@slagelse.test", navn: "Rikke Redaktør", passwordHash, roleId: roleMap.get("Ansvarshavende redaktør")!, instansId: instance.id, authorId: editorAuthor.id },
-  });
-  await db.user.upsert({
-    where: { email: "journalist@slagelse.test" },
-    update: { passwordHash, roleId: roleMap.get("Freelancejournalist")!, authorId: journalistAuthor.id },
-    create: { email: "journalist@slagelse.test", navn: "Jonas Journalist", passwordHash, roleId: roleMap.get("Freelancejournalist")!, instansId: instance.id, authorId: journalistAuthor.id },
-  });
+    // --- ERHVERV (5 undersektioner) ---
+    {
+      slug: "historisk-koebmandsgaard-i-skaelskoer-genopstaar-som-delikatesse",
+      titel: "Historisk købmandsgård i Skælskør genopstår som lokal delikatessebutik",
+      manchet: "To barndomsvenner har overtaget den fredede bygning og vil sælge råvarer fra Vestsjællands gårde og mosterier.",
+      sectionSlug: "handel",
+      areaSlug: "skaelskoer",
+      authorId: "author-carsten",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 1,
+    },
+    {
+      slug: "ny-laerepladsgaranti-fra-lokale-haandvaerkere-i-korsoer",
+      titel: "Ny lærepladsgaranti fra lokale håndværkere skal sikre flere faglærte",
+      manchet: "Ti murere og tømrere i Korsør går sammen for at sikre, at ingen lærlinge må afbryde deres uddannelse.",
+      sectionSlug: "job-og-arbejdsmarked",
+      areaSlug: "korsoer",
+      authorId: "author-jonas",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 2,
+    },
+    {
+      slug: "groen-start-up-i-vemmelev-faar-millioninvestering-til-algedyrkning",
+      titel: "Grøn start-up i Vemmelev modtager millioninvestering til algedyrkning",
+      manchet: "Virksomheden Algaepac har udviklet en bionedbrydelig emballage og udvider nu produktionen i Vemmelev Erhvervspark.",
+      sectionSlug: "ivaerksaettere",
+      areaSlug: "vemmelev",
+      authorId: "author-rikke",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 3,
+    },
+    {
+      slug: "oekologiske-landmaend-ved-boeslunde-samles-om-faelles-mejeri",
+      titel: "Økologiske mælkeproducenter ved Boeslunde stifter fælles gårdmejeri",
+      manchet: "Tre landmænd vil producere specialoste og smør med mælk fra græssende køer langs Storebæltkysten.",
+      sectionSlug: "landbrug",
+      areaSlug: "boeslunde",
+      authorId: "author-mette",
+      mediaId: "media-natur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 6,
+    },
+    {
+      slug: "erhvervshavnen-i-korsoer-investerer-i-ny-kran-til-bulkvarer",
+      titel: "Korsør Havn investerer 32 millioner kroner i ny mobilkran til bulkvarer",
+      manchet: "Investeringen skal halvere lossetiden for korn og råstoffer til sjællandske landbrug og byggepladser.",
+      sectionSlug: "byggeri-og-ejendomme",
+      areaSlug: "korsoer",
+      authorId: "author-jonas",
+      mediaId: "media-havn",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 7,
+    },
 
-  const news = await db.category.findUniqueOrThrow({ where: { instansId_slug: { instansId: instance.id, slug: "nyheder" } } });
-  await db.article.upsert({
-    where: { slug: "velkommen-til-redaktionen" },
-    update: {},
-    create: {
-      titel: "Velkommen til redaktionen",
-      manchet: "En publiceret demoartikel, der viser læse-API'et.",
-      slug: "velkommen-til-redaktionen",
-      blocks: [{ id: "demo-p", type: "paragraph", data: { content: "<p>CMS-fundamentet er klar til redaktionelt arbejde.</p>" } }],
-      status: "Publiceret", indholdstype: "Uafhængig", aiBrug: ["Ingen"],
-      pinned: true, publiceretTid: new Date(), kategoriId: news.id,
-      forfatterId: editorAuthor.id, instansId: instance.id,
+    // --- SPORT (4 undersektioner) ---
+    {
+      slug: "slagelse-bi-tager-dramatisk-sejr-i-sidste-overtidsminut",
+      titel: "Slagelse B&I sikrer tre vigtige point i dramatisk overtidsdrama",
+      manchet: "En scoring direkte på hjørnespark i det 94. minut sendte Slagelse til tops i Danmarksserien foran 850 tilskuere.",
+      sectionSlug: "fodbold",
+      areaSlug: "slagelse-by",
+      authorId: "author-jonas",
+      mediaId: "media-sport",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 1,
     },
-  });
-  const sponsoredDraft = await db.article.upsert({
-    where: { slug: "sponsoreret-kladde-uden-maerkning" },
-    update: {},
-    create: {
-      titel: "Sponsoreret kladde uden mærkning",
-      slug: "sponsoreret-kladde-uden-maerkning",
-      blocks: [{ id: "demo-sponsored", type: "paragraph", data: { content: "<p>Denne kladde bruges til at afprøve AC-01.</p>" } }],
-      status: "Godkendelse", indholdstype: "Sponsoreret", aiBrug: ["Ingen"],
-      breaking: true, kategoriId: news.id, forfatterId: journalistAuthor.id, instansId: instance.id,
+    {
+      slug: "korsoer-haandbold-rykker-op-efter-ubesejret-foraarssaeson",
+      titel: "Korsør/Tårnborg Håndbold rykker op efter suveræn sæson uden nederlag",
+      manchet: "Træner Michael Poulsen roser holdets forsvarsdisciplin efter den afgørende 28-22 sejr mod Nykøbing Falster.",
+      sectionSlug: "haandbold",
+      areaSlug: "korsoer",
+      authorId: "author-jonas",
+      mediaId: "media-sport",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 3,
     },
-  });
-  const editorUser = await db.user.findUniqueOrThrow({ where: { email: "redaktoer@slagelse.test" } });
-  await db.assignment.upsert({
-    where: { id: "assignment-demo" },
-    update: {},
-    create: {
-      id: "assignment-demo", titel: "Gør sponsoreret demoartikel klar",
-      beskrivelse: "Gennemgå research, mærkning og metadata, og aflever artiklen til redaktionel godkendelse.",
-      leverancetype: "Standardartikel", status: "Afleveret", iPulje: false,
-      researchDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      afleveringsDeadline: new Date(Date.now() + 48 * 60 * 60 * 1000),
-      estimeretHonorar: 800, interessekonflikt: "Ingen", instansId: instance.id,
-      assignedAuthorId: journalistAuthor.id, articleId: sponsoredDraft.id, createdById: editorUser.id,
+    {
+      slug: "rekordmange-tilmeldte-til-storebaelt-halvmaraton",
+      titel: "Rekordtilmelding: 3.500 løbere snører skoene til Storebælt Halvmaraton",
+      manchet: "Ruten tager løberne hen over broen med udsigt over sundet, og arrangørerne melder alt udsolgt to måneder før tid.",
+      sectionSlug: "motion-og-loeb",
+      areaSlug: "korsoer",
+      authorId: "author-mette",
+      mediaId: "media-sport",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 4,
     },
-  });
+    {
+      slug: "skaelskoer-roklub-henter-soelv-ved-nordiske-mesterskaber",
+      titel: "Skælskør Amatør-Roklub henter sølvmedalje ved de nordiske mesterskaber",
+      manchet: "Ungdomsdobbeltfireren roede sig ind på en flot andenplads på Bagsværd Sø efter en tæt dyst med finske roere.",
+      sectionSlug: "anden-sport",
+      areaSlug: "skaelskoer",
+      authorId: "author-jonas",
+      mediaId: "media-sport",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 8,
+    },
+
+    // --- KULTUR (4 undersektioner) ---
+    {
+      slug: "musikhuset-slagelse-praesenterer-stort-efteraarsprogram",
+      titel: "Musikhuset Slagelse præsenterer efterårsprogram med internationale navne",
+      manchet: "Fra symfonisk rock til intim jazz: over 40 koncerter er på plakaten i den kommende sæson på Vestsjællands hovedscene.",
+      sectionSlug: "musik",
+      areaSlug: "slagelse-by",
+      authorId: "author-carsten",
+      mediaId: "media-kultur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 2,
+    },
+    {
+      slug: "teater-paa-faestningen-i-korsoer-solgt-ud-til-sidste-plads",
+      titel: "Friluftsspil på Korsør Fæstning melder alt udsolgt til samtlige opførelser",
+      manchet: "Over 4.000 publikummer skal opleve Shakespeares 'En skærsommernatsdrøm' i de historiske rammer ved voldgraven.",
+      sectionSlug: "scene-og-film",
+      areaSlug: "korsoer",
+      authorId: "author-mette",
+      mediaId: "media-kultur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 4,
+    },
+    {
+      slug: "roedt-taarn-i-skaelskoer-aabner-ny-saerudstilling-med-keramik",
+      titel: "Guldagergaard i Skælskør åbner særudstilling med 18 internationale keramikere",
+      manchet: "Det internationale keramiske center viser værker skabt af kunstnere fra Japan, USA og Danmark under deres residency.",
+      sectionSlug: "kunst-og-museer",
+      areaSlug: "skaelskoer",
+      authorId: "author-rikke",
+      mediaId: "media-kultur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 5,
+    },
+    {
+      slug: "vestsjaellands-foedevaremarked-fylder-torvet-i-slagelse",
+      titel: "Torvet dufter af æbler og vildsvin: Fødevaremarked fejrer lokale producenter",
+      manchet: "Borgere i Slagelse strømmede til torvet lørdag formiddag for at smage cider, honning og friskbagt rugbrød.",
+      sectionSlug: "mad-og-drikke",
+      areaSlug: "slagelse-by",
+      authorId: "author-mette",
+      mediaId: "media-kultur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 6,
+    },
+
+    // --- FORENINGSLIV (4 undersektioner) ---
+    {
+      slug: "frivillige-i-dalmose-renoverer-forsamlingshus-ved-faelles-hjaelp",
+      titel: "Borgere i Dalmose løftede i flok: Forsamlingshuset har fået nyt tag og køkken",
+      manchet: "Flere end 60 frivillige har brugt deres weekender på at sætte det 120 år gamle samlingssted i stand.",
+      sectionSlug: "frivillige",
+      areaSlug: "dalmose",
+      authorId: "author-mette",
+      mediaId: "media-forening",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 3,
+    },
+    {
+      slug: "gymnastikforening-i-vemmelev-oplever-medlemsboom-blandt-unge",
+      titel: "Vemmelev Gymnastikforening melder om ventelister på alle børne- og ungehold",
+      manchet: "Succesen skyldes nyt fokus på parkour og springgymnastik, der tiltrækker børn fra både Korsør og Slagelse.",
+      sectionSlug: "idraetsforeninger",
+      areaSlug: "vemmelev",
+      authorId: "author-jonas",
+      mediaId: "media-forening",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 5,
+    },
+    {
+      slug: "skaelskoer-bymuseum-forening-fejrer-50-aars-jubilaeum",
+      titel: "Foreningen bag Skælskør Bymuseum fejrer 50 år som byens historiske vogtere",
+      manchet: "En ny jubilæumsbog kortlægger byens maritime historie og de frivilliges utrættelige arbejde siden 1976.",
+      sectionSlug: "kulturforeninger",
+      areaSlug: "skaelskoer",
+      authorId: "author-carsten",
+      mediaId: "media-forening",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 7,
+    },
+    {
+      slug: "lokalraad-paa-agersoe-vil-udvikle-helhedsplan-for-oeen",
+      titel: "Lokalrådet på Agersø inviterer øboerne til borgermøde om fremtidens færgefart",
+      manchet: "En ny helhedsplan skal sikre flere fastboende børnefamilier og bedre forbindelser til fastlandet.",
+      sectionSlug: "lokalraad",
+      areaSlug: "agersoe",
+      authorId: "author-rikke",
+      mediaId: "media-forening",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 9,
+    },
+
+    // --- DEBAT (3 undersektioner, Debat-visning) ---
+    {
+      slug: "leder-vi-har-brug-for-en-mere-aaben-kultur-paa-raadhuset",
+      titel: "Vi har brug for en mere åben debat om kommunens budgetprioriteter",
+      manchet: "Når millioner flyttes mellem velfærd og anlæg, fortjener borgerne klar besked i tide, ikke lukkede forhandlinger bag rådhusets mure.",
+      sectionSlug: "leder",
+      areaSlug: "slagelse-by",
+      authorId: "author-carsten",
+      mediaId: "media-debat",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      debatLabel: "Leder",
+      daysAgo: 1,
+    },
+    {
+      slug: "kommentar-hvorfor-skal-det-tage-fire-aar-at-reparere-en-cykelsti",
+      titel: "Hvorfor skal det tage fire år at reparere 800 meter cykelsti i Korsør?",
+      manchet: "Trafiksikkerheden for vores skolebørn på Tårnborgvej er blevet en bureaukratisk kastebold mellem kommune og entreprenører.",
+      sectionSlug: "kommentarer",
+      areaSlug: "korsoer",
+      authorId: "author-jonas",
+      mediaId: "media-debat",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      debatLabel: "Kommentar",
+      daysAgo: 3,
+    },
+    {
+      slug: "laeserbrev-bevar-faergeafgangene-til-omoe-og-agersoe",
+      titel: "Læserbrev: Beskæring af færgeafgange vil kvæle livet på vores småøer",
+      manchet: "Hvis den sene færge aflyses, kan gymnasieelever og pendlere ikke bo på øerne. Kommunalbestyrelsen må tage ansvar.",
+      sectionSlug: "laeserbreve",
+      areaSlug: "omoe",
+      authorId: "author-mette",
+      mediaId: "media-debat",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      debatLabel: "Læserbrev",
+      daysAgo: 5,
+    },
+
+    // --- PARTNER-INDHOLD (Mærkning: Partner) ---
+    {
+      slug: "lokal-bank-stoetter-fem-nye-ungdomsinitiativer-i-slagelse",
+      titel: "Sparekassen Sjælland-Fyn uddeler 250.000 kroner til lokale ungeprojekter",
+      manchet: "Blandt modtagerne er et makerspace for teenagere og en skaterbane i Slagelse Syd.",
+      sectionSlug: "handel",
+      areaSlug: "slagelse-by",
+      authorId: "author-rikke",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Partner",
+      marking: {
+        sponsor: "Sparekassen Sjælland-Fyn",
+        labelTekst: "Finansieret af Sparekassen Sjælland-Fyn",
+        aftaleId: "sa-sparekassen",
+      },
+      daysAgo: 2,
+    },
+    {
+      slug: "groenne-erhvervslaan-hjaelper-smaavirksomheder-paa-vestsjaelland",
+      titel: "Nye lånepakker skal sætte fart på grøn omstilling i lokale håndværksfirmaer",
+      manchet: "Et nyt partnerskab tilbyder rådgivning og finansiering til varmepumper og solceller på firmadomiciler.",
+      sectionSlug: "byggeri-og-ejendomme",
+      areaSlug: "korsoer",
+      authorId: "author-carsten",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Partner",
+      marking: {
+        sponsor: "Sparekassen Sjælland-Fyn",
+        labelTekst: "Finansieret af Sparekassen Sjælland-Fyn",
+        aftaleId: "sa-sparekassen",
+      },
+      daysAgo: 6,
+    },
+    {
+      slug: "stoette-til-lokale-idraetsforeninger-sikrer-nyt-traeningsudstyr",
+      titel: "Foreningspulje deler ud: Nyt udstyr til badminton og bordtennis i Vemmelev",
+      manchet: "Med støtte fra lokal sparekasse kan idrætsforeningen købe nye net og bolde til over 120 aktive spillere.",
+      sectionSlug: "idraetsforeninger",
+      areaSlug: "vemmelev",
+      authorId: "author-mette",
+      mediaId: "media-forening",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Partner",
+      marking: {
+        sponsor: "Sparekassen Sjælland-Fyn",
+        labelTekst: "Finansieret af Sparekassen Sjælland-Fyn",
+        aftaleId: "sa-sparekassen",
+      },
+      daysAgo: 8,
+    },
+
+    // --- SPONSORERET / ANNONCE (Mærkning: Sponsoreret) ---
+    {
+      slug: "vestsjaellands-bilcenter-udvider-med-nyt-elbilvaerksted",
+      titel: "Vestsjællands Bilcenter åbner topmoderne lade- og servicecenter for elbiler",
+      manchet: "Det nye anlæg på Trafikcenter Allé kan servicere op til otte elbiler samtidigt med certificerede teknikere.",
+      sectionSlug: "handel",
+      areaSlug: "slagelse-by",
+      authorId: "author-jonas",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Sponsoreret",
+      marking: {
+        sponsor: "Vestsjællands Bilcenter",
+        labelTekst: "ANNONCE",
+      },
+      daysAgo: 1,
+    },
+    {
+      slug: "foraarstjek-af-bilen-her-er-de-tre-vigtigste-raad-til-bilisterne",
+      titel: "Forårstjek af bilen: Her er mekanikerens råd efter en hård vinter med salt",
+      manchet: "Undervogn, dæktryk og bremser bør gennemgås grundigt, før sommerturen går mod syd.",
+      sectionSlug: "trafik",
+      areaSlug: "slagelse-by",
+      authorId: "author-jonas",
+      mediaId: "media-trafik",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Sponsoreret",
+      marking: {
+        sponsor: "Vestsjællands Bilcenter",
+        labelTekst: "ANNONCE",
+      },
+      daysAgo: 4,
+    },
+    {
+      slug: "erhvervsleasing-af-varevogne-hitter-blandt-vestsjaellandske-haandvaerkere",
+      titel: "Erhvervsleasing af el-varevogne oplever markant stigning i Slagelse Kommune",
+      manchet: "Lave driftsomkostninger og afgiftsfordele får lokale virksomheder til at skifte flåden ud.",
+      sectionSlug: "byggeri-og-ejendomme",
+      areaSlug: "slagelse-by",
+      authorId: "author-jonas",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Sponsoreret",
+      marking: {
+        sponsor: "Vestsjællands Bilcenter",
+        labelTekst: "ANNONCE",
+      },
+      daysAgo: 9,
+    },
+
+    // --- BRUGERINDSENDT (Mærkning: Brugerindsendt) ---
+    {
+      slug: "loebeklub-i-korsoer-inviterer-til-gratis-begyndertraening",
+      titel: "Korsør Løbeklub inviterer til gratis løbeskole for nybegyndere",
+      manchet: "Har du lyst til at komme i gang med at løbe 5 kilometer? Tirsdag aften starter klubben et nyt hold.",
+      sectionSlug: "motion-og-loeb",
+      areaSlug: "korsoer",
+      authorId: "author-mette",
+      mediaId: "media-sport",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Brugerindsendt",
+      marking: {
+        afsender: "Korsør Løbeklub v/ Jens Hansen",
+      },
+      daysAgo: 2,
+    },
+    {
+      slug: "havevandring-og-planteskift-i-boeslunde-forsamlingshave",
+      titel: "Borgere i Boeslunde bytter stauder og frø til forårets store havedag",
+      manchet: "Tag dine overskydende planter med og få inspiration til insektvenlige haver søndag formiddag.",
+      sectionSlug: "frivillige",
+      areaSlug: "boeslunde",
+      authorId: "author-mette",
+      mediaId: "media-natur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Brugerindsendt",
+      marking: {
+        afsender: "Boeslunde Havegruppe",
+      },
+      daysAgo: 5,
+    },
+    {
+      slug: "skaelskoer-amatorteater-efterlyser-skuespillere-til-aarets-julespil",
+      titel: "Skælskør Amatørteater efterlyser modige voksne og børn til juleforestilling",
+      manchet: "Der er audition i Teatersalen den første tirsdag i næste måned for alle interesserede.",
+      sectionSlug: "scene-og-film",
+      areaSlug: "skaelskoer",
+      authorId: "author-jonas",
+      mediaId: "media-kultur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Brugerindsendt",
+      marking: {
+        afsender: "Skælskør Amatørteater v/ Helle Berg",
+      },
+      daysAgo: 8,
+    },
+
+    // --- AI-ASSISTERET (Mærkning: AI-assisteret, med kilder & verificerede citater) ---
+    {
+      slug: "overblik-det-besluttede-byraadet-paa-aftenens-moede",
+      titel: "Dagens overblik: Det besluttede Slagelse Byråd på mandagens ordinære møde",
+      manchet: "Kort gennemgang af mødets 14 punkter fra lokalplaner i Korsør til anlægsbevilling til cykelsti ved Vemmelev.",
+      sectionSlug: "politik",
+      areaSlug: "slagelse-by",
+      authorId: "author-carsten",
+      mediaId: "media-byraad",
+      pinned: false,
+      breaking: false,
+      indholdstype: "AI-assisteret",
+      marking: {
+        godkendtAf: "Carsten Lysdal",
+        kilder: [
+          "https://slagelse.dk/politik/dagsordener-og-referater/byraad/2026-09-28",
+          "Referat godkendt af Slagelse Byrådssekretariat 29. september 2026",
+        ],
+      },
+      hasQuoteWithSource: true,
+      daysAgo: 0,
+      hoursAgo: 6,
+    },
+    {
+      slug: "døgnrapport-overblik-over-nattens-haendelser-i-sydvestsjaelland",
+      titel: "Døgnrapporten: Nattens meldinger fra Midt- og Vestsjællands Politi",
+      manchet: "En rolig nat i politikredsen med få henvendelser om musik og et enkelt færdselsuheld uden personskade på Vestmotorvejen.",
+      sectionSlug: "trafik",
+      areaSlug: "slagelse-by",
+      authorId: "author-rikke",
+      mediaId: "media-trafik",
+      pinned: false,
+      breaking: false,
+      indholdstype: "AI-assisteret",
+      marking: {
+        godkendtAf: "Rikke Møller",
+        kilder: [
+          "https://politi.dk/midt-og-vestsjaellands-politi/doegnrapporter/2026-09-29",
+          "Pressevagten, Midt- og Vestsjællands Politi",
+        ],
+      },
+      hasQuoteWithSource: true,
+      daysAgo: 0,
+      hoursAgo: 10,
+    },
+    {
+      slug: "offentlige-udbud-disse-opgaver-sender-kommunen-i-hoering",
+      titel: "Kommende udbud: Kommunen søger entreprenører til renovering af idrætshaller",
+      manchet: "Slagelse Kommune udbyder ventilationsarbejde og gulvlægning for anslået 8,4 millioner kroner.",
+      sectionSlug: "job-og-arbejdsmarked",
+      areaSlug: "slagelse-by",
+      authorId: "author-rikke",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "AI-assisteret",
+      marking: {
+        godkendtAf: "Rikke Møller",
+        kilder: [
+          "https://udbud.dk/bekendtgoerelser/2026-slagelse-idraet-09",
+          "Slagelse Ejendomscenter Udbudskontor",
+        ],
+      },
+      hasQuoteWithSource: false,
+      daysAgo: 3,
+    },
+    {
+      slug: "vejret-i-weekend-masser-af-sol-og-svag-vind-over-storebaelt",
+      titel: "Weekendvejret: Højt tryk giver flot sensommervejr og svag vind over Storebælt",
+      manchet: "DMI varsler op til 20 grader og masser af solskinstimer over Vestsjælland både lørdag og søndag.",
+      sectionSlug: "natur-og-klima",
+      areaSlug: "korsoer",
+      authorId: "author-jonas",
+      mediaId: "media-natur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "AI-assisteret",
+      marking: {
+        godkendtAf: "Jonas Vestergaard",
+        kilder: [
+          "https://dmi.dk/danmark/vestsjaelland-regionaludsigt-2026",
+          "DMI Regional vejrudsigt for Storebælt",
+        ],
+      },
+      hasQuoteWithSource: false,
+      daysAgo: 4,
+    },
+
+    // --- PRESSEMEDDELELSER (Mærkning: PR) ---
+    {
+      slug: "slagelse-erhvervsraad-udpeger-aarets-erhvervsleder",
+      titel: "Pressemeddelelse: Indstilling åbnet til Årets Erhvervsleder 2026 i Slagelse",
+      manchet: "Slagelse Erhvervsråd søger kandidater blandt ledere, der har skabt vækst, innovation og lokale arbejdspladser.",
+      sectionSlug: "handel",
+      areaSlug: "slagelse-by",
+      authorId: "author-rikke",
+      mediaId: "media-erhverv",
+      pinned: false,
+      breaking: false,
+      indholdstype: "PR",
+      marking: {
+        afsender: "Slagelse Erhvervsråd",
+      },
+      daysAgo: 2,
+    },
+    {
+      slug: "region-sjaelland-indkalder-til-borgermoede-om-fremtidens-sygehuse",
+      titel: "Pressemeddelelse: Region Sjælland inviterer til borgermøde om Slagelse Sygehus",
+      manchet: "Borgere kan stille spørgsmål til regionsrådspolitikere om nye sengeafsnit og akutmodtagelsens kapacitet.",
+      sectionSlug: "politik",
+      areaSlug: "slagelse-by",
+      authorId: "author-carsten",
+      mediaId: "media-byraad",
+      pinned: false,
+      breaking: false,
+      indholdstype: "PR",
+      marking: {
+        afsender: "Region Sjælland Presseenhed",
+      },
+      daysAgo: 6,
+    },
+    {
+      slug: "teaterforening-modtager-realdania-stoette-til-renovering",
+      titel: "Pressemeddelelse: Korsør Teaterforening tildeles 800.000 kr. fra Realdania",
+      manchet: "Midlerne skal anvendes til restaurering af den historiske balkon og moderne lydisolering.",
+      sectionSlug: "scene-og-film",
+      areaSlug: "korsoer",
+      authorId: "author-jonas",
+      mediaId: "media-kultur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "PR",
+      marking: {
+        afsender: "Korsør Teaterforenings bestyrelse",
+      },
+      daysAgo: 10,
+    },
+
+    // --- YDERLIGERE LOKALE ARTIKLER PÅ TVÆRS AF SMÅØER OG LANDOMRÅDER ---
+    {
+      slug: "omoe-faergen-faar-ny-el-motor-i-2027",
+      titel: "Omø-færgen ombygges med grøn batteridrift: Skærer 80 procent af udledningen",
+      manchet: "Kommunen har modtaget statstilskud til at udskifte færgedriften med elektrisk fremdrift inden for to år.",
+      sectionSlug: "natur-og-klima",
+      areaSlug: "omoe",
+      authorId: "author-carsten",
+      mediaId: "media-havn",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 7,
+    },
+    {
+      slug: "agersoe-moelle-faar-nye-vinger-efter-fem-aars-stilstand",
+      titel: "Historisk milepæl: Agersø Mølle drejer igen efter opsætning af nye egetræsvinger",
+      manchet: "Det traditionsrige håndværk trak tilskuere til fra nær og fjern, da kranen løftede de ti meter lange vinger på plads.",
+      sectionSlug: "kulturforeninger",
+      areaSlug: "agersoe",
+      authorId: "author-mette",
+      mediaId: "media-kultur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 11,
+    },
+    {
+      slug: "boeslunde-faar-ny-lokalplan-for-solcellepark",
+      titel: "Byrådet vedtager lokalplan for solcelleanlæg ved Boeslunde med levende hegn",
+      manchet: "Efter borgermøde er projektet tilpasset med 50 meter grøn afskærmning mod nærmeste naboer.",
+      sectionSlug: "natur-og-klima",
+      areaSlug: "boeslunde",
+      authorId: "author-rikke",
+      mediaId: "media-natur",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 12,
+    },
+    {
+      slug: "ny-cykelsti-mellem-dalmose-og-slagelse-aabner-til-foraar",
+      titel: "Første spadestik taget til 7 kilometer ny asfalteret cykelsti til Dalmose",
+      manchet: "Projektet gør skolevejen markant mere sikker for børn og unge i det sydlige opland.",
+      sectionSlug: "trafik",
+      areaSlug: "dalmose",
+      authorId: "author-jonas",
+      mediaId: "media-trafik",
+      pinned: false,
+      breaking: false,
+      indholdstype: "Uafhængig",
+      daysAgo: 13,
+    },
+  ];
+
+  for (const art of articlesSeed) {
+    const categoryId = categoryMap.get(art.sectionSlug) ?? categoryMap.get("nyheder")!;
+    const geoTagId = areaMap.get(art.areaSlug);
+    const authorId = authorMap.get(art.authorId) ?? authorMap.get("author-carsten")!;
+    const coverMediaId = mediaMap.get(art.mediaId);
+
+    const now = new Date();
+    const pubDate = new Date(now.getTime() - (art.daysAgo * 86400000 + (art.hoursAgo || 0) * 3600000));
+
+    const blocks: unknown[] = [
+      { id: "b1", type: "manchet", data: { text: art.manchet } },
+      {
+        id: "b2",
+        type: "paragraph",
+        data: {
+          content: `<p>${art.manchet} Dette er en vigtig udvikling for borgerne i ${areas.find((a) => a.slug === art.areaSlug)?.navn ?? "området"}. Lokalsamfundet følger sagen tæt, og der forventes yderligere tiltag i den kommende tid.</p>`,
+        },
+      },
+      { id: "b3", type: "heading", data: { text: "Baggrund og perspektiver", level: 2 } },
+      {
+        id: "b4",
+        type: "paragraph",
+        data: {
+          content: `<p>Flere lokale aktører har udtalt sig positivt om initiativet. Redaktionen har talt med berørte parter, der understreger betydningen af gennemskuelighed og lokal forankring.</p>`,
+        },
+      },
+    ];
+
+    if (art.hasQuoteWithSource) {
+      blocks.push({
+        id: "b5",
+        type: "quote",
+        data: {
+          quote: "Vi har arbejdet målrettet på at finde en balanceret løsning for hele kommunen.",
+          attribution: "Kommunal talsmand",
+          kildeUrl: "https://slagelse.dk/presse/udtalelser-2026",
+          dato: "2026-09-29",
+        },
+      });
+    }
+
+    blocks.push({
+      id: "b6",
+      type: "paragraph",
+      data: {
+        content: `<p>Vi følger op på sagen, efterhånden som der fremkommer nyt materiale og beslutninger fra de involverede udvalg.</p>`,
+      },
+    });
+
+    await db.article.upsert({
+      where: { slug: art.slug },
+      update: {
+        titel: art.titel,
+        manchet: art.manchet,
+        blocks: blocks as Prisma.InputJsonValue,
+        status: "Publiceret",
+        indholdstype: art.indholdstype,
+        marking: art.marking ? (art.marking as Prisma.InputJsonValue) : Prisma.JsonNull,
+        pinned: art.pinned,
+        breaking: art.breaking,
+        publiceretTid: pubDate,
+        kategoriId: categoryId,
+        forfatterId: authorId,
+        coverMediaId: coverMediaId,
+        instansId: instance.id,
+        geoTags: geoTagId ? { set: [{ id: geoTagId }] } : undefined,
+      },
+      create: {
+        titel: art.titel,
+        slug: art.slug,
+        manchet: art.manchet,
+        blocks: blocks as Prisma.InputJsonValue,
+        status: "Publiceret",
+        indholdstype: art.indholdstype,
+        aiBrug: art.indholdstype === "AI-assisteret" ? ["Udkast", "Sproglig korrektur"] : ["Ingen"],
+        marking: art.marking ? (art.marking as Prisma.InputJsonValue) : Prisma.JsonNull,
+        pinned: art.pinned,
+        breaking: art.breaking,
+        publiceretTid: pubDate,
+        kategoriId: categoryId,
+        forfatterId: authorId,
+        coverMediaId: coverMediaId,
+        instansId: instance.id,
+        geoTags: geoTagId ? { connect: [{ id: geoTagId }] } : undefined,
+      },
+    });
+  }
+
+  console.log(`Seed færdig: ${articlesSeed.length} artikler oprettet på SlagelseLokalt`);
 }
 
 main()
-  .then(() => console.log("Seed færdig: redaktør + journalist, password: cms-demo-2026"))
-  .finally(() => db.$disconnect());
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await db.$disconnect();
+  });

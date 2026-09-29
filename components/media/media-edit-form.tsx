@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Save } from "lucide-react";
-import { updateMedia, type MediaFormState } from "@/app/(admin)/medier/actions";
+import { updateMedia, type MediaFormState } from "@/app/redaktion/medier/actions";
 import { MediaMetadataFields } from "./media-create-form";
 
 export function MediaEditForm({ media }: { media: { id: string; filtype: string; altTekst: string | null; billedtekst: string | null; ophavsperson: string | null; rettighedsstatus: string | null; licensType: string | null; rettighedsUdlob: Date | null } }) {

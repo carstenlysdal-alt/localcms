@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Save } from "lucide-react";
-import { saveAssignment, type AssignmentFormState } from "@/app/(admin)/opgaver/actions";
+import { saveAssignment, type AssignmentFormState } from "@/app/redaktion/opgaver/actions";
 import { DELIVERY_TYPES } from "@/lib/assignments";
 
 type Option = { id: string; navn?: string; titel?: string; organisationNavn?: string };

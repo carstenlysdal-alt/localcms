@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <rect width="1200" height="800" fill="#F7F3EC"/>
+  <!-- Talebobler -->
+  <path d="M250,200 h400 a40,40 0 0 1 40,40 v180 a40,40 0 0 1 -40,40 h-280 l-60,70 v-70 h-60 a40,40 0 0 1 -40,-40 v-180 a40,40 0 0 1 40,-40 z" fill="#9E3D1B"/>
+  <path d="M550,340 h400 a40,40 0 0 1 40,40 v160 a40,40 0 0 1 -40,40 h-60 v60 l-60,-60 h-280 a40,40 0 0 1 -40,-40 v-160 a40,40 0 0 1 40,-40 z" fill="#1F3A4D" opacity="0.9"/>
+</svg>

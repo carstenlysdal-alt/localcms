@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { BriefcaseBusiness, Calendar, FileText, Images, Radio, Rss, WalletCards } from "lucide-react";
 
 const links = [
-  { href: "/artikler", label: "Artikler", icon: FileText },
-  { href: "/signaler", label: "Signaler", icon: Rss },
-  { href: "/emner", label: "Emner", icon: Radio },
-  { href: "/medier", label: "Medier", icon: Images },
-  { href: "/opgaver", label: "Opgaver", icon: BriefcaseBusiness },
-  { href: "/honorar", label: "Honorar", icon: WalletCards },
+  { href: "/redaktion/artikler", label: "Artikler", icon: FileText },
+  { href: "/redaktion/signaler", label: "Signaler", icon: Rss },
+  { href: "/redaktion/emner", label: "Emner", icon: Radio },
+  { href: "/redaktion/medier", label: "Medier", icon: Images },
+  { href: "/redaktion/opgaver", label: "Opgaver", icon: BriefcaseBusiness },
+  { href: "/redaktion/honorar", label: "Honorar", icon: WalletCards },
 ];
 
 export function NavLinks() {

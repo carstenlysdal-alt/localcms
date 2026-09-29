@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F6E3D8"/>
+      <stop offset="100%" stop-color="#E3ECF2"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <rect y="520" width="1200" height="280" fill="#1F5663" opacity="0.9"/>
+  <!-- Bro & Både -->
+  <line x1="0" y1="460" x2="1200" y2="460" stroke="#7F2F13" stroke-width="14"/>
+  <line x1="400" y1="200" x2="400" y2="520" stroke="#7F2F13" stroke-width="12"/>
+  <line x1="800" y1="200" x2="800" y2="520" stroke="#7F2F13" stroke-width="12"/>
+  <polygon points="250,560 380,560 360,600 270,600" fill="#9E3D1B"/>
+  <line x1="315" y1="470" x2="315" y2="560" stroke="#1E1A16" stroke-width="4"/>
+  <polygon points="315,480 370,520 315,550" fill="#FFFFFF" opacity="0.8"/>
+</svg>
