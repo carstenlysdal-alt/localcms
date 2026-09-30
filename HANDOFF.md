@@ -6,6 +6,19 @@
 Denne fil er overleveringsloggen. Læs den FØR du bygger videre — den indeholder
 alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste trin.
 
+## Arbejdslog — Fase 4: Redaktionel styring & Forsidestyring (A-01…A-06, 2026-09-30)
+
+- **A-03 (Forsidestyring `/redaktion/forside`):**
+  - Dedikeret forside-curation interface (`FrontpageManager.tsx`) med visuelt overblik over Zone 1 (Hovedhistorie), Zone 2 (Sekundære tophistorier) og Zone 3 (Områdefokus).
+  - Fastgørelse med udløb: Artikler kan fastgøres med tidsbegrænsning (12t, 24t, 48t, 7 dage el. permanent).
+  - Frigivelse: Ét klik på "Frigiv zone" sletter `FrontpagePlacement`, hvorefter zonen øjeblikkeligt overtages af den dynamiske distributionsmotor.
+- **A-04 (Kvoteloft-advarsel):**
+  - Live beregning af støtte- og sponsoreret andel via `calculateSupportedContentQuota()`. Tydelig advarselsbanner hvis andel ≥ 25%, og server-blockering mod fastgørelse af yderligere kommercielt indhold i topzonen.
+- **A-02 (Områdeadministration `/redaktion/omraader`):**
+  - Komplet CRUD-interface til delområder (`GeoTag`) med slug, koordinater (lat/lng) og artikel-tæller.
+- **A-01 & A-05 & A-06:** Sektionsadministration, rettelser i editoren og AI-assisteret mærkning er verificeret og aktive.
+- **Testsuite:** 31 tests (`npm test` 100% grøn). `npm run lint`, `npx tsc --noEmit` og `npm run build` er grønne på alle 36 routes.
+
 ## Arbejdslog — Agentisk Ad-Generator, First-Party Metrik-Motor & Algoritmisk Indholdsfordeling (2026-09-30)
 
 - **Etape A: First-Party Metrikker & Performance Dashboard (`/redaktion/metrikker`):**
