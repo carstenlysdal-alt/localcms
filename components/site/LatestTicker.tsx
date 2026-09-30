@@ -9,22 +9,21 @@ export function LatestTicker({ article }: LatestTickerProps) {
   if (!article) return null;
 
   const relTime = formatRelativeTime(article.publiceretTid);
+  const pubDate = new Date(article.publiceretTid);
+  const timeFormatted = pubDate.toLocaleTimeString("da-DK", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
-    <div className="site-ticker-container" aria-label="Seneste nyt ticker">
-      <div className="site-ticker-inner">
-        <div className="site-ticker-badge">
-          <span className="site-ticker-dot" aria-hidden="true" />
-          <span className="site-ticker-label">Seneste nyt</span>
-        </div>
-
-        <div className="site-ticker-content">
-          <span className="site-ticker-time">{relTime}</span>
-          <span className="site-ticker-sep">·</span>
-          <Link href={article.href} className="site-ticker-link">
-            {article.titel}
-          </Link>
-        </div>
+    <div className="site-ticker-bar" aria-label="Seneste nyt">
+      <div className="site-container site-ticker-inner">
+        <span className="site-ticker-badge">● SENESTE NYT</span>
+        <span className="site-ticker-time">{relTime}</span>
+        <Link href={article.href} className="site-ticker-headline">
+          {article.titel}
+        </Link>
+        <span className="site-ticker-updated">Opdateret {timeFormatted}</span>
       </div>
     </div>
   );

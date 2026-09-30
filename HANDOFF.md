@@ -6,6 +6,40 @@
 Denne fil er overleveringsloggen. Læs den FØR du bygger videre — den indeholder
 alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste trin.
 
+## Arbejdslog — Claude Design Forsideimplementering (Option 2a / 2b, 2026-09-30)
+
+- **Implementeret `SlagelseLokalt Forside.dc.html` (Option 2a & 2b):**
+  - **Typografi & Skrifttyper:**
+    - Erstattet standard fonte med Google Fonts `Newsreader` (serif til overskrifter, display og manchet) og `Inter` (sans-serif til UI, kickers, knapper og metadata) jf. Claude Design lærredet.
+    - Kortoverskrifter sat med `Newsreader` (44px hovedhistorie, 22px standard, 26px annonce), balancerede linjer og avis-æstetik.
+  - **Zone 2 Bento Hero (12 kolonner):**
+    - 8-kolonne hovedhistorie med 3:2 fotoplacering, Newsreader 44px display overskrift, manchet og læsetidsestimat.
+    - 4-kolonne stacket sekundær sektion (partnerfinansieret kort `#E3ECF2` + redaktionel tophistorie).
+  - **Zone 3 ("Fra dit område"):**
+    - 3-kolonne bento-grid med områdevælgerpiller og 3:2 billeder.
+  - **3-Kolonne Feature-række (Option 2a Signature):**
+    - `AiShortNewsBox.tsx`: "KORT NYT" med stiplet ramme, `✦ AI-ASSISTERET` badge, tidsangivelser, kildehenvisning og AI-transparens link.
+    - `CitizenStoriesBox.tsx`: "FRA BORGERNE" med `#E7EBDD` baggrund, `▣ INDSENDT` badge, 54px thumbnails og direkte link til `/indsend`.
+    - `WeekendCalendar.tsx`: "I DAG OG I WEEKENDEN" med farvede dato-piller (f.eks. `03 OKT`), lokale arrangementer tilpasset den aktuelle kommune og link til `/kalender`.
+  - **In-Feed First-party Annonce (`FirstPartyAd.tsx`):**
+    - Opdateret til Option 2a format: `#FCE8A6` baggrund, `#4D3900` tekst, `2px solid #B8860B` med 6px guldkant i toppen, `ANNONCE` badge, Newsreader overskrift og pill-CTA.
+  - **Header & Branding (`SiteHeader.tsx`):**
+    - Newsreader logo med accent-farvet `Lokalt` (f.eks. `Slagelse`<span style="color:var(--site-accent)">Lokalt</span>).
+    - Områdevælger-pille `◉ [By] ▾` direkte ved siden af logoet koblet til byskifteren.
+    - "Indsend historie" pill-knap i accentfarve.
+    - 3px dekorativ accent-progresslinie under headeren.
+  - **Fyrtårnspartnere Strip (`BeaconPartners.tsx`):**
+    - `FYRTÅRNSPARTNERE · MED TIL AT GØRE LOKALJOURNALISTIK MULIG` stribe med 5 lokale partnerkort tilpasset hver kommune.
+  - **Mobil Bundnavigation (`BottomNav.tsx`):**
+    - Flydende frosted-glass bundmenu jf. Option 2b (`backdrop-filter: blur(18px); border-radius: 24px; box-shadow: 0 8px 24px rgba(30, 26, 22, 0.14)`).
+  - **Mikrointeraktioner & Elevation (`.b`):**
+    - `.b:hover` elevation med `transform: translateY(-2px); box-shadow: 0 4px 14px rgba(30, 26, 22, 0.14)`.
+- **Kvalitetskontrol:**
+  - 40/40 tests grønne (`npm test`).
+  - `npx tsc --noEmit` 0 fejl.
+  - `npm run lint` 0 fejl.
+  - `npm run build` bygger 42 routes fejlfrit.
+
 ## Arbejdslog — Netværkssites & Multi-site (N-02, N-04, 2026-09-30)
 
 - **Kreeret og seedet alle 5 øvrige hovedsites:**

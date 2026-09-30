@@ -82,7 +82,7 @@ export function ArticleCard({
   const HeadingTag = headingLevel === 2 ? "h2" : headingLevel === 4 ? "h4" : "h3";
 
   return (
-    <article className={`site-card site-card-${variant} ${markingClass}`}>
+    <article className={`b site-card site-card-${variant} ${markingClass}`}>
       {/* 1. Mærkningsbadge hvis ikke uafhængig */}
       {indholdstype !== "Uafhængig" && (
         <div className="site-card-marking">
@@ -152,6 +152,12 @@ export function ArticleCard({
           <time dateTime={isoTime} className="site-card-time">
             {relTime}
           </time>
+          {variant === "hoved" && (
+            <>
+              <span className="site-card-meta-dot">·</span>
+              <span className="site-card-readtime">4 min. læsning</span>
+            </>
+          )}
         </div>
       </div>
     </article>

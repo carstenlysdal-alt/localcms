@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Literata } from "next/font/google";
+import { Newsreader, Inter } from "next/font/google";
 import "@/styles/site.css";
 import { getCurrentSite, ALL_NETWORK_SITES } from "@/lib/site";
 import { getSiteNavigation } from "@/lib/site-queries";
@@ -7,17 +7,18 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { BottomNav } from "@/components/site/BottomNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-display",
+const newsreader = Newsreader({
+  variable: "--font-serif",
   subsets: ["latin", "latin-ext"],
-  weight: ["600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
-const literata = Literata({
-  variable: "--font-body",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "600"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -55,7 +56,7 @@ export default async function SiteLayout({
 
   return (
     <div
-      className={`site-wrapper ${bricolage.variable} ${literata.variable}`}
+      className={`site-wrapper ${newsreader.variable} ${inter.variable}`}
       style={styleVariables}
     >
       <SiteHeader

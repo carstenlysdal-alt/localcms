@@ -3,10 +3,13 @@ import { getCurrentSite } from "@/lib/site";
 import { getFrontpageData, getSiteNavigation, getActiveAds } from "@/lib/site-queries";
 import { LatestTicker } from "@/components/site/LatestTicker";
 import { ArticleCard } from "@/components/site/ArticleCard";
-import { ShortNewsList } from "@/components/site/ShortNewsList";
+import { AiShortNewsBox } from "@/components/site/AiShortNewsBox";
+import { CitizenStoriesBox } from "@/components/site/CitizenStoriesBox";
+import { WeekendCalendar } from "@/components/site/WeekendCalendar";
+import { BeaconPartners } from "@/components/site/BeaconPartners";
 import { NewsletterSignup } from "@/components/site/NewsletterSignup";
 import { FirstPartyAd } from "@/components/site/FirstPartyAd";
-import { MapPin, Users, ArrowRight } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 
 export default async function Frontpage({
   searchParams,
@@ -41,10 +44,11 @@ export default async function Frontpage({
       {seneste && <LatestTicker article={seneste} />}
 
       <div className="site-container">
-        {/* 2. Zone 2: Tophistorie (1 hoved + 2 standard) */}
+        {/* 2. Zone 2: Tophistorier (12-kolonne Bento-grid fra Option 2a) */}
         {tophistorie && (
           <section className="site-top-section" aria-label="Tophistorier">
             <div className="site-top-grid">
+              {/* Span 8: Hovedhistorie */}
               <div className="site-top-hoved">
                 <ArticleCard
                   variant="hoved"
@@ -74,6 +78,7 @@ export default async function Frontpage({
                 />
               </div>
 
+              {/* Span 4: Sekundære tophistorier stacket */}
               {topSekundaere.length > 0 && (
                 <div className="site-top-secondary">
                   {topSekundaere.map((art) => (
@@ -109,81 +114,82 @@ export default async function Frontpage({
           </section>
         )}
 
-        {/* First-Party In-Feed Ad Banner (First-party, cookiefri, respekt for kvoteloft) */}
-        {feedAd && <FirstPartyAd campaign={feedAd} />}
-
-        {/* 3 + 4. Zone 3 (Fra dit område) + Zone 4 (Kort nyt) */}
-        <section className="site-mid-section" style={{ marginTop: "40px" }} aria-label="Lokale nyheder og kort nyt">
-          <div className="site-mid-grid">
-            {/* Zone 3: Fra dit område */}
-            <div className="site-area-zone">
-              <div className="site-zone-heading">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <MapPin size={20} style={{ color: "var(--site-accent)" }} />
-                  <span>Fra dit område</span>
-                </div>
-                {areas.length > 0 && (
-                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                    {areas.slice(0, 4).map((area) => (
-                      <Link
-                        key={area.id}
-                        href={`/omraade/${area.slug || area.id}`}
-                        className="site-pill"
-                        style={{ fontSize: "12px", padding: "3px 10px" }}
-                      >
-                        {area.navn}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+        {/* 3. Zone 3: Fra dit område (3-kolonner bento-grid med områdevælger) */}
+        <section className="site-mid-section" aria-label="Fra dit område">
+          <div className="site-area-zone">
+            <div className="site-zone-heading">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <MapPin size={18} style={{ color: "var(--site-accent)" }} />
+                <span>Fra dit område</span>
               </div>
-
-              {omraadeArtikler.length > 0 ? (
-                <div className="site-cards-grid-3">
-                  {omraadeArtikler.map((art) => (
-                    <ArticleCard
-                      key={art.id}
-                      variant="standard"
-                      article={{
-                        titel: art.titel,
-                        href: art.href,
-                        sektion: art.sektion.navn,
-                        undersektion: art.undersektion?.navn,
-                        omraade: art.omraade?.navn,
-                        cover: art.coverMedia
-                          ? {
-                              url: art.coverMedia.url,
-                              alt: art.coverMedia.altTekst || art.titel,
-                            }
-                          : null,
-                        forfatter: art.forfatter,
-                        publiceret: art.publiceretTid,
-                        indholdstype: art.indholdstype,
-                        sponsor: art.marking?.sponsor as string | undefined,
-                        afsender: art.marking?.afsender as string | undefined,
-                        godkendtAf: art.marking?.godkendtAf as string | undefined,
-                        breaking: art.breaking,
-                      }}
-                      headingLevel={3}
-                    />
+              {areas.length > 0 && (
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  {areas.slice(0, 5).map((area) => (
+                    <Link
+                      key={area.id}
+                      href={`/omraade/${area.slug || area.id}`}
+                      className="site-pill"
+                      style={{ fontSize: "12px", padding: "4px 12px" }}
+                    >
+                      {area.navn}
+                    </Link>
                   ))}
                 </div>
-              ) : (
-                <p style={{ color: "var(--ink-2)", fontStyle: "italic" }}>
-                  Ingen artikler fundet for dette område endnu.
-                </p>
               )}
             </div>
 
-            {/* Zone 4: Kort nyt */}
-            <div className="site-short-news-zone">
-              <ShortNewsList artikler={kortNyt} titel="Kort nyt" />
-            </div>
+            {omraadeArtikler.length > 0 ? (
+              <div className="site-cards-grid-3">
+                {omraadeArtikler.map((art) => (
+                  <ArticleCard
+                    key={art.id}
+                    variant="standard"
+                    article={{
+                      titel: art.titel,
+                      href: art.href,
+                      sektion: art.sektion.navn,
+                      undersektion: art.undersektion?.navn,
+                      omraade: art.omraade?.navn,
+                      cover: art.coverMedia
+                        ? {
+                            url: art.coverMedia.url,
+                            alt: art.coverMedia.altTekst || art.titel,
+                          }
+                        : null,
+                      forfatter: art.forfatter,
+                      publiceret: art.publiceretTid,
+                      indholdstype: art.indholdstype,
+                      sponsor: art.marking?.sponsor as string | undefined,
+                      afsender: art.marking?.afsender as string | undefined,
+                      godkendtAf: art.marking?.godkendtAf as string | undefined,
+                      breaking: art.breaking,
+                    }}
+                    headingLevel={3}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: "var(--ink-2)", fontStyle: "italic", padding: "16px 0" }}>
+                Ingen artikler fundet for dette område endnu.
+              </p>
+            )}
           </div>
         </section>
 
-        {/* 7. Zone 7: Sektionsblokke (Nyheder, Sport, Erhverv, Kultur, Foreningsliv, Debat) */}
-        <section className="site-section-blocks-zone" style={{ marginTop: "48px" }} aria-label="Nyheder opdelt i sektioner">
+        {/* 4. Feature-række fra Option 2a (Kort Nyt + Fra Borgerne + I Dag og i Weekenden) */}
+        <section className="site-features-section" aria-label="Kort nyt, borgerindlæg og kalender">
+          <div className="site-features-grid">
+            <AiShortNewsBox artikler={kortNyt} />
+            <CitizenStoriesBox artikler={borgerArtikler} />
+            <WeekendCalendar kommuneNavn={site.kommune} />
+          </div>
+        </section>
+
+        {/* 5. In-Feed First-Party Annonce (Guld-ramme, Newsreader, Option 2a) */}
+        {feedAd && <FirstPartyAd campaign={feedAd} />}
+
+        {/* 6. Zone 7: Sektionsblokke (Nyheder, Sport, Erhverv, Kultur, Foreningsliv, Debat) */}
+        <section className="site-section-blocks-zone" aria-label="Nyheder opdelt i sektioner">
           {sektionsBlokke.map(({ sektion, artikler }) => (
             <div key={sektion.slug} className="site-section-block">
               <div className="site-section-block-header">
@@ -230,57 +236,13 @@ export default async function Frontpage({
           ))}
         </section>
 
-        {/* 5. Zone 5: Fra borgerne (Brugerindsendt, spor A) */}
-        {borgerArtikler.length > 0 && (
-          <section className="site-citizens-section" style={{ marginTop: "40px" }} aria-label="Fra borgerne">
-            <div className="site-zone-heading">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Users size={20} style={{ color: "var(--site-accent)" }} />
-                <span>Fra borgerne</span>
-              </div>
-              <Link
-                href="/indsend"
-                className="site-section-block-link"
-                style={{ fontSize: "14px" }}
-              >
-                Indsend dit indlæg →
-              </Link>
-            </div>
-
-            <div className="site-cards-grid-3">
-              {borgerArtikler.map((art) => (
-                <ArticleCard
-                  key={art.id}
-                  variant="kompakt"
-                  article={{
-                    titel: art.titel,
-                    href: art.href,
-                    sektion: art.sektion.navn,
-                    undersektion: art.undersektion?.navn,
-                    omraade: art.omraade?.navn,
-                    cover: art.coverMedia
-                      ? {
-                          url: art.coverMedia.url,
-                          alt: art.coverMedia.altTekst || art.titel,
-                        }
-                      : null,
-                    forfatter: art.forfatter,
-                    publiceret: art.publiceretTid,
-                    indholdstype: art.indholdstype,
-                    afsender: art.marking?.afsender as string | undefined,
-                    breaking: art.breaking,
-                  }}
-                  headingLevel={3}
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 10. Zone 10: Nyhedsbrevsmodul */}
-        <div style={{ marginTop: "56px" }}>
+        {/* 7. Nyhedsbrevstilmelding (Mørk kontrast-banner fra Option 4a / DESIGN.md) */}
+        <div style={{ marginTop: "40px" }}>
           <NewsletterSignup siteNavn={site.navn} />
         </div>
+
+        {/* 8. Fyrtårnspartnere strip fra Option 2a */}
+        <BeaconPartners kommuneNavn={site.kommune} />
       </div>
     </div>
   );

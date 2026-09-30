@@ -106,83 +106,102 @@ export function FirstPartyAd({ campaign }: FirstPartyAdProps) {
     );
   }
 
-  // Format: IN_FEED_BANNER (Desktop 1200x200 / Responsive)
+  // Format: IN_FEED_BANNER (Desktop 1200x200 / Responsive, Option 2a)
   return (
     <aside
-      className="site-ad-container site-ad-banner"
+      className="b site-ad-banner"
       style={{
+        backgroundColor: "#FCE8A6",
+        color: "#4D3900",
         border: "2px solid #B8860B",
-        borderTop: "4px solid #B8860B",
-        borderRadius: "8px",
-        padding: "20px 24px",
-        background: "linear-gradient(135deg, #FFFDF8 0%, #FFF9EB 100%)",
+        borderTop: "6px solid #B8860B",
+        borderRadius: "16px",
+        padding: "22px 28px",
         margin: "32px 0",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        display: "grid",
+        gridTemplateColumns: campaign.kreativData.billedeUrl ? "160px 1fr auto" : "1fr auto",
+        gap: "24px",
+        alignItems: "center",
       }}
       aria-label="Annonce"
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+      {campaign.kreativData.billedeUrl && (
+        <div
+          style={{
+            height: "100px",
+            borderRadius: "8px",
+            overflow: "hidden",
+            backgroundColor: "rgba(255,255,255,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={campaign.kreativData.billedeUrl}
+            alt={campaign.annoncoer}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </div>
+      )}
+
+      <div>
         <span
           style={{
-            background: "#FCE8A6",
-            color: "#4D3900",
-            fontSize: "0.75rem",
-            fontWeight: 800,
-            padding: "2px 8px",
+            fontFamily: "var(--font-sans)",
+            fontSize: "11px",
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            border: "1.5px solid #4D3900",
+            padding: "3px 8px",
             borderRadius: "4px",
-            letterSpacing: "0.05em",
+            display: "inline-block",
+            color: "#4D3900",
           }}
         >
           {badgeTekst}
         </span>
-        <span style={{ fontSize: "0.8rem", color: "#777", fontWeight: 500 }}>
-          Annoncør: {campaign.annoncoer}
-        </span>
+        <h3
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "26px",
+            lineHeight: 1.15,
+            fontWeight: 600,
+            margin: "10px 0 6px 0",
+            color: "#4D3900",
+          }}
+        >
+          {overskrift || campaign.titel}
+        </h3>
+        <div style={{ fontFamily: "var(--font-sans)", fontSize: "13px", fontWeight: 500, color: "#614900" }}>
+          {campaign.annoncoer} {manchet ? `· ${manchet}` : ""}
+        </div>
       </div>
 
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "16px" }}>
-        <div style={{ flex: "1 1 500px" }}>
-          <h3
-            style={{
-              fontSize: "1.3rem",
-              fontWeight: 700,
-              fontFamily: "var(--font-display, inherit)",
-              margin: "0 0 6px",
-              color: "var(--site-text, #111)",
-            }}
-          >
-            {overskrift || campaign.titel}
-          </h3>
-          {manchet && (
-            <p style={{ fontSize: "0.95rem", color: "#444", margin: 0, lineHeight: 1.45 }}>
-              {manchet}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <a
-            href={linkUrl}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            onClick={handleClick}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "#996500",
-              color: "#FFF",
-              padding: "10px 18px",
-              borderRadius: "6px",
-              fontWeight: 700,
-              fontSize: "0.9rem",
-              textDecoration: "none",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-            }}
-          >
-            {ctaTekst} <ArrowUpRight size={16} />
-          </a>
-        </div>
+      <div>
+        <a
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          onClick={handleClick}
+          style={{
+            fontFamily: "var(--font-sans)",
+            backgroundColor: "#4D3900",
+            color: "#FCE8A6",
+            padding: "12px 22px",
+            borderRadius: "999px",
+            fontWeight: 700,
+            fontSize: "14px",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {ctaTekst} <ArrowUpRight size={15} />
+        </a>
       </div>
     </aside>
   );

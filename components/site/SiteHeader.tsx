@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Send, Heart, MapPin, ChevronDown, Check } from "lucide-react";
+import { Search, Heart, MapPin, ChevronDown, Check } from "lucide-react";
 import { ALL_NETWORK_SITES, type NetworkSiteSummary } from "@/lib/network-sites";
 
 type CategoryItem = {
@@ -108,7 +108,16 @@ export function SiteHeader({
           <div className="site-header-brand">
             <div className="site-brand-container">
               <Link href="/" className="site-brand-link" aria-label={`${siteNavn} forside`}>
-                <span className="site-brand-logo">{siteNavn}</span>
+                <span className="site-brand-logo">
+                  {siteNavn.endsWith("Lokalt") ? (
+                    <>
+                      <span>{siteNavn.replace(/Lokalt$/, "")}</span>
+                      <span className="site-brand-logo-accent">Lokalt</span>
+                    </>
+                  ) : (
+                    siteNavn
+                  )}
+                </span>
               </Link>
 
               {/* By-vælger dropdown knap direkte i headeren */}
@@ -175,14 +184,13 @@ export function SiteHeader({
               <span className="site-action-label">Søg</span>
             </Link>
 
-            <Link href="/indsend" className="site-header-action-btn site-action-desktop-only">
-              <Send size={16} />
-              <span>Indsend tip</span>
+            <Link href="/indsend" className="site-header-btn-indsend site-action-desktop-only">
+              <span>Indsend historie</span>
             </Link>
 
-            <Link href="/bliv-stoette" className="site-header-btn-support site-action-desktop-only">
+            <Link href="/bliv-stoette" className="site-header-btn-support site-action-desktop-only" title="Bliv støtte">
               <Heart size={15} />
-              <span>Bliv støtte</span>
+              <span>Støt</span>
             </Link>
           </div>
         </div>
@@ -218,6 +226,16 @@ export function SiteHeader({
           </ul>
         </div>
       </nav>
+
+      {/* Dekorativ accent-progresslinie fra Option 2a */}
+      <div
+        className="site-header-accent-line"
+        style={{
+          height: "3px",
+          background: "linear-gradient(90deg, var(--site-accent) 28%, transparent 28%)",
+        }}
+        aria-hidden="true"
+      />
     </header>
   );
 }
