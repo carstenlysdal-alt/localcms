@@ -169,11 +169,35 @@ export function SectionSheet({
             </div>
           </div>
 
+          {/* Redaktionelle værktøjer */}
+          <div className="site-sheet-section">
+            <h3 className="site-sheet-heading">
+              Redaktionelle værktøjer
+            </h3>
+            <div className="site-sheet-extra-links">
+              <Link href="/qa" className="site-sheet-extra-link" onClick={onClose}>
+                <span>📥 Kilde-Q&A</span>
+              </Link>
+              <Link href="/interview" className="site-sheet-extra-link" onClick={onClose}>
+                <span>🎙️ AI Kildeinterview</span>
+              </Link>
+              <Link href="/sponsor" className="site-sheet-extra-link" onClick={onClose}>
+                <span>🤝 Sponsor & Partner</span>
+              </Link>
+              <Link href="/meddeler" className="site-sheet-extra-link" onClick={onClose}>
+                <span>📡 Meddeler & Tip</span>
+              </Link>
+              <Link href="/indsend" className="site-sheet-extra-link" onClick={onClose}>
+                <span>📅 Indsend arrangement</span>
+              </Link>
+            </div>
+          </div>
+
           {/* Mediet og handlinger */}
           <div className="site-sheet-section site-sheet-links-section">
             <div className="site-sheet-extra-links">
-              <Link href="/indsend" className="site-sheet-extra-link" onClick={onClose}>
-                <Send size={16} /> Indsend tip eller læserbrev
+              <Link href="/meddeler?kategori=tip" className="site-sheet-extra-link" onClick={onClose}>
+                <Send size={16} /> Tip redaktionen
               </Link>
               <Link href="/bliv-stoette" className="site-sheet-extra-link" onClick={onClose}>
                 <Heart size={16} /> Bliv støtte eller partner

@@ -36,11 +36,11 @@ export function AiNetworkEntryBlock({ kommuneNavn }: AiNetworkEntryBlockProps) {
     },
     {
       href: "/meddeler",
-      badge: "Meddeler-netværket",
+      badge: "Tip & Meddeler",
       icon: Radio,
-      title: "Bliv lokal meddeler",
-      desc: "Rapporter fra din sportsklub, forening, beredskab eller landsby direkte til redaktionen.",
-      cta: "Tilmeld som meddeler",
+      title: "Tip os eller bliv meddeler",
+      desc: "Har du set noget, et tip eller nyt fra din forening? Send tekst, tale og billeder direkte til redaktionen.",
+      cta: "Send tip / Bliv meddeler",
       theme: "meddeler",
     },
     {

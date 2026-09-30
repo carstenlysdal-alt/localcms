@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Heart, MapPin, ChevronDown, Check } from "lucide-react";
+import { Search, Heart, MapPin, ChevronDown, Check, Radio } from "lucide-react";
 import { ALL_NETWORK_SITES, type NetworkSiteSummary } from "@/lib/network-sites";
 import { AiToolBar } from "@/components/site/AiToolBar";
 
@@ -188,8 +188,9 @@ export function SiteHeader({
               <span className="site-action-label">Søg</span>
             </Link>
 
-            <Link href="/indsend" className="site-header-btn-indsend site-action-desktop-only">
-              <span>Indsend historie</span>
+            <Link href="/meddeler?kategori=tip" className="site-header-action-btn site-action-desktop-only" aria-label="Tip redaktionen">
+              <Radio size={16} />
+              <span className="site-action-label">Tip os</span>
             </Link>
 
             <Link href="/bliv-stoette" className="site-header-btn-support site-action-desktop-only" title="Bliv støtte">
