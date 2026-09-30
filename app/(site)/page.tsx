@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
-import { getFrontpageData, getSiteNavigation } from "@/lib/site-queries";
+import { getFrontpageData, getSiteNavigation, getActiveAds } from "@/lib/site-queries";
 import { LatestTicker } from "@/components/site/LatestTicker";
 import { ArticleCard } from "@/components/site/ArticleCard";
 import { ShortNewsList } from "@/components/site/ShortNewsList";
 import { NewsletterSignup } from "@/components/site/NewsletterSignup";
+import { FirstPartyAd } from "@/components/site/FirstPartyAd";
 import { MapPin, Users, ArrowRight } from "lucide-react";
 
 export default async function Frontpage({
@@ -16,10 +17,13 @@ export default async function Frontpage({
   const params = await searchParams;
   const areaFilter = typeof params.omraade === "string" ? params.omraade : undefined;
 
-  const [data, { areas }] = await Promise.all([
+  const [data, { areas }, feedAds] = await Promise.all([
     getFrontpageData(site.id, areaFilter),
     getSiteNavigation(site.id),
+    getActiveAds(site.id, "feed"),
   ]);
+
+  const feedAd = feedAds[0] ?? null;
 
   const {
     seneste,
@@ -104,6 +108,9 @@ export default async function Frontpage({
             </div>
           </section>
         )}
+
+        {/* First-Party In-Feed Ad Banner (First-party, cookiefri, respekt for kvoteloft) */}
+        {feedAd && <FirstPartyAd campaign={feedAd} />}
 
         {/* 3 + 4. Zone 3 (Fra dit område) + Zone 4 (Kort nyt) */}
         <section className="site-mid-section" style={{ marginTop: "40px" }} aria-label="Lokale nyheder og kort nyt">

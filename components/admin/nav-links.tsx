@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BriefcaseBusiness, Calendar, FileText, Images, Radio, Rss, WalletCards } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, Calendar, FileText, Images, Megaphone, Radio, Rss, WalletCards } from "lucide-react";
 
 const links = [
   { href: "/redaktion/artikler", label: "Artikler", icon: FileText },
+  { href: "/redaktion/metrikker", label: "Metrikker", icon: BarChart3 },
+  { href: "/redaktion/annoncer", label: "Annoncer & Ads", icon: Megaphone },
   { href: "/redaktion/signaler", label: "Signaler", icon: Rss },
   { href: "/redaktion/emner", label: "Emner", icon: Radio },
   { href: "/redaktion/medier", label: "Medier", icon: Images },

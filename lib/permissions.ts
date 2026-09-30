@@ -13,6 +13,7 @@ export const PERMISSIONS = {
   TASK_VIEW_ALL: "task.viewAll",
   HONOR_VIEW_OWN: "honorar.viewOwn",
   HONOR_MANAGE: "honorar.manage",
+  CATEGORY_MANAGE: "category.manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

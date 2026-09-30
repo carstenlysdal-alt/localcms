@@ -192,3 +192,103 @@ export async function toggleArticleFlag(articleId: string, flag: "pinned" | "bre
   revalidatePath("/redaktion/artikler");
   revalidatePath("/");
 }
+
+export type CorrectionActionState = {
+  error?: string;
+  success?: string;
+};
+
+export async function addArticleCorrection(
+  articleId: string,
+  _prevState: CorrectionActionState,
+  formData: FormData
+): Promise<CorrectionActionState> {
+  const session = await auth();
+  if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
+    return { error: "Du har ikke adgang til at tilføje rettelser." };
+  }
+
+  const article = await db.article.findFirst({
+    where: { id: articleId, instansId: session.user.instansId },
+    include: { kategori: true },
+  });
+
+  if (!article) {
+    return { error: "Artiklen findes ikke." };
+  }
+
+  if (!canEditArticle(session.user, article) && !can(session.user, PERMISSIONS.ARTICLE_EDIT_ALL)) {
+    return { error: "Du har ikke rettigheder til at redigere denne artikel." };
+  }
+
+  const rawTekst = formData.get("tekst");
+  if (typeof rawTekst !== "string" || rawTekst.trim().length < 5) {
+    return { error: "Angiv en fyldestgørende rettelsestekst (mindst 5 tegn)." };
+  }
+
+  const rawDato = formData.get("dato");
+  let dato = new Date();
+  if (typeof rawDato === "string" && rawDato.trim()) {
+    const parsedDate = new Date(rawDato);
+    if (!isNaN(parsedDate.getTime())) {
+      dato = parsedDate;
+    }
+  }
+
+  try {
+    await db.correction.create({
+      data: {
+        articleId,
+        instansId: session.user.instansId,
+        tekst: rawTekst.trim(),
+        dato,
+      },
+    });
+
+    revalidatePath(`/redaktion/artikler/${articleId}`);
+    revalidatePath("/om-mediet/rettelser");
+    if (article.kategori) {
+      revalidatePath(`/${article.kategori.slug}/${article.slug}`);
+    }
+
+    return { success: "Rettelsen er tilføjet og fremgår nu i artiklen samt i rettelsesloggen." };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Kunne ikke tilføje rettelsen." };
+  }
+}
+
+export async function deleteArticleCorrection(
+  correctionId: string,
+  articleId: string
+): Promise<CorrectionActionState> {
+  const session = await auth();
+  if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
+    return { error: "Du har ikke adgang til at slette rettelser." };
+  }
+
+  const correction = await db.correction.findFirst({
+    where: { id: correctionId, instansId: session.user.instansId },
+    include: { article: { include: { kategori: true } } },
+  });
+
+  if (!correction) {
+    return { error: "Rettelsen findes ikke." };
+  }
+
+  try {
+    await db.correction.delete({
+      where: { id: correctionId },
+    });
+
+    revalidatePath(`/redaktion/artikler/${articleId}`);
+    revalidatePath("/om-mediet/rettelser");
+    if (correction.article?.kategori) {
+      revalidatePath(`/${correction.article.kategori.slug}/${correction.article.slug}`);
+    }
+
+    return { success: "Rettelsen er fjernet." };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Kunne ikke fjerne rettelsen." };
+  }
+}
+

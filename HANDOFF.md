@@ -6,6 +6,32 @@
 Denne fil er overleveringsloggen. Læs den FØR du bygger videre — den indeholder
 alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste trin.
 
+## Arbejdslog — Agentisk Ad-Generator, First-Party Metrik-Motor & Algoritmisk Indholdsfordeling (2026-09-30)
+
+- **Etape A: First-Party Metrikker & Performance Dashboard (`/redaktion/metrikker`):**
+  - Datamodel: `ArticleMetric` oprettet med `visninger`, `laesninger` (scroll > 70%), `totalLaesetidSek`, `hourlyViews` og dynamisk `score`.
+  - Client Tracker: `components/site/MetricTracker.tsx` (cookiefri, <2KB, måler reel opmærksomhedstid via `visibilitychange` og scroll-dybde).
+  - API Route: `/api/metrics/track` håndterer beacon-opdateringer atomisk og genberegner dynamisk distributionsscore.
+  - Dashboard: `/redaktion/metrikker` med samlet læsetid, gennemlæsningsrate, gns. læsetid, kvotelofts-vagt og realtids-fordelingssimulator.
+  - Navigation: "Metrikker" tilføjet i admin sidebaren.
+
+- **Etape B: Den Intelligente Indholdsfordelingsmotor:**
+  - Bibliotek: `lib/distribution-engine.ts` implementerer scoring-formel: `Score = (Base * Decay) + (Velocity * Decay) + DaypartBonus + GeoBonus`.
+  - Decay: Halveringstid på 12 timer for nyheder/sport, 36 timer for baggrund/kultur. Breaking holdes ultra-frisk de første 3 timer.
+  - Dayparting: Subtil, dynamisk vægtning efter døgnrytme (morgen kl. 06–09 = nyheder, middag kl. 11–14 = erhverv/debat, aften kl. 16–22 = kultur/sport).
+  - Geografisk diversitet: Geobonus (+15) til områder uden for Slagelse By (Korsør, Skælskør osv.).
+  - Kvoteloft: Håndhæver maks. 25% betalt indhold i topzonen og advarer redaktøren.
+  - Integration: `getFrontpageData()` i `lib/site-queries.ts` udvælger tophistorier og sekundære kandidater vha. motoren.
+
+- **Etape C: Agentisk Banner- og Ad-Generator (`/redaktion/annoncer`):**
+  - Datamodel: `AdCampaign` med formater (`IN_FEED_BANNER`, `EVENT_POST`, `NATIVE_PREMIUM`), priser, zoner og `kreativData`.
+  - Priser og mål: Bygger på Min By Media / MigogAalborg (In-feed display 3.500 kr./uge, Event post 499 kr., Native premium 14.500 kr.).
+  - Ad-Generator Tool: `/redaktion/annoncer` med interaktiv form (`AdGeneratorForm.tsx`), 1-klik AI-vinkelgenerering, live SVG/HTML-forhåndsvisning og automatisk ANNONCE-mærkning (rav-ramme `#B8860B`).
+  - First-Party Ad Serving: `components/site/FirstPartyAd.tsx` renderer annoncer i frontenden uden 3. parts ad-netværk eller cookies.
+  - Ad Tracking: `/api/ads/track` måler visninger og klik first-party.
+  - Forsideintegration: Aktiv in-feed banner renderes diskret mellem top- og mid-sektion på forsiden.
+  - Testsuite: 28 tests (`npm test` 100% grøn). `npm run lint`, `npx tsc --noEmit` og `npm run build` er grønne.
+
 ## Arbejdslog — Fase 1 (Fundament) & Fase 2 (Nyhedskernen), 2026-09-29
 
 ### 1. Fundament (Fase 1: F-01 til F-08)

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { calculateArticleScore, ArticleDistributionInput } from "@/lib/distribution-engine";
 
 export type PublicArticleSummary = {
   id: string;
@@ -49,8 +50,6 @@ export function formatRelativeTime(date: Date | string): string {
 
   if (diffMin < 1) return "Lige nu";
   if (diffMin < 60) return `${diffMin} min.`;
-  if (diffHours < 24) return `${diffHours} t.`;
-
   // Tjek om datoen var i går
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
@@ -61,6 +60,8 @@ export function formatRelativeTime(date: Date | string): string {
 
   const timeStr = d.toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
   if (isYesterday) return `I går ${timeStr}`;
+
+  if (diffHours < 24) return `${diffHours} t.`;
 
   // Ældre: f.eks. "28. sep." eller "28. sep. 2025" hvis forskelligt år
   const sameYear = d.getFullYear() === now.getFullYear();
@@ -227,18 +228,66 @@ export async function getFrontpageData(instansId: string, areaFilterSlug?: strin
     },
   });
 
-  // 2. Tophistorie: prioritér pinned og breaking, derefter nyeste
-  const topCandidates = await db.article.findMany({
-    where: baseWhere,
-    orderBy: [{ pinned: "desc" }, { breaking: "desc" }, { publiceretTid: "desc" }],
-    take: 3,
+  // Hent aktive fastgjorte forsideplaceringer (A-03, Del 4 §4)
+  const activePlacements = await db.frontpagePlacement.findMany({
+    where: {
+      instansId,
+      OR: [{ udloebTid: null }, { udloebTid: { gt: new Date() } }],
+    },
     include: {
+      article: {
+        include: {
+          metric: true,
+          kategori: { include: { parent: true } },
+          forfatter: true,
+          coverMedia: true,
+          geoTags: true,
+        },
+      },
+    },
+    orderBy: [{ zone: "asc" }, { position: "asc" }, { createdAt: "desc" }],
+  });
+
+  const pinnedHoved = activePlacements.find((p) => p.zone === "top-hoved" && p.article.status === "Publiceret");
+  const pinnedSekundaere = activePlacements
+    .filter((p) => p.zone === "top-sekundaer" && p.article.status === "Publiceret")
+    .map((p) => p.article);
+
+  // 2. Tophistorier: Algoritmisk scoring med redaktionelt veto, decay, velocity og daypart
+  const candidateArticles = await db.article.findMany({
+    where: baseWhere,
+    orderBy: { publiceretTid: "desc" },
+    take: 20,
+    include: {
+      metric: true,
       kategori: { include: { parent: true } },
       forfatter: true,
       coverMedia: true,
       geoTags: true,
     },
   });
+
+  const scoredCandidates = candidateArticles.map((art) => {
+    const sektionSlug = art.kategori?.parent?.slug || art.kategori?.slug || "nyheder";
+    const omraadeSlug = art.geoTags?.[0]?.slug || null;
+    const scoreResult = calculateArticleScore({
+      id: art.id,
+      titel: art.titel,
+      publiceretTid: art.publiceretTid ?? art.createdAt,
+      indholdstype: art.indholdstype as ArticleDistributionInput["indholdstype"],
+      breaking: art.breaking,
+      pinned: art.pinned,
+      sektionSlug,
+      omraadeSlug,
+      visninger: art.metric?.visninger ?? 0,
+      laesninger: art.metric?.laesninger ?? 0,
+      totalLaesetidSek: art.metric?.totalLaesetidSek ?? 0,
+    });
+    return { article: art, score: scoreResult.totalScore };
+  });
+
+  scoredCandidates.sort((a, b) => b.score - a.score);
+  const topCandidates = scoredCandidates.slice(0, 5).map((s) => s.article);
 
   const excludedIds = new Set<string>();
   if (seneste) excludedIds.add(seneste.id);
@@ -342,10 +391,30 @@ export async function getFrontpageData(instansId: string, areaFilterSlug?: strin
     },
   });
 
+  const mainArticle = pinnedHoved ? pinnedHoved.article : topCandidates[0] ?? null;
+  const secondaryCandidates: Array<typeof topCandidates[0]> = [];
+
+  // Tilføj først fastgjorte sekundære artikler
+  for (const art of pinnedSekundaere) {
+    if (mainArticle && art.id === mainArticle.id) continue;
+    if (!secondaryCandidates.some((c) => c.id === art.id)) {
+      secondaryCandidates.push(art);
+    }
+  }
+
+  // Fyld op fra topCandidates hvis der mangler sekundære artikler
+  for (const art of topCandidates) {
+    if (secondaryCandidates.length >= 2) break;
+    if (mainArticle && art.id === mainArticle.id) continue;
+    if (!secondaryCandidates.some((c) => c.id === art.id)) {
+      secondaryCandidates.push(art);
+    }
+  }
+
   return {
     seneste: seneste ? mapArticleToSummary(seneste) : null,
-    tophistorie: topCandidates.length > 0 ? mapArticleToSummary(topCandidates[0]) : null,
-    topSekundaere: topCandidates.slice(1, 3).map(mapArticleToSummary),
+    tophistorie: mainArticle ? mapArticleToSummary(mainArticle) : null,
+    topSekundaere: secondaryCandidates.slice(0, 2).map(mapArticleToSummary),
     kortNyt: kortNyt.map(mapArticleToSummary),
     omraadeArtikler: omraadeArtikler.map(mapArticleToSummary),
     sektionsBlokke,
@@ -486,6 +555,9 @@ export async function getArticleBySlug(instansId: string, sectionSlug: string, s
       coverMedia: true,
       tags: true,
       geoTags: true,
+      corrections: {
+        orderBy: { dato: "desc" },
+      },
     },
   });
 
@@ -714,4 +786,36 @@ export async function searchSiteArticles(
     page,
     totalPages: Math.ceil(totalCount / take),
   };
+}
+
+export async function getActiveAds(instansId: string, zone?: string) {
+  const now = new Date();
+  const campaigns = await db.adCampaign.findMany({
+    where: {
+      instansId,
+      status: "Aktiv",
+      startDato: { lte: now },
+      slutDato: { gte: now },
+      ...(zone ? { placeringZone: zone } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+  });
+
+  return campaigns.map((c) => ({
+    id: c.id,
+    titel: c.titel,
+    annoncoer: c.annoncoer,
+    format: c.format,
+    placeringZone: c.placeringZone,
+    kreativData: (c.kreativData && typeof c.kreativData === "object" ? c.kreativData : {}) as {
+      overskrift?: string;
+      manchet?: string;
+      ctaTekst?: string;
+      linkUrl?: string;
+      badgeTekst?: string;
+      farve?: string;
+      billedeUrl?: string;
+    },
+  }));
 }

@@ -1118,7 +1118,131 @@ async function main() {
     });
   }
 
-  console.log(`Seed færdig: ${articlesSeed.length} artikler oprettet på SlagelseLokalt`);
+  console.log(`Seed: ${articlesSeed.length} artikler oprettet på SlagelseLokalt`);
+
+  // ── Seed ArticleMetric for alle artikler ────────────────────────────────
+  const allArticles = await db.article.findMany({ where: { instansId: instance.id } });
+  for (const art of allArticles) {
+    const isBreakingOrPinned = art.breaking || art.pinned;
+    const baseViews = isBreakingOrPinned ? 2400 + Math.floor(Math.random() * 1200) : 150 + Math.floor(Math.random() * 800);
+    const readRate = 0.55 + Math.random() * 0.3; // 55% - 85%
+    const readings = Math.round(baseViews * readRate);
+    const avgSeconds = 50 + Math.floor(Math.random() * 70); // 50-120 sek
+    const totalTime = readings * avgSeconds;
+
+    // Generer 24-timers trend (højere midt på dagen)
+    const hourly = Array.from({ length: 24 }, (_, h) => {
+      const multiplier = (h >= 7 && h <= 22) ? 1.5 : 0.2;
+      return Math.round((baseViews / 35) * multiplier * (0.8 + Math.random() * 0.4));
+    });
+
+    // Beregn en realistisk fordelingsscore: (læsninger/visninger * 50) + (views / 50)
+    const engagementRatio = readings / Math.max(1, baseViews);
+    const dynamicScore = parseFloat((engagementRatio * 50 + (baseViews / 100) + (isBreakingOrPinned ? 40 : 0)).toFixed(1));
+
+    await db.articleMetric.upsert({
+      where: { articleId: art.id },
+      update: {
+        visninger: baseViews,
+        laesninger: readings,
+        totalLaesetidSek: totalTime,
+        score: dynamicScore,
+        hourlyViews: hourly,
+      },
+      create: {
+        articleId: art.id,
+        instansId: instance.id,
+        visninger: baseViews,
+        laesninger: readings,
+        totalLaesetidSek: totalTime,
+        score: dynamicScore,
+        hourlyViews: hourly,
+      },
+    });
+  }
+  console.log(`Seed: ArticleMetric oprettet for ${allArticles.length} artikler`);
+
+  // ── Seed Demo Ad Campaigns ──────────────────────────────────────────────
+  const now = new Date();
+  const nextMonth = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
+  const demoCampaigns = [
+    {
+      titel: "Harboe Fonden - Støtte til lokalsport",
+      annoncoer: "Harboe Bryggeri A/S",
+      format: "IN_FEED_BANNER",
+      status: "Aktiv",
+      startDato: now,
+      slutDato: nextMonth,
+      pris: 3500,
+      placeringZone: "feed",
+      visninger: 1420,
+      klik: 86,
+      maksVisninger: 10000,
+      kreativData: {
+        overskrift: "Støtter det lokale foreningsliv i Skælskør & Slagelse",
+        manchet: "Søg Harboe Fonden til jeres næste klubprojekt eller idrætsfacilitet i kommunen.",
+        ctaTekst: "Ansøg fonden nu",
+        linkUrl: "https://harboe.com/fond",
+        badgeTekst: "ANNONCE",
+        farve: "#FCE8A6",
+      },
+    },
+    {
+      titel: "Slagelse Vinfestival 2026",
+      annoncoer: "Slagelse Vin & Madkultur",
+      format: "EVENT_POST",
+      status: "Aktiv",
+      startDato: now,
+      slutDato: nextMonth,
+      pris: 499,
+      placeringZone: "kalender",
+      visninger: 890,
+      klik: 112,
+      maksVisninger: 5000,
+      kreativData: {
+        overskrift: "Smag på over 120 vine på Schweizerpladsen",
+        manchet: "Lørdag den 12. oktober. Billet inkluderer smageglas og adgang til alle stande.",
+        ctaTekst: "Køb forsalgsbillet",
+        linkUrl: "https://slagelse-vin.dk",
+        badgeTekst: "ANNONCE",
+      },
+    },
+    {
+      titel: "Munkholm Erhvervspark - Iværksætterhub",
+      annoncoer: "Munkholm Erhvervspark A/S",
+      format: "NATIVE_PREMIUM",
+      status: "Aktiv",
+      startDato: now,
+      slutDato: nextMonth,
+      pris: 14500,
+      placeringZone: "top",
+      visninger: 3240,
+      klik: 245,
+      maksVisninger: 25000,
+      kreativData: {
+        overskrift: "Nyt kontor- og værkstedsfællesskab åbner i Slagelse Nord",
+        manchet: "Fleksible lejemål fra 35 m² til håndværkere, kreative og videnstunge virksomheder.",
+        ctaTekst: "Læs om faciliteterne",
+        linkUrl: "https://munkholm-erhverv.dk",
+        badgeTekst: "ANNONCE",
+      },
+    },
+  ];
+
+  for (const camp of demoCampaigns) {
+    const existing = await db.adCampaign.findFirst({
+      where: { instansId: instance.id, titel: camp.titel },
+    });
+    if (!existing) {
+      await db.adCampaign.create({
+        data: {
+          ...camp,
+          instansId: instance.id,
+        },
+      });
+    }
+  }
+  console.log(`Seed: Demo Ad Campaigns oprettet`);
 }
 
 main()

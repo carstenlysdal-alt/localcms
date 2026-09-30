@@ -8,6 +8,7 @@ import {
   getArticleBySlug,
   getSiteNavigation,
   formatDateDivider,
+  formatFullDate,
 } from "@/lib/site-queries";
 import { SectionHeader } from "@/components/site/SectionHeader";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
@@ -20,6 +21,8 @@ import { NewsletterSignup } from "@/components/site/NewsletterSignup";
 import { SiteBlockRenderer } from "@/components/site/blocks/SiteBlockRenderer";
 import { parseBlocks } from "@/lib/blocks/schema";
 import { db } from "@/lib/db";
+import { AlertCircle } from "lucide-react";
+import { MetricTracker } from "@/components/site/MetricTracker";
 
 export async function generateMetadata({
   params,
@@ -59,6 +62,9 @@ export async function generateMetadata({
         publishedTime: article.publiceretTid?.toISOString(),
         modifiedTime: article.opdateretTid?.toISOString(),
         images: article.coverMedia ? [{ url: article.coverMedia.url }] : [],
+      },
+      alternates: {
+        canonical: `https://${site.domaene}/${sektion}/${slug}`,
       },
     };
   }
@@ -343,7 +349,18 @@ export default async function SectionOrArticlePage({
       "@type": "NewsMediaOrganization",
       name: site.navn,
       url: `https://${site.domaene}`,
+      publishingPrinciples: `https://${site.domaene}/om-mediet/redaktionelle-principper`,
     },
+    ...(article.corrections && article.corrections.length > 0
+      ? {
+          correction: article.corrections.map((c) => ({
+            "@type": "CorrectionComment",
+            text: c.tekst,
+            datePublished: c.dato.toISOString(),
+            url: `https://${site.domaene}/om-mediet/rettelser`,
+          })),
+        }
+      : {}),
     ...(article.coverMedia ? { image: [article.coverMedia.url] } : {}),
     ...(primaryArea ? { contentLocation: { "@type": "Place", name: primaryArea.navn } } : {}),
   };
@@ -359,6 +376,7 @@ export default async function SectionOrArticlePage({
 
   return (
     <article className="site-article-page">
+      <MetricTracker articleId={article.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -414,6 +432,40 @@ export default async function SectionOrArticlePage({
                   </figcaption>
                 )}
               </figure>
+            )}
+
+            {/* 8. Rettelser (hvis relevant jf. DESIGN.md §6 punkt 8) */}
+            {article.corrections && article.corrections.length > 0 && (
+              <div
+                className="site-article-corrections-box"
+                role="note"
+                style={{
+                  background: "var(--paper)",
+                  border: "1px solid var(--line)",
+                  borderLeft: "4px solid var(--site-accent)",
+                  padding: "16px 20px",
+                  borderRadius: "0 var(--radius-card) var(--radius-card) 0",
+                  marginBottom: "24px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                  <AlertCircle size={17} style={{ color: "var(--site-accent)" }} />
+                  <strong style={{ fontFamily: "var(--font-display)", fontSize: "14px", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Præcisering og rettelse
+                  </strong>
+                </div>
+                {article.corrections.map((corr) => (
+                  <div key={corr.id} style={{ fontSize: "14px", color: "var(--ink-2)", lineHeight: "1.45" }}>
+                    <span style={{ fontWeight: "700" }}>{formatFullDate(corr.dato)}: </span>
+                    {corr.tekst}
+                  </div>
+                ))}
+                <div style={{ marginTop: "8px" }}>
+                  <Link href="/om-mediet/rettelser" style={{ fontSize: "12px", color: "var(--site-accent)", textDecoration: "underline", fontWeight: "600" }}>
+                    Læs mere om vores rettelsespolitik →
+                  </Link>
+                </div>
+              </div>
             )}
 
             {/* 7. Brødtekst med blokke */}
