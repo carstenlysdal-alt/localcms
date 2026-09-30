@@ -231,16 +231,6 @@ export function SiteHeader({
           </ul>
         </div>
       </nav>
-
-      {/* Dekorativ accent-progresslinie fra Option 2a */}
-      <div
-        className="site-header-accent-line"
-        style={{
-          height: "3px",
-          background: "linear-gradient(90deg, var(--site-accent) 28%, transparent 28%)",
-        }}
-        aria-hidden="true"
-      />
     </header>
   );
 }
