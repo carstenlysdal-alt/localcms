@@ -62,6 +62,8 @@ export default async function SiteLayout({
         siteNavn={site.navn}
         tagline={site.tagline}
         categories={categories.map((c) => ({ id: c.id, navn: c.navn, slug: c.slug }))}
+        netvaerk={netvaerk}
+        currentDomaene={site.domaene}
       />
 
       <main id="hovedindhold" className="site-main-content">

@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { db } from "./db";
@@ -35,23 +35,48 @@ export function parseSiteColors(farver: unknown): SiteFarver {
   };
 }
 
+const DEFAULT_TAGLINES: Record<string, string> = {
+  "slagelselokalt.dk": "Uafhængig lokaljournalistik, der sætter fællesskabet først",
+  "naestvedlokalt.dk": "Din uafhængige stemme i Næstved, Karrebæksminde og omegn",
+  "holbaeklokalt.dk": "Uafhængig lokaljournalistik fra Isefjorden til det åbne Vestsjælland",
+  "ringstedlokalt.dk": "Nyheder fra hjertet af Sjælland — lokalt, uafhængigt og tæt på dig",
+  "koegelokalt.dk": "Lokaljournalistik med blik for Køges vækst, havn og stærke fællesskaber",
+  "roskildelokalt.dk": "Kultur, viden og byens puls — uafhængig lokaljournalistik i Roskilde",
+};
+
 export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site> => {
   let host = overrideHost;
+  let devCookieSite: string | undefined;
+
   if (!host) {
     try {
       const h = await headers();
-      host = h.get("host") ?? undefined;
+      host = h.get("x-site") ?? h.get("x-forwarded-host") ?? h.get("host") ?? undefined;
     } catch {
       // In static generation or non-request context
       host = undefined;
+    }
+
+    try {
+      const cookieStore = await cookies();
+      devCookieSite = cookieStore.get("site")?.value || cookieStore.get("active_site")?.value;
+    } catch {
+      devCookieSite = undefined;
     }
   }
 
   let domain = host ? host.split(":")[0].replace(/^www\./, "").toLowerCase() : "";
 
-  // Lokalt og fallback til standard instans
+  // Lokalt og fallback til standard instans el. cookie
   if (!domain || domain === "localhost" || domain === "127.0.0.1") {
-    domain = process.env.DEFAULT_SITE_DOMAIN || "slagelselokalt.dk";
+    if (devCookieSite) {
+      domain = devCookieSite.toLowerCase().trim();
+    } else {
+      domain = process.env.DEFAULT_SITE_DOMAIN || "slagelselokalt.dk";
+    }
+  } else if (domain.endsWith(".localhost")) {
+    const sub = domain.replace(/\.localhost$/, "");
+    domain = sub.endsWith("lokalt") ? `${sub}.dk` : `${sub}lokalt.dk`;
   }
 
   let instance = await db.instance.findFirst({
@@ -71,12 +96,20 @@ export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site>
 
   const colors = parseSiteColors(instance.farver);
   const kommune = instance.navn.replace(/Lokalt$/i, "");
+  const sideTekster = (instance.sideTekster as Record<string, string> | null) ?? null;
+  const tagline = sideTekster?.tagline || DEFAULT_TAGLINES[instance.domaene] || `Uafhængig lokaljournalistik for ${kommune}`;
 
   return {
     ...instance,
     farverParsed: colors,
     colors,
-    tagline: "Uafhængig lokaljournalistik, der sætter fællesskabet først",
+    tagline,
     kommune,
   };
 });
+
+export async function getAllNetworkSites() {
+  return db.instance.findMany({
+    orderBy: { navn: "asc" },
+  });
+}

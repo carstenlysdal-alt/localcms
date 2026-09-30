@@ -10,13 +10,21 @@ type CategoryItem = {
   slug: string;
 };
 
+type NetworkSiteItem = {
+  navn: string;
+  domaene: string;
+  by?: string;
+};
+
 type SiteHeaderProps = {
   siteNavn: string;
   tagline?: string;
   categories: CategoryItem[];
+  netvaerk?: NetworkSiteItem[];
+  currentDomaene?: string;
 };
 
-export function SiteHeader({ siteNavn, tagline, categories }: SiteHeaderProps) {
+export function SiteHeader({ siteNavn, tagline, categories, netvaerk = [], currentDomaene }: SiteHeaderProps) {
   const pathname = usePathname();
 
   // Udled aktiv sektion fra pathname
@@ -29,6 +37,33 @@ export function SiteHeader({ siteNavn, tagline, categories }: SiteHeaderProps) {
       <a href="#hovedindhold" className="site-skip-link">
         Spring til indhold
       </a>
+
+      {/* Netværks-topbar */}
+      {netvaerk.length > 0 && (
+        <div className="site-network-bar">
+          <div className="site-container site-network-bar-inner">
+            <div className="site-network-bar-label">
+              <span>[By]Lokalt netværket</span>
+            </div>
+            <ul className="site-network-bar-list">
+              <li key={currentDomaene || "current-site"}>
+                <span className="site-network-bar-link is-active">{siteNavn}</span>
+              </li>
+              {netvaerk.map((s) => (
+                <li key={s.domaene}>
+                  <a
+                    href={`/api/site/switch?site=${s.domaene}&redirect=${encodeURIComponent(pathname)}`}
+                    className="site-network-bar-link"
+                    title={`Skift til ${s.navn}`}
+                  >
+                    {s.navn}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Topbar */}
       <div className="site-header-topbar">

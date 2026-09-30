@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { PERMISSIONS } from "../lib/permissions";
+import { NETWORK_SITES, ALL_NETWORK_SITES_INFO } from "./network-seed-data";
 
 const db = new PrismaClient();
 
@@ -138,7 +139,7 @@ async function main() {
         principper: "Vi følger god presseskik og mærker alt betalt og assisteret indhold tydeligt.",
         kontakt: "Kontakt redaktionen på redaktion@slagelselokalt.dk eller telefon 58 50 00 00.",
       },
-      netvaerk: [{ navn: "NæstvedLokalt", domaene: "naestvedlokalt.dk" }],
+      netvaerk: ALL_NETWORK_SITES_INFO.filter((s) => s.domaene !== "slagelselokalt.dk"),
     },
     create: {
       id: "slagelse-reference",
@@ -159,7 +160,7 @@ async function main() {
         principper: "Vi følger god presseskik og mærker alt betalt og assisteret indhold tydeligt.",
         kontakt: "Kontakt redaktionen på redaktion@slagelselokalt.dk eller telefon 58 50 00 00.",
       },
-      netvaerk: [{ navn: "NæstvedLokalt", domaene: "naestvedlokalt.dk" }],
+      netvaerk: ALL_NETWORK_SITES_INFO.filter((s) => s.domaene !== "slagelselokalt.dk"),
     },
   });
 
@@ -1325,6 +1326,288 @@ async function main() {
     }
   }
   console.log(`Seed: Demo Newsletter Subscribers oprettet`);
+
+  // --- SEED NETWORK SITES (Næstved, Holbæk, Ringsted, Køge, Roskilde) ---
+  await seedNetworkSites(roleMap, mediaMap, passwordHash, rates, categoryTree);
+}
+
+async function seedNetworkSites(
+  roleMap: Map<string, string>,
+  mediaMap: Map<string, string>,
+  passwordHash: string,
+  rates: readonly (readonly [string, number, number, number])[],
+  categoryTree: Array<{
+    navn: string;
+    slug: string;
+    beskrivelse: string;
+    sortering: number;
+    children: Array<{ navn: string; slug: string; sortering: number }>;
+  }>
+) {
+  console.log(`Seed: Påbegynder seeding af ${NETWORK_SITES.length} øvrige netværkssites...`);
+
+  for (const siteCfg of NETWORK_SITES) {
+    const siteInstance = await db.instance.upsert({
+      where: { id: siteCfg.id },
+      update: {
+        navn: siteCfg.navn,
+        domaene: siteCfg.domaene,
+        farver: siteCfg.colors,
+        typografi: { heading: "Bricolage Grotesque", body: "Literata" },
+        geografiskDækning: siteCfg.areas.map((a) => a.navn),
+        kategoriTaksonomi: categoryTree.map((c) => c.navn),
+        kvoteloftProcent: 25,
+        markingTekster: {
+          sponsorLabel: "Sponsoreret indhold",
+          partnerLabel: "Finansieret af",
+          principperUrl: "/om-mediet/redaktionelle-principper",
+        },
+        sideTekster: siteCfg.sideTekster,
+        netvaerk: ALL_NETWORK_SITES_INFO.filter((s) => s.domaene !== siteCfg.domaene),
+      },
+      create: {
+        id: siteCfg.id,
+        navn: siteCfg.navn,
+        domaene: siteCfg.domaene,
+        farver: siteCfg.colors,
+        typografi: { heading: "Bricolage Grotesque", body: "Literata" },
+        geografiskDækning: siteCfg.areas.map((a) => a.navn),
+        kategoriTaksonomi: categoryTree.map((c) => c.navn),
+        kvoteloftProcent: 25,
+        markingTekster: {
+          sponsorLabel: "Sponsoreret indhold",
+          partnerLabel: "Finansieret af",
+          principperUrl: "/om-mediet/redaktionelle-principper",
+        },
+        sideTekster: siteCfg.sideTekster,
+        netvaerk: ALL_NETWORK_SITES_INFO.filter((s) => s.domaene !== siteCfg.domaene),
+      },
+    });
+
+    // Kategoritræ
+    const siteCategoryMap = new Map<string, string>();
+    for (const parent of categoryTree) {
+      const p = await db.category.upsert({
+        where: { instansId_slug: { instansId: siteInstance.id, slug: parent.slug } },
+        update: { navn: parent.navn, beskrivelse: parent.beskrivelse, sortering: parent.sortering, parentId: null },
+        create: { navn: parent.navn, slug: parent.slug, beskrivelse: parent.beskrivelse, sortering: parent.sortering, instansId: siteInstance.id },
+      });
+      siteCategoryMap.set(parent.slug, p.id);
+
+      for (const child of parent.children) {
+        const c = await db.category.upsert({
+          where: { instansId_slug: { instansId: siteInstance.id, slug: child.slug } },
+          update: { navn: child.navn, sortering: child.sortering, parentId: p.id },
+          create: { navn: child.navn, slug: child.slug, sortering: child.sortering, parentId: p.id, instansId: siteInstance.id },
+        });
+        siteCategoryMap.set(child.slug, c.id);
+      }
+    }
+
+    // Områder (GeoTags)
+    const siteAreaMap = new Map<string, string>();
+    for (const area of siteCfg.areas) {
+      const g = await db.geoTag.upsert({
+        where: { instansId_slug: { instansId: siteInstance.id, slug: area.slug } },
+        update: { navn: area.navn, lat: area.lat, lng: area.lng },
+        create: { navn: area.navn, slug: area.slug, lat: area.lat, lng: area.lng, instansId: siteInstance.id },
+      });
+      siteAreaMap.set(area.slug, g.id);
+    }
+
+    // Tags
+    const defaultTags = ["Kommunalpolitik", "Handelsliv", "Børnefamilier", "Bæredygtighed", "Frivillighed", "Kulturarv", "Lokalsport", "Klima", "Erhverv"];
+    for (const navn of defaultTags) {
+      const slug = navn.toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "oe").replace(/å/g, "aa");
+      await db.tag.upsert({
+        where: { instansId_navn: { instansId: siteInstance.id, navn } },
+        update: { slug },
+        create: { navn, slug, instansId: siteInstance.id },
+      });
+    }
+
+    // Forfattere og brugere
+    const siteAuthorMap = new Map<string, string>();
+    for (const author of siteCfg.authors) {
+      const a = await db.author.upsert({
+        where: { id: author.id },
+        update: { navn: author.navn, slug: author.slug, forfatterType: author.type, bio: author.bio, profilbilledeUrl: author.avatar, instansId: siteInstance.id },
+        create: { id: author.id, navn: author.navn, slug: author.slug, forfatterType: author.type, bio: author.bio, profilbilledeUrl: author.avatar, instansId: siteInstance.id },
+      });
+      siteAuthorMap.set(author.id, a.id);
+
+      const roleName = author.type === "Fast" ? "Ansvarshavende redaktør" : "Freelancejournalist";
+      const rId = roleMap.get(roleName) || roleMap.get("Ansvarshavende redaktør")!;
+      await db.user.upsert({
+        where: { email: author.email },
+        update: { passwordHash, roleId: rId, authorId: a.id, instansId: siteInstance.id },
+        create: { email: author.email, navn: author.navn, passwordHash, roleId: rId, authorId: a.id, instansId: siteInstance.id },
+      });
+    }
+
+    // Takster for opgaver
+    for (const [leverancetype, minimum, maksimum, standard] of rates) {
+      await db.honorRate.upsert({
+        where: { instansId_leverancetype: { instansId: siteInstance.id, leverancetype } },
+        update: { minimum, maksimum, standard, aktiv: true },
+        create: { leverancetype, minimum, maksimum, standard, instansId: siteInstance.id },
+      });
+    }
+
+    // Støtteaftaler & Organisationer
+    for (const org of siteCfg.organizations) {
+      const o = await db.organization.upsert({
+        where: { id: org.id },
+        update: { navn: org.navn, branche: org.branche, kontakt: org.kontakt, instansId: siteInstance.id },
+        create: { id: org.id, navn: org.navn, branche: org.branche, kontakt: org.kontakt, instansId: siteInstance.id },
+      });
+
+      await db.supportAgreement.upsert({
+        where: { id: org.aftaleId },
+        update: {
+          organisationNavn: org.navn,
+          pakkeNiveau: "Fællesskab",
+          pris: org.aftalePris,
+          instansId: siteInstance.id,
+          organizationId: o.id,
+        },
+        create: {
+          id: org.aftaleId,
+          organisationNavn: org.navn,
+          pakkeNiveau: "Fællesskab",
+          startDato: new Date("2026-01-01"),
+          arligKvote: 10,
+          forbrugtKvote: 2,
+          kontaktperson: org.kontakt,
+          pris: org.aftalePris,
+          organizationId: o.id,
+          instansId: siteInstance.id,
+        },
+      });
+    }
+
+    // Artikler og metrikker
+    for (const art of siteCfg.articles) {
+      const pubDate = new Date(Date.now() - art.daysAgo * 86400000 - (art.hoursAgo || 0) * 3600000);
+      const categoryId = siteCategoryMap.get(art.sectionSlug) || siteCategoryMap.get("nyheder");
+      const authorCfg = siteCfg.authors[art.authorIndex] || siteCfg.authors[0];
+      const authorId = siteAuthorMap.get(authorCfg.id);
+      const geoTagId = siteAreaMap.get(art.areaSlug);
+      const coverMediaId = mediaMap.get(art.mediaId) || mediaMap.get("media-byraad");
+
+      const blocks: Array<Record<string, unknown>> = [
+        { id: "b1", type: "paragraph", data: { content: `<p><strong>${siteCfg.kommune}:</strong> ${art.manchet}</p>` } },
+        { id: "b2", type: "paragraph", data: { content: `<p>Sagen har vakt stor interesse i lokalsamfundet i ${siteCfg.kommune}, hvor både borgere, foreninger og lokale erhvervsdrivende følger udviklingen tæt.</p>` } },
+        { id: "b3", type: "heading", data: { text: "Lokal betydning og baggrund", level: 2 } },
+        { id: "b4", type: "paragraph", data: { content: `<p>Redaktionen på ${siteCfg.navn} har talt med kilder i ${art.areaSlug ? art.areaSlug.replace(/-/g, " ") : siteCfg.kommune}, som understreger, at initiativet kan få mærkbar betydning for områdets fremtid.</p>` } },
+      ];
+
+      if (art.hasQuoteWithSource) {
+        blocks.push({
+          id: "b5",
+          type: "quote",
+          data: {
+            quote: "Vi arbejder hver dag for at skabe de bedste rammer for vores lokalsamfund og fællesskab.",
+            attribution: `Lokal talsperson, ${siteCfg.kommune}`,
+            kildeUrl: `https://${siteCfg.domaene}/presse`,
+            dato: "2026-09-30",
+          },
+        });
+      }
+
+      blocks.push({
+        id: "b6",
+        type: "paragraph",
+        data: { content: `<p>Vi følger sagen og opdaterer løbende med reaktioner og nye oplysninger på ${siteCfg.navn}.</p>` },
+      });
+
+      const savedArticle = await db.article.upsert({
+        where: { slug: art.slug },
+        update: {
+          titel: art.titel,
+          manchet: art.manchet,
+          blocks: blocks as Prisma.InputJsonValue,
+          status: "Publiceret",
+          indholdstype: art.indholdstype,
+          marking: art.marking ? (art.marking as Prisma.InputJsonValue) : Prisma.JsonNull,
+          pinned: art.pinned || false,
+          breaking: art.breaking || false,
+          publiceretTid: pubDate,
+          kategoriId: categoryId,
+          forfatterId: authorId,
+          coverMediaId: coverMediaId,
+          instansId: siteInstance.id,
+          geoTags: geoTagId ? { set: [{ id: geoTagId }] } : undefined,
+        },
+        create: {
+          titel: art.titel,
+          slug: art.slug,
+          manchet: art.manchet,
+          blocks: blocks as Prisma.InputJsonValue,
+          status: "Publiceret",
+          indholdstype: art.indholdstype,
+          aiBrug: art.indholdstype === "AI-assisteret" ? ["Udkast", "Sproglig korrektur"] : ["Ingen"],
+          marking: art.marking ? (art.marking as Prisma.InputJsonValue) : Prisma.JsonNull,
+          pinned: art.pinned || false,
+          breaking: art.breaking || false,
+          publiceretTid: pubDate,
+          kategoriId: categoryId,
+          forfatterId: authorId,
+          coverMediaId: coverMediaId,
+          instansId: siteInstance.id,
+          geoTags: geoTagId ? { connect: [{ id: geoTagId }] } : undefined,
+        },
+      });
+
+      // ArticleMetric
+      const isBreakingOrPinned = art.breaking || art.pinned;
+      const baseViews = isBreakingOrPinned ? 2100 + Math.floor(Math.random() * 900) : 180 + Math.floor(Math.random() * 600);
+      const readings = Math.round(baseViews * 0.65);
+      const totalTime = readings * 75;
+      const hourly = Array.from({ length: 24 }, (_, h) => Math.round((baseViews / 24) * ((h >= 7 && h <= 22) ? 1.4 : 0.3)));
+      const dynamicScore = parseFloat(((readings / baseViews) * 50 + (baseViews / 100) + (isBreakingOrPinned ? 35 : 0)).toFixed(1));
+
+      await db.articleMetric.upsert({
+        where: { articleId: savedArticle.id },
+        update: {
+          visninger: baseViews,
+          laesninger: readings,
+          totalLaesetidSek: totalTime,
+          score: dynamicScore,
+          hourlyViews: hourly,
+        },
+        create: {
+          articleId: savedArticle.id,
+          instansId: siteInstance.id,
+          visninger: baseViews,
+          laesninger: readings,
+          totalLaesetidSek: totalTime,
+          score: dynamicScore,
+          hourlyViews: hourly,
+        },
+      });
+    }
+
+    // Demo nyhedsbrevsabonnent
+    const demoEmail = `borger@${siteCfg.domaene}`;
+    const existingSub = await db.newsletterSubscriber.findFirst({
+      where: { instansId: siteInstance.id, email: demoEmail },
+    });
+    if (!existingSub) {
+      await db.newsletterSubscriber.create({
+        data: {
+          email: demoEmail,
+          navn: `Lokal læser i ${siteCfg.kommune}`,
+          omraadeSlug: siteCfg.areas[0]?.slug,
+          aktiv: true,
+          instansId: siteInstance.id,
+          bekraeftetTid: new Date(),
+        },
+      });
+    }
+
+    console.log(`Seed: ${siteCfg.navn} oprettet med ${siteCfg.articles.length} artikler, ${siteCfg.areas.length} områder og forfattere`);
+  }
 }
 
 main()

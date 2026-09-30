@@ -109,10 +109,8 @@ export function SiteFooter({
               {netvaerk.map((site) => (
                 <a
                   key={site.domaene}
-                  href={`https://${site.domaene}`}
+                  href={`/api/site/switch?site=${site.domaene}&redirect=/`}
                   className="site-footer-network-item"
-                  target="_blank"
-                  rel="noopener noreferrer"
                 >
                   {site.navn}
                 </a>

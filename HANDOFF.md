@@ -6,6 +6,25 @@
 Denne fil er overleveringsloggen. Læs den FØR du bygger videre — den indeholder
 alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste trin.
 
+## Arbejdslog — Netværkssites & Multi-site (N-02, N-04, 2026-09-30)
+
+- **Kreeret og seedet alle 5 øvrige hovedsites:**
+  1. **NæstvedLokalt** (`naestvedlokalt.dk`, id: `naestved-site`): Accent Fjord `#1F5663` (kontrast 8,2:1), 8 delområder (Næstved By, Karrebæksminde, Fuglebjerg m.fl.), 10 realistiske lokale artikler, 3 forfattere og lokale brugere.
+  2. **HolbækLokalt** (`holbaeklokalt.dk`, id: `holbaek-site`): Accent Mos `#4F5B1E` (kontrast 7,4:1), 8 delområder (Holbæk By, Jyderup, Tølløse, Orø m.fl.), 10 realistiske artikler, 3 forfattere.
+  3. **RingstedLokalt** (`ringstedlokalt.dk`, id: `ringsted-site`): Accent Okker `#8A5A00` (kontrast 5,9:1), 8 delområder (Ringsted By, Benløse, Jystrup, Kværkeby m.fl.), 10 realistiske artikler, 2 forfattere.
+  4. **KøgeLokalt** (`koegelokalt.dk`, id: `koege-site`): Accent Skov `#24533A` (kontrast 8,9:1), 8 delområder (Køge By, Køge Nord, Herfølge, Borup m.fl.), 10 realistiske artikler, 3 forfattere.
+  5. **RoskildeLokalt** (`roskildelokalt.dk`, id: `roskilde-site`): Accent Lyng `#6A3553` (kontrast 9,4:1), 8 delområder (Roskilde By, Trekroner, Jyllinge, Viby Sjælland m.fl.), 10 realistiske artikler, 3 forfattere.
+- **Multi-site arkitektur & Site-switching:**
+  - `getCurrentSite()` udvidet til at understøtte både host-header, `.localhost`-subdomæner, dev-cookie `site` og fallback til `slagelselokalt.dk`.
+  - Dedikeret switch endpoint `/api/site/switch?site=...&redirect=...` gør det muligt at skifte site øjeblikkeligt med ét klik.
+  - Netværksbar tilføjet øverst på sitet og netværkslinks i footeren, der forbinder alle 6 sites indbyrdes.
+  - Hver instans indeholder automatisk de 5 øvrige sites i sit `netvaerk`-felt.
+- **Kvalitetskontrol:**
+  - 40 tests (`npm test` 100% grøn inkl. nye `network-sites.test.ts`).
+  - `npx tsc --noEmit` 0 fejl.
+  - `npm run lint` 0 fejl.
+  - `npm run build` bygger 42 routes fejlfrit.
+
 ## Arbejdslog — Fase 5: Indsendelse & Nyhedsbrev (P-15, P-16, A-07, A-08, A-09, 2026-09-30)
 
 - **P-15 (Offentlig formular `/indsend`):**

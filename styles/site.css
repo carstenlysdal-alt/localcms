@@ -2316,3 +2316,66 @@
   justify-content: center;
   margin: 0 auto 16px auto;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Netværks-topbar ([By]Lokalt netværk & site switcher)
+   ───────────────────────────────────────────────────────────── */
+.site-network-bar {
+  background-color: var(--ink);
+  color: #FFFFFF;
+  padding: 6px 0;
+  font-family: var(--font-display);
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.site-network-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.site-network-bar-label {
+  color: #A39B92;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.site-network-bar-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.site-network-bar-link {
+  color: #D3CDC5;
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  display: inline-block;
+}
+
+.site-network-bar-link:hover {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.site-network-bar-link.is-active {
+  color: var(--site-on-accent);
+  background-color: var(--site-accent);
+  font-weight: 700;
+}
