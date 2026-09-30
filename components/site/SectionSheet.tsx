@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { X, ChevronRight, MapPin, Info, Send, Heart, Globe } from "lucide-react";
+import { X, ChevronRight, MapPin, Info, Send, Heart, Globe, LayoutGrid } from "lucide-react";
 import { ALL_NETWORK_SITES } from "@/lib/network-sites";
 
 type CategoryItem = {
@@ -207,6 +207,9 @@ export function SectionSheet({
               </Link>
               <Link href="/om-mediet" className="site-sheet-extra-link" onClick={onClose}>
                 <Info size={16} /> Om mediet & redaktionen
+              </Link>
+              <Link href="/redaktion" className="site-sheet-extra-link" onClick={onClose}>
+                <LayoutGrid size={16} /> Redaktion & CMS (Login)
               </Link>
             </div>
           </div>
