@@ -9,7 +9,9 @@ import {
   FileText,
   FolderTree,
   Images,
+  Inbox,
   LayoutTemplate,
+  Mail,
   MapPin,
   Megaphone,
   Radio,
@@ -19,9 +21,11 @@ import {
 
 const links = [
   { href: "/redaktion/artikler", label: "Artikler", icon: FileText },
+  { href: "/redaktion/indbakke", label: "Indbakke", icon: Inbox },
   { href: "/redaktion/forside", label: "Forsidestyring", icon: LayoutTemplate },
   { href: "/redaktion/metrikker", label: "Metrikker", icon: BarChart3 },
   { href: "/redaktion/annoncer", label: "Annoncer & Ads", icon: Megaphone },
+  { href: "/redaktion/nyhedsbrev", label: "Nyhedsbrev", icon: Mail },
   { href: "/redaktion/sektioner", label: "Sektioner", icon: FolderTree },
   { href: "/redaktion/omraader", label: "Områder", icon: MapPin },
   { href: "/redaktion/signaler", label: "Signaler", icon: Rss },

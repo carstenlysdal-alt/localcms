@@ -52,6 +52,8 @@ model Instance {
   frontpagePlacements FrontpagePlacement[]
   adCampaigns        AdCampaign[]
   articleMetrics     ArticleMetric[]
+  submissions        Submission[]
+  newsletterSubscribers NewsletterSubscriber[]
 }
 
 // ── CMS-05: konfigurerbare roller (rettigheder som data, ikke hardkodet) ────
@@ -142,6 +144,7 @@ model GeoTag {
   instansId String
   instans   Instance @relation(fields: [instansId], references: [id])
   articles  Article[]
+  submissions Submission[]
   createdAt DateTime @default(now())
 
   @@unique([instansId, slug])
@@ -193,6 +196,7 @@ model Article {
   corrections Correction[]
   frontpagePlacements FrontpagePlacement[]
   metric ArticleMetric?
+  submissions Submission[]
 
   @@index([instansId, status])
   @@index([instansId, indholdstype])
@@ -460,5 +464,50 @@ model ArticleMetric {
   opdateretTid     DateTime @updatedAt
 
   @@index([instansId, score])
+}
+
+// ── Indsendt materiale (CMS-07, P-15, A-07) ──────────────────────────────────
+model Submission {
+  id                    String    @id @default(cuid())
+  navn                  String
+  kontakt               String    // e-mail eller telefonnummer
+  emne                  String
+  tekst                 String
+  omraadeId             String?
+  omraade               GeoTag?   @relation(fields: [omraadeId], references: [id])
+  billederUrl           Json?     // string[] af billeder/filer
+  rettighederAccepteret Boolean   @default(true)
+  samtykkeAccepteret    Boolean   @default(true)
+  status                String    @default("Ny") // "Ny" | "Behandles" | "Afvist" | "ArtikelOprettet"
+  noter                 String?   // Interne redaktionsnoter
+  articleId             String?
+  article               Article?  @relation(fields: [articleId], references: [id])
+  instansId             String
+  instans               Instance  @relation(fields: [instansId], references: [id])
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([instansId, status])
+  @@index([instansId, createdAt])
+}
+
+// ── Nyhedsbrevsabonnenter (P-16, A-08) ────────────────────────────────────────
+model NewsletterSubscriber {
+  id              String    @id @default(cuid())
+  email           String
+  navn            String?
+  sektionSlug     String?
+  omraadeSlug     String?
+  aktiv           Boolean   @default(true)
+  bekraeftetTid   DateTime?
+  afmeldtTid      DateTime?
+  afmeldingsToken String?   @default(cuid())
+  instansId       String
+  instans         Instance  @relation(fields: [instansId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([instansId, email])
+  @@index([instansId, aktiv])
 }
 

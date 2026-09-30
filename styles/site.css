@@ -2157,3 +2157,162 @@
   color: var(--ink-2);
   margin-bottom: 24px;
 }
+
+/* ----------------------------------------------------
+   OFFENTLIGE FORMULARER (P-15, P-16, CMS-07)
+---------------------------------------------------- */
+.site-form-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.site-form-group {
+  margin-bottom: 22px;
+}
+
+.site-form-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.site-form-label span.req {
+  color: var(--site-accent);
+  margin-left: 3px;
+}
+
+.site-form-hint {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+
+.site-input,
+.site-textarea,
+.site-select {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--ink);
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.site-input:focus,
+.site-textarea:focus,
+.site-select:focus {
+  outline: none;
+  border-color: var(--site-accent);
+  box-shadow: 0 0 0 3px var(--site-accent-soft);
+}
+
+.site-textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.site-checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 14px;
+  cursor: pointer;
+}
+
+.site-checkbox {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--site-accent);
+  cursor: pointer;
+}
+
+.site-checkbox-text {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.site-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.site-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--site-accent);
+  color: var(--site-on-accent, #FFFFFF);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.site-submit-btn:hover:not(:disabled) {
+  background: var(--site-accent-strong);
+  transform: translateY(-1px);
+}
+
+.site-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.site-form-alert-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: #FDF2F2;
+  border: 1px solid #F5C6CB;
+  border-radius: 6px;
+  color: #721C24;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.site-form-success-card {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.site-form-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #E8F5E9;
+  color: #2E7D32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+}

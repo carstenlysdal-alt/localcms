@@ -6,6 +6,27 @@
 Denne fil er overleveringsloggen. Læs den FØR du bygger videre — den indeholder
 alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste trin.
 
+## Arbejdslog — Fase 5: Indsendelse & Nyhedsbrev (P-15, P-16, A-07, A-08, A-09, 2026-09-30)
+
+- **P-15 (Offentlig formular `/indsend`):**
+  - Borgerindsendelsesformular med honeypot-spamværn, områdevalg, foto-angivelse samt lovpligtig bekræftelse af rettigheder og samtykke.
+  - Server action `submitCitizenProposal` med Zod-validering og automatisk status som `Ny` i databasen. Ingen autopublicering.
+- **A-07 (Redaktionel indbakke `/redaktion/indbakke`):**
+  - Komplet indbakkestyring med statusfiltre (Nye, Under behandling, Artikel oprettet, Afvist), interne arbejdsnoter og fuld visning af afsender- og samtykkedata.
+  - 1-klik "Opret artikel fra indsendelse": Genererer automatisk artikeludkast med `indholdstype: "Brugerindsendt"`, udfylder afsendermærkning og linker direkte til editoren.
+- **P-16 (Nyhedsbrevstilmelding `/nyhedsbrev` & moduler):**
+  - Dedikeret tilmeldingsside med præferencer for lokalområde og sektionsinteresse. 0% tredjepartstracking, 100% first-party.
+  - `NewsletterSignup.tsx` på forsiden og artikelsider forbundet direkte til `subscribeToNewsletter`-action.
+- **A-08 (Abonnentadministration `/redaktion/nyhedsbrev`):**
+  - Administrationsliste over abonnenter med søgning, status-toggle, manuel tilføjelse og KPI-kort over aktive abonnenter.
+  - CSV-eksport `/api/nyhedsbrev/export` med UTF-8 BOM og semikolon til Excel/Numbers.
+- **A-09 (Spor A-markering):**
+  - Forankret `Brugerindsendt`-mærkning og automatisk visning i forsidens Zone 5 ("Fra borgerne").
+- **Kommende integration:**
+  - Carstens eget meddeler-værktøj kobles på til tip og kilder via API i stedet for den simple formular, jf. brugerbeslutning.
+- **Test & Typecheck:**
+  - 35 tests (`npm test` 100% grøn), `npx tsc --noEmit` grøn, `npm run lint` 0 fejl.
+
 ## Arbejdslog — Fase 4: Redaktionel styring & Forsidestyring (A-01…A-06, 2026-09-30)
 
 - **A-03 (Forsidestyring `/redaktion/forside`):**

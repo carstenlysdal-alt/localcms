@@ -1243,6 +1243,88 @@ async function main() {
     }
   }
   console.log(`Seed: Demo Ad Campaigns oprettet`);
+
+  // --- DEMO SUBMISSIONS (CMS-07, P-15, A-07) ---
+  const korsoerGeo = await db.geoTag.findFirst({ where: { instansId: instance.id, slug: "korsoer" } });
+  const antvorskovGeo = await db.geoTag.findFirst({ where: { instansId: instance.id, slug: "antvorskov" } });
+  const skaelskoerGeo = await db.geoTag.findFirst({ where: { instansId: instance.id, slug: "skaelskoer" } });
+
+  const demoSubmissions = [
+    {
+      navn: "Mette Frederiksen",
+      kontakt: "mette.korsoer@gmail.com",
+      emne: "Huller i cykelstien ved Halsskov Odde gør turen farlig for skolebørn",
+      tekst: "Jeg vil gerne gøre opmærksom på, at den asfalterede cykelsti langs Halsskov Odde er fuldstændig gennembrudt af trærødder og dybe frostsprækker. Flere skoleelever fra Broskolen har været tæt på at vælte i mørket om morgenen. Kommunen har lovet udbedring i to år, men intet sker.",
+      omraadeId: korsoerGeo?.id,
+      billederUrl: ["https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1200&auto=format&fit=crop&q=80"],
+      rettighederAccepteret: true,
+      samtykkeAccepteret: true,
+      status: "Ny",
+    },
+    {
+      navn: "Jens Peter Hansen",
+      kontakt: "jph@antvorskov-nabo.dk / 21334455",
+      emne: "Lokalhistorisk vandring ved Antvorskov Ruiner på søndag",
+      tekst: "Vi i den lokale beboergruppe arrangerer en gratis guidet tur søndag kl. 14 for alle historisk interesserede i Slagelse. Vi fortæller om Johanitterordenens kloster, Frederik 2.'s slot og områdets arkæologiske fund. Kaffe og kage kan købes til støtte for ruingruppens formidlingstavler.",
+      omraadeId: antvorskovGeo?.id,
+      billederUrl: [],
+      rettighederAccepteret: true,
+      samtykkeAccepteret: true,
+      status: "Behandles",
+      noter: "God idé til kulturredaktionen - Jonas interviewer Jens Peter fredag.",
+    },
+    {
+      navn: "Kirsten Lind",
+      kontakt: "kirsten@skaelskor-roklub.dk",
+      emne: "Skælskør Roklub fejrer 75 års jubilæum med åbent hus på havnen",
+      tekst: "Lørdag inviterer Skælskør Roklub alle interesserede til gratis prøveture i inrigger og coastal kajak. Vi har haft fremgang i ungdomsafdelingen og vil gerne vise fællesskabet frem for hele byen.",
+      omraadeId: skaelskoerGeo?.id,
+      billederUrl: ["https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200&auto=format&fit=crop&q=80"],
+      rettighederAccepteret: true,
+      samtykkeAccepteret: true,
+      status: "Ny",
+    },
+  ];
+
+  for (const sub of demoSubmissions) {
+    const existing = await db.submission.findFirst({
+      where: { instansId: instance.id, emne: sub.emne },
+    });
+    if (!existing) {
+      await db.submission.create({
+        data: {
+          ...sub,
+          instansId: instance.id,
+        },
+      });
+    }
+  }
+  console.log(`Seed: Demo Submissions oprettet`);
+
+  // --- DEMO NEWSLETTER SUBSCRIBERS (P-16, A-08) ---
+  const demoSubscribers = [
+    { email: "lars.nielsen@slagelse-post.dk", navn: "Lars Nielsen", omraadeSlug: "slagelse-by", aktiv: true },
+    { email: "anne.mette@korsoer-net.dk", navn: "Anne-Mette Poulsen", sektionSlug: "kultur", omraadeSlug: "korsoer", aktiv: true },
+    { email: "morten.k@firma-slagelse.dk", navn: "Morten Kristensen", sektionSlug: "erhverv", aktiv: true },
+    { email: "sofie.pedersen@outlook.dk", navn: "Sofie Pedersen", omraadeSlug: "skaelskoer", aktiv: true },
+    { email: "henrik.gamle@gmail.com", navn: "Henrik Gamle", omraadeSlug: "slagelse-by", aktiv: false, afmeldtTid: new Date() },
+  ];
+
+  for (const sub of demoSubscribers) {
+    const existing = await db.newsletterSubscriber.findFirst({
+      where: { instansId: instance.id, email: sub.email },
+    });
+    if (!existing) {
+      await db.newsletterSubscriber.create({
+        data: {
+          ...sub,
+          instansId: instance.id,
+          bekraeftetTid: sub.aktiv ? new Date() : null,
+        },
+      });
+    }
+  }
+  console.log(`Seed: Demo Newsletter Subscribers oprettet`);
 }
 
 main()

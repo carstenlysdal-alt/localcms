@@ -59,6 +59,9 @@ export function SiteFooter({
                 <Link href="/indsend">Indsend tip eller læserbrev</Link>
               </li>
               <li>
+                <Link href="/nyhedsbrev">Nyhedsbrev</Link>
+              </li>
+              <li>
                 <Link href="/bliv-stoette">Bliv lokal støtte</Link>
               </li>
               <li>

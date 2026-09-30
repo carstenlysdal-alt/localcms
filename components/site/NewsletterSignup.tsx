@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import { Mail, Check, AlertCircle } from "lucide-react";
+import { subscribeToNewsletter } from "@/app/(site)/nyhedsbrev/actions";
 
 type NewsletterSignupProps = {
   siteNavn: string;
   sektion?: string;
+  omraade?: string;
 };
 
-export function NewsletterSignup({ siteNavn, sektion }: NewsletterSignupProps) {
+export function NewsletterSignup({ siteNavn, sektion, omraade }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
   const [samtykke, setSamtykke] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -25,16 +27,23 @@ export function NewsletterSignup({ siteNavn, sektion }: NewsletterSignupProps) {
     setStatus("loading");
     setMessage("");
 
-    // Simpel tilmelding (lagres eller simuleres sikkert)
     try {
-      // I en fremtidig fase kan dette kalde en API route eller server action
-      await new Promise((r) => setTimeout(r, 400));
-      setStatus("success");
-      setMessage(
-        `Tak for din tilmelding! Vi har sendt en bekræftelse til ${email}. Du kan altid afmelde dig med ét klik.`
-      );
-      setEmail("");
-      setSamtykke(false);
+      const formData = new FormData();
+      formData.set("email", email);
+      formData.set("samtykke", "true");
+      if (sektion) formData.set("sektionSlug", sektion.toLowerCase());
+      if (omraade) formData.set("omraadeSlug", omraade.toLowerCase());
+
+      const res = await subscribeToNewsletter(null, formData);
+      if (res.success) {
+        setStatus("success");
+        setMessage(res.message);
+        setEmail("");
+        setSamtykke(false);
+      } else {
+        setStatus("error");
+        setMessage(res.error);
+      }
     } catch {
       setStatus("error");
       setMessage("Der opstod en fejl ved tilmelding. Prøv venligst igen senere.");
