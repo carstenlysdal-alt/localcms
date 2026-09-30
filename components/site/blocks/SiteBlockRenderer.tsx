@@ -5,6 +5,21 @@ type SiteBlockRendererProps = {
   blocks: Block[];
 };
 
+export function normalizeHtml(content: string): string {
+  if (!content) return "";
+  let text = content;
+  // Hvis teksten er HTML-entity-escapet som fx &lt;p&gt;&lt;strong&gt;
+  if (text.includes("&lt;") && text.includes("&gt;")) {
+    text = text
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&");
+  }
+  return text;
+}
+
 export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
   if (!blocks || blocks.length === 0) return null;
 
@@ -14,32 +29,41 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
         switch (block.type) {
           case "paragraph":
             return (
-              <p key={block.id} className="site-block-paragraph">
-                {block.data.content}
-              </p>
+              <div
+                key={block.id}
+                className="site-block-paragraph"
+                dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.content) }}
+              />
             );
 
           case "heading": {
             const HeadingTag = block.data.level === 3 ? "h3" : "h2";
             return (
-              <HeadingTag key={block.id} className="site-block-heading">
-                {block.data.text}
-              </HeadingTag>
+              <HeadingTag
+                key={block.id}
+                className="site-block-heading"
+                dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.text) }}
+              />
             );
           }
 
           case "subheading":
             return (
-              <h3 key={block.id} className="site-block-heading" style={{ fontSize: "22px" }}>
-                {block.data.text}
-              </h3>
+              <h3
+                key={block.id}
+                className="site-block-heading"
+                style={{ fontSize: "22px" }}
+                dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.text) }}
+              />
             );
 
           case "manchet":
             return (
-              <p key={block.id} className="site-article-manchet">
-                {block.data.text}
-              </p>
+              <div
+                key={block.id}
+                className="site-article-manchet"
+                dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.text) }}
+              />
             );
 
           case "image":
@@ -56,7 +80,7 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
                 </div>
                 {block.data.caption && (
                   <figcaption className="site-block-image-caption">
-                    <span>{block.data.caption}</span>
+                    <span dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.caption) }} />
                   </figcaption>
                 )}
               </figure>
@@ -65,9 +89,12 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
           case "quote":
             return (
               <blockquote key={block.id} className="site-block-quote">
-                <p className="site-block-quote-text">
-                  &ldquo;{block.data.quote}&rdquo;
-                </p>
+                <p
+                  className="site-block-quote-text"
+                  dangerouslySetInnerHTML={{
+                    __html: `&ldquo;${normalizeHtml(block.data.quote)}&rdquo;`,
+                  }}
+                />
                 {(block.data.attribution || block.data.kildeUrl || block.data.dato) && (
                   <footer className="site-block-quote-footer">
                     {block.data.attribution && (
@@ -102,11 +129,16 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
             return (
               <aside key={block.id} className="site-block-factbox" role="complementary">
                 {block.data.title && (
-                  <h3 className="site-block-factbox-title">{block.data.title}</h3>
+                  <h3
+                    className="site-block-factbox-title"
+                    dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.title) }}
+                  />
                 )}
-                <div className="site-block-factbox-text" style={{ whiteSpace: "pre-line" }}>
-                  {block.data.content}
-                </div>
+                <div
+                  className="site-block-factbox-text"
+                  style={{ whiteSpace: "pre-line" }}
+                  dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.content) }}
+                />
               </aside>
             );
 
@@ -119,11 +151,16 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
                 role="complementary"
               >
                 {block.data.title && (
-                  <h3 className="site-block-factbox-title">{block.data.title}</h3>
+                  <h3
+                    className="site-block-factbox-title"
+                    dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.title) }}
+                  />
                 )}
-                <div className="site-block-factbox-text" style={{ whiteSpace: "pre-line" }}>
-                  {block.data.content}
-                </div>
+                <div
+                  className="site-block-factbox-text"
+                  style={{ whiteSpace: "pre-line" }}
+                  dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.content) }}
+                />
               </aside>
             );
 

@@ -1,11 +1,25 @@
 import type { Block } from "./schema";
 
+function normalizeHtml(content: string): string {
+  if (!content) return "";
+  let text = content;
+  if (text.includes("&lt;") && text.includes("&gt;")) {
+    text = text
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&");
+  }
+  return text;
+}
+
 export function BlockRenderer({ blocks }: { blocks: Block[] }) {
   return (
     <div className="article-blocks">
       {blocks.map((block) => {
         switch (block.type) {
-          case "paragraph": return <div key={block.id} dangerouslySetInnerHTML={{ __html: block.data.content }} />;
+          case "paragraph": return <div key={block.id} dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.content) }} />;
           case "heading": return block.data.level === 2 ? <h2 key={block.id}>{block.data.text}</h2> : <h3 key={block.id}>{block.data.text}</h3>;
           case "subheading": return <h3 key={block.id}>{block.data.text}</h3>;
           case "manchet": return <p className="article-manchet" key={block.id}>{block.data.text}</p>;

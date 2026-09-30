@@ -18,7 +18,7 @@ import { ArticleCard } from "@/components/site/ArticleCard";
 import { DateDivider } from "@/components/site/DateDivider";
 import { LoadMore } from "@/components/site/LoadMore";
 import { NewsletterSignup } from "@/components/site/NewsletterSignup";
-import { SiteBlockRenderer } from "@/components/site/blocks/SiteBlockRenderer";
+import { SiteBlockRenderer, normalizeHtml } from "@/components/site/blocks/SiteBlockRenderer";
 import { parseBlocks } from "@/lib/blocks/schema";
 import { db } from "@/lib/db";
 import { AlertCircle } from "lucide-react";
@@ -401,7 +401,12 @@ export default async function SectionOrArticlePage({
             <h1 className="site-article-h1">{article.titel}</h1>
 
             {/* 4. Manchet */}
-            {article.manchet && <p className="site-article-manchet">{article.manchet}</p>}
+            {article.manchet && (
+              <div
+                className="site-article-manchet"
+                dangerouslySetInnerHTML={{ __html: normalizeHtml(article.manchet) }}
+              />
+            )}
 
             {/* 5. Byline */}
             <Byline
