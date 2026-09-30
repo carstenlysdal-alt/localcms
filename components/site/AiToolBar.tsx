@@ -30,11 +30,11 @@ export function AiToolBar() {
       title: "Sponsor & Partnerindhold: Gennemsigtigt lokalt partnerskab",
     },
     {
-      href: "/meddeler",
-      label: "Meddeler",
+      href: "/bliv-en-del-af-journalistikken",
+      label: "Bliv en del af journalistikken",
       icon: Radio,
-      active: pathname.startsWith("/meddeler"),
-      title: "Meddeler-netværket: Rapporter fra din lokale klub, forening eller område",
+      active: pathname.startsWith("/meddeler") || pathname.startsWith("/bliv-en-del-af-journalistikken"),
+      title: "Bliv en del af journalistikken: Tip redaktionen, rapportér fra din klub eller bliv meddeler",
     },
   ];
 

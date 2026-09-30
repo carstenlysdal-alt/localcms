@@ -10,6 +10,7 @@ import { BeaconPartners } from "@/components/site/BeaconPartners";
 import { NewsletterSignup } from "@/components/site/NewsletterSignup";
 import { FirstPartyAd } from "@/components/site/FirstPartyAd";
 import { AiNetworkEntryBlock } from "@/components/site/AiNetworkEntryBlock";
+import { BlivEnDelAfJournalistikkenBlock } from "@/components/site/BlivEnDelAfJournalistikkenBlock";
 import { MapPin, ArrowRight } from "lucide-react";
 
 export default async function Frontpage({
@@ -189,7 +190,10 @@ export default async function Frontpage({
         {/* 5. In-Feed First-Party Annonce (Guld-ramme, Newsreader, Option 2a) */}
         {feedAd && <FirstPartyAd campaign={feedAd} />}
 
-        {/* 6. Zone 7: Sektionsblokke (Nyheder, Sport, Erhverv, Kultur, Foreningsliv, Debat) */}
+        {/* 6. Bliv en del af journalistikken & Tip redaktionen */}
+        <BlivEnDelAfJournalistikkenBlock siteNavn={site.navn} kommuneNavn={site.kommune} />
+
+        {/* 7. Zone 7: Sektionsblokke (Nyheder, Sport, Erhverv, Kultur, Foreningsliv, Debat) */}
         <section className="site-section-blocks-zone" aria-label="Nyheder opdelt i sektioner">
           {sektionsBlokke.map(({ sektion, artikler }) => (
             <div key={sektion.slug} className="site-section-block">

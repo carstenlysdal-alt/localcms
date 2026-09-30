@@ -188,9 +188,9 @@ export function SiteHeader({
               <span className="site-action-label">Søg</span>
             </Link>
 
-            <Link href="/meddeler?kategori=tip" className="site-header-action-btn site-action-desktop-only" aria-label="Tip redaktionen">
-              <Radio size={16} />
-              <span className="site-action-label">Tip os</span>
+            <Link href="/tip-os" className="site-header-btn-tip" aria-label="Tip redaktionen">
+              <Radio size={14} className="site-header-btn-tip-icon" />
+              <span>Tip os</span>
             </Link>
 
             <Link href="/bliv-stoette" className="site-header-btn-support site-action-desktop-only" title="Bliv støtte">
@@ -228,6 +228,19 @@ export function SiteHeader({
                 </li>
               );
             })}
+            <li className="site-nav-item-community">
+              <Link
+                href="/bliv-en-del-af-journalistikken"
+                className={`site-nav-link site-nav-link-community ${
+                  pathname.startsWith("/bliv-en-del-af-journalistikken") || pathname.startsWith("/meddeler")
+                    ? "is-active"
+                    : ""
+                }`}
+              >
+                <span className="site-nav-community-badge">Deltag</span>
+                <span>Bliv en del af journalistikken</span>
+              </Link>
+            </li>
           </ul>
         </div>
       </nav>

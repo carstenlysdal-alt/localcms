@@ -16,6 +16,8 @@ export const RESERVED_SLUGS = [
   "interview",
   "sponsor",
   "meddeler",
+  "bliv-en-del-af-journalistikken",
+  "tip-os",
   "redaktion",
   "login",
   "api",
