@@ -11,6 +11,8 @@ import { NewsletterSignup } from "@/components/site/NewsletterSignup";
 import { FirstPartyAd } from "@/components/site/FirstPartyAd";
 import { AiNetworkEntryBlock } from "@/components/site/AiNetworkEntryBlock";
 import { BlivEnDelAfJournalistikkenBlock } from "@/components/site/BlivEnDelAfJournalistikkenBlock";
+import { TopicFilterBar } from "@/components/site/TopicFilterBar";
+import { CommunityBoardBlock } from "@/components/site/CommunityBoardBlock";
 import { MapPin, ArrowRight } from "lucide-react";
 
 export default async function Frontpage({
@@ -46,6 +48,9 @@ export default async function Frontpage({
       {seneste && <LatestTicker article={seneste} />}
 
       <div className="site-container">
+        {/* Mock Screen 2: Vandret emne- og kategorifilter-pillebjælke */}
+        <TopicFilterBar />
+
         {/* 2. Zone 2: Tophistorier (12-kolonne Bento-grid fra Option 2a) */}
         {tophistorie && (
           <section className="site-top-section" aria-label="Tophistorier">
@@ -241,7 +246,10 @@ export default async function Frontpage({
           ))}
         </section>
 
-        {/* 7. Åbne redaktionelle indgangsdøre (Q&A, Interview, Sponsor, Meddeler, Indsend) */}
+        {/* 7. Den Lokale Opslagstavle (Borgervæg & fællesskab) */}
+        <CommunityBoardBlock siteNavn={site.navn} kommuneNavn={site.kommune} />
+
+        {/* 8. Åbne redaktionelle indgangsdøre (Q&A, Interview, Sponsor, Meddeler, Indsend) */}
         <AiNetworkEntryBlock kommuneNavn={site.kommune} />
 
         {/* 8. Nyhedsbrevstilmelding (Mørk kontrast-banner fra Option 4a / DESIGN.md) */}

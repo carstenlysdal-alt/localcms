@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Layers, Calendar, Search, Info } from "lucide-react";
+import { Home, Layers, Bookmark, Heart } from "lucide-react";
 import { SectionSheet } from "./SectionSheet";
 
 type CategoryItem = {
@@ -30,9 +30,8 @@ export function BottomNav({ categories, areas, siteNavn }: BottomNavProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const isHome = pathname === "/";
-  const isCalendar = pathname.startsWith("/kalender");
-  const isSearch = pathname.startsWith("/soeg");
-  const isAbout = pathname.startsWith("/om-mediet");
+  const isSaved = pathname.startsWith("/gemte");
+  const isSupport = pathname.startsWith("/bliv-stoette") || pathname.startsWith("/stoet");
 
   return (
     <>
@@ -58,30 +57,21 @@ export function BottomNav({ categories, areas, siteNavn }: BottomNavProps) {
         </button>
 
         <Link
-          href="/kalender"
-          className={`site-bottom-nav-item ${isCalendar ? "is-active" : ""}`}
-          aria-current={isCalendar ? "page" : undefined}
+          href="/gemte"
+          className={`site-bottom-nav-item ${isSaved ? "is-active" : ""}`}
+          aria-current={isSaved ? "page" : undefined}
         >
-          <Calendar size={20} />
-          <span>Kalender</span>
+          <Bookmark size={20} />
+          <span>Gemte</span>
         </Link>
 
         <Link
-          href="/soeg"
-          className={`site-bottom-nav-item ${isSearch ? "is-active" : ""}`}
-          aria-current={isSearch ? "page" : undefined}
+          href="/bliv-stoette"
+          className={`site-bottom-nav-item ${isSupport ? "is-active" : ""}`}
+          aria-current={isSupport ? "page" : undefined}
         >
-          <Search size={20} />
-          <span>Søg</span>
-        </Link>
-
-        <Link
-          href="/om-mediet"
-          className={`site-bottom-nav-item ${isAbout ? "is-active" : ""}`}
-          aria-current={isAbout ? "page" : undefined}
-        >
-          <Info size={20} />
-          <span>Om</span>
+          <Heart size={20} />
+          <span>Støt</span>
         </Link>
       </nav>
 

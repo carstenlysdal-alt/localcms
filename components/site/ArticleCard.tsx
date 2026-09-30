@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { formatRelativeTime } from "@/lib/site-queries";
 import { ContentLabel } from "./ContentLabel";
+import { BookmarkButton } from "./BookmarkButton";
 
 export type ArticleCardData = {
   titel: string;
@@ -158,6 +159,14 @@ export function ArticleCard({
               <span className="site-card-readtime">4 min. læsning</span>
             </>
           )}
+          <span className="site-card-bookmark-wrap" style={{ marginLeft: "auto" }}>
+            <BookmarkButton
+              id={href}
+              titel={titel}
+              href={href}
+              sektion={sektion}
+            />
+          </span>
         </div>
       </div>
     </article>
