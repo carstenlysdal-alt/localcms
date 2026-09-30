@@ -2361,21 +2361,211 @@
 .site-network-bar-link {
   color: #D3CDC5;
   text-decoration: none;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
   transition: all 0.15s ease;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .site-network-bar-link:hover {
   color: #FFFFFF;
-  background-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.14);
 }
 
 .site-network-bar-link.is-active {
   color: var(--site-on-accent);
   background-color: var(--site-accent);
   font-weight: 700;
+}
+
+.site-network-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Brand & Dropdown City Switcher i Headeren
+   ───────────────────────────────────────────────────────────── */
+.site-brand-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.site-city-dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.site-city-dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.site-city-dropdown-toggle:hover,
+.site-city-dropdown-toggle:focus-visible {
+  background: var(--surface);
+  border-color: var(--ink-3);
+  color: var(--ink);
+  outline: none;
+}
+
+.site-city-pin {
+  color: var(--site-accent);
+}
+
+.site-city-chevron {
+  transition: transform 0.2s ease;
+  color: var(--ink-3);
+}
+
+.site-city-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu popover */
+.site-city-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  width: 310px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 10px;
+  animation: siteMenuFadeIn 0.15s ease-out;
+}
+
+@keyframes siteMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.site-city-menu-header {
+  padding: 8px 10px 10px 10px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+
+.site-city-menu-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.site-city-menu-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.site-city-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.site-city-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: background-color 0.12s ease;
+}
+
+.site-city-menu-item:hover {
+  background-color: var(--paper);
+}
+
+.site-city-menu-item.is-active {
+  background-color: var(--site-accent-soft);
+}
+
+.site-city-item-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.site-city-item-details {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.site-city-item-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.site-city-item-meta {
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.site-city-active-tag {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--site-accent);
+  color: var(--site-on-accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.site-city-switch-arrow {
+  color: var(--ink-3);
+  font-size: 14px;
+  font-weight: 700;
+  transition: transform 0.15s ease;
+}
+
+.site-city-menu-item:hover .site-city-switch-arrow {
+  color: var(--site-accent);
+  transform: translateX(3px);
 }

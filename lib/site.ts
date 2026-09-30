@@ -35,14 +35,8 @@ export function parseSiteColors(farver: unknown): SiteFarver {
   };
 }
 
-const DEFAULT_TAGLINES: Record<string, string> = {
-  "slagelselokalt.dk": "Uafhængig lokaljournalistik, der sætter fællesskabet først",
-  "naestvedlokalt.dk": "Din uafhængige stemme i Næstved, Karrebæksminde og omegn",
-  "holbaeklokalt.dk": "Uafhængig lokaljournalistik fra Isefjorden til det åbne Vestsjælland",
-  "ringstedlokalt.dk": "Nyheder fra hjertet af Sjælland — lokalt, uafhængigt og tæt på dig",
-  "koegelokalt.dk": "Lokaljournalistik med blik for Køges vækst, havn og stærke fællesskaber",
-  "roskildelokalt.dk": "Kultur, viden og byens puls — uafhængig lokaljournalistik i Roskilde",
-};
+import { ALL_NETWORK_SITES, DEFAULT_TAGLINES, type NetworkSiteSummary } from "./network-sites";
+export { ALL_NETWORK_SITES, DEFAULT_TAGLINES, type NetworkSiteSummary };
 
 export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site> => {
   let host = overrideHost;

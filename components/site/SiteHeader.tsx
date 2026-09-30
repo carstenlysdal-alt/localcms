@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Send, Heart } from "lucide-react";
+import { Search, Send, Heart, MapPin, ChevronDown, Check } from "lucide-react";
+import { ALL_NETWORK_SITES, type NetworkSiteSummary } from "@/lib/network-sites";
 
 type CategoryItem = {
   id: string;
@@ -10,26 +12,53 @@ type CategoryItem = {
   slug: string;
 };
 
-type NetworkSiteItem = {
-  navn: string;
-  domaene: string;
-  by?: string;
-};
-
 type SiteHeaderProps = {
   siteNavn: string;
   tagline?: string;
   categories: CategoryItem[];
-  netvaerk?: NetworkSiteItem[];
+  networkSites?: NetworkSiteSummary[];
   currentDomaene?: string;
 };
 
-export function SiteHeader({ siteNavn, tagline, categories, netvaerk = [], currentDomaene }: SiteHeaderProps) {
+export function SiteHeader({
+  siteNavn,
+  tagline,
+  categories,
+  networkSites = ALL_NETWORK_SITES,
+  currentDomaene,
+}: SiteHeaderProps) {
   const pathname = usePathname();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Udled aktiv sektion fra pathname
   // f.eks. /nyheder/... matcher kategorien med slug 'nyheder'
   const activeSectionSlug = pathname.split("/")[1] || "";
+
+  // Find aktuelt site i listen
+  const currentSite = networkSites.find((s) => s.domaene === currentDomaene) || networkSites[0];
+
+  // Luk dropdown ved klik uden for eller Escape
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setDropdownOpen(false);
+      }
+    }
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [dropdownOpen]);
 
   return (
     <header className="site-header-wrapper">
@@ -39,27 +68,35 @@ export function SiteHeader({ siteNavn, tagline, categories, netvaerk = [], curre
       </a>
 
       {/* Netværks-topbar */}
-      {netvaerk.length > 0 && (
+      {networkSites.length > 0 && (
         <div className="site-network-bar">
           <div className="site-container site-network-bar-inner">
             <div className="site-network-bar-label">
-              <span>[By]Lokalt netværket</span>
+              <span>[By]Lokalt netværket:</span>
             </div>
             <ul className="site-network-bar-list">
-              <li key={currentDomaene || "current-site"}>
-                <span className="site-network-bar-link is-active">{siteNavn}</span>
-              </li>
-              {netvaerk.map((s) => (
-                <li key={s.domaene}>
-                  <a
-                    href={`/api/site/switch?site=${s.domaene}&redirect=${encodeURIComponent(pathname)}`}
-                    className="site-network-bar-link"
-                    title={`Skift til ${s.navn}`}
-                  >
-                    {s.navn}
-                  </a>
-                </li>
-              ))}
+              {networkSites.map((s) => {
+                const isActive = s.domaene === currentDomaene;
+                return (
+                  <li key={s.domaene}>
+                    {isActive ? (
+                      <span className="site-network-bar-link is-active">
+                        <span className="site-network-dot" style={{ backgroundColor: s.accent }} />
+                        {s.navn}
+                      </span>
+                    ) : (
+                      <a
+                        href={`/api/site/switch?site=${s.domaene}&redirect=${encodeURIComponent(pathname)}`}
+                        className="site-network-bar-link"
+                        title={`Skift til ${s.navn}`}
+                      >
+                        <span className="site-network-dot" style={{ backgroundColor: s.accent }} />
+                        {s.navn}
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
@@ -69,9 +106,66 @@ export function SiteHeader({ siteNavn, tagline, categories, netvaerk = [], curre
       <div className="site-header-topbar">
         <div className="site-container site-header-inner">
           <div className="site-header-brand">
-            <Link href="/" className="site-brand-link" aria-label={`${siteNavn} forside`}>
-              <span className="site-brand-logo">{siteNavn}</span>
-            </Link>
+            <div className="site-brand-container">
+              <Link href="/" className="site-brand-link" aria-label={`${siteNavn} forside`}>
+                <span className="site-brand-logo">{siteNavn}</span>
+              </Link>
+
+              {/* By-vælger dropdown knap direkte i headeren */}
+              <div className="site-city-dropdown-wrapper" ref={dropdownRef}>
+                <button
+                  type="button"
+                  className="site-city-dropdown-toggle"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  aria-expanded={dropdownOpen}
+                  aria-label="Vælg by eller medie"
+                >
+                  <MapPin size={13} className="site-city-pin" />
+                  <span className="site-city-current">{currentSite?.by || "Skift by"}</span>
+                  <ChevronDown size={13} className={`site-city-chevron ${dropdownOpen ? "is-open" : ""}`} />
+                </button>
+
+                {dropdownOpen && (
+                  <div className="site-city-menu" role="menu">
+                    <div className="site-city-menu-header">
+                      <span className="site-city-menu-title">[By]Lokalt netværket</span>
+                      <span className="site-city-menu-desc">Vælg et lokalt nyhedsmedie:</span>
+                    </div>
+                    <div className="site-city-menu-list">
+                      {networkSites.map((s) => {
+                        const isActive = s.domaene === currentDomaene;
+                        return (
+                          <a
+                            key={s.domaene}
+                            href={`/api/site/switch?site=${s.domaene}&redirect=${encodeURIComponent(pathname)}`}
+                            className={`site-city-menu-item ${isActive ? "is-active" : ""}`}
+                            role="menuitem"
+                          >
+                            <span
+                              className="site-city-item-dot"
+                              style={{ backgroundColor: s.accent }}
+                            />
+                            <div className="site-city-item-details">
+                              <span className="site-city-item-name">{s.navn}</span>
+                              <span className="site-city-item-meta">{s.by} Kommune · {s.domaene}</span>
+                            </div>
+                            {isActive ? (
+                              <span className="site-city-active-tag">
+                                <Check size={10} style={{ display: "inline", marginRight: "3px" }} />
+                                Aktiv
+                              </span>
+                            ) : (
+                              <span className="site-city-switch-arrow">→</span>
+                            )}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {tagline && <span className="site-brand-tagline">{tagline}</span>}
           </div>
 

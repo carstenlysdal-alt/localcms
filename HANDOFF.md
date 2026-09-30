@@ -16,8 +16,13 @@ alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste t
   5. **RoskildeLokalt** (`roskildelokalt.dk`, id: `roskilde-site`): Accent Lyng `#6A3553` (kontrast 9,4:1), 8 delområder (Roskilde By, Trekroner, Jyllinge, Viby Sjælland m.fl.), 10 realistiske artikler, 3 forfattere.
 - **Multi-site arkitektur & Site-switching:**
   - `getCurrentSite()` udvidet til at understøtte både host-header, `.localhost`-subdomæner, dev-cookie `site` og fallback til `slagelselokalt.dk`.
-  - Dedikeret switch endpoint `/api/site/switch?site=...&redirect=...` gør det muligt at skifte site øjeblikkeligt med ét klik.
-  - Netværksbar tilføjet øverst på sitet og netværkslinks i footeren, der forbinder alle 6 sites indbyrdes.
+  - Dedikeret switch endpoint `/api/site/switch?site=...&redirect=...` gør det muligt at skifte site øjeblikkeligt med ét klik via cookie.
+  - Client-safe `cms/lib/network-sites.ts` udskilt (uden `@prisma/client`-afhængigheder), så client-komponenter sikkert kan rendere netværksoversigter.
+  - **Interaktiv by-vælger i headeren:**
+    - "Skift by ▾"-dropdown integreret direkte ved siden af logoet i `SiteHeader.tsx` med klik-udenfor-lukning, Escape-tast, farvekoder for hver by, aktiv-indikator og hover-effekter.
+    - Netværksbar øverst på siden med direkte genveje og farvede status-dots.
+    - Mobil-skuffe (`SectionSheet.tsx`) med dedikeret netværkssektion og farvedots for hurtigt byskifte på mobile enheder.
+    - Netværkslinks i footeren (`SiteFooter.tsx`), der forbinder alle 6 sites indbyrdes.
   - Hver instans indeholder automatisk de 5 øvrige sites i sit `netvaerk`-felt.
 - **Kvalitetskontrol:**
   - 40 tests (`npm test` 100% grøn inkl. nye `network-sites.test.ts`).

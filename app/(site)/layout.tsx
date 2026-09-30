@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Literata } from "next/font/google";
 import "@/styles/site.css";
-import { getCurrentSite } from "@/lib/site";
+import { getCurrentSite, ALL_NETWORK_SITES } from "@/lib/site";
 import { getSiteNavigation } from "@/lib/site-queries";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BottomNav } from "@/components/site/BottomNav";
@@ -62,7 +62,7 @@ export default async function SiteLayout({
         siteNavn={site.navn}
         tagline={site.tagline}
         categories={categories.map((c) => ({ id: c.id, navn: c.navn, slug: c.slug }))}
-        netvaerk={netvaerk}
+        networkSites={ALL_NETWORK_SITES}
         currentDomaene={site.domaene}
       />
 

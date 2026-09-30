@@ -2,7 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { X, ChevronRight, MapPin, Info, Send, Heart } from "lucide-react";
+import { X, ChevronRight, MapPin, Info, Send, Heart, Globe } from "lucide-react";
+import { ALL_NETWORK_SITES } from "@/lib/network-sites";
 
 type CategoryItem = {
   id: string;
@@ -134,6 +135,39 @@ export function SectionSheet({
               </div>
             </div>
           )}
+
+          {/* Skift by i [By]Lokalt netværket */}
+          <div className="site-sheet-section">
+            <h3 className="site-sheet-heading">
+              <Globe size={16} /> Netværk: Skift medie
+            </h3>
+            <div className="site-sheet-pills">
+              {ALL_NETWORK_SITES.map((s) => {
+                const isActive = s.navn === siteNavn;
+                return (
+                  <a
+                    key={s.domaene}
+                    href={`/api/site/switch?site=${s.domaene}&redirect=/`}
+                    className={`site-sheet-pill ${isActive ? "is-active" : ""}`}
+                    style={isActive ? { backgroundColor: s.accent, color: "#fff", borderColor: s.accent } : {}}
+                    onClick={onClose}
+                  >
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        backgroundColor: isActive ? "#fff" : s.accent,
+                        display: "inline-block",
+                        marginRight: 6,
+                      }}
+                    />
+                    {s.navn}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Mediet og handlinger */}
           <div className="site-sheet-section site-sheet-links-section">
