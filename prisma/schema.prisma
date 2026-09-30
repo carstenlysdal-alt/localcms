@@ -54,6 +54,11 @@ model Instance {
   articleMetrics     ArticleMetric[]
   submissions        Submission[]
   newsletterSubscribers NewsletterSubscriber[]
+  sourceQAs          SourceQA[]
+  interviews         InterviewSession[]
+  sponsorBriefs      SponsorBrief[]
+  meddelere          MeddelerProfile[]
+  meddelerSager      MeddelerSag[]
 }
 
 // ── CMS-05: konfigurerbare roller (rettigheder som data, ikke hardkodet) ────
@@ -197,6 +202,10 @@ model Article {
   frontpagePlacements FrontpagePlacement[]
   metric ArticleMetric?
   submissions Submission[]
+  sourceQAs          SourceQA[]
+  interviews         InterviewSession[]
+  sponsorBriefs      SponsorBrief[]
+  meddelerSager      MeddelerSag[]
 
   @@index([instansId, status])
   @@index([instansId, indholdstype])
@@ -510,4 +519,145 @@ model NewsletterSubscriber {
   @@unique([instansId, email])
   @@index([instansId, aktiv])
 }
+
+// ── AI Library: Kilde-Q&A (SourceQA) ─────────────────────────────────────────
+model SourceQA {
+  id             String    @id @default(cuid())
+  token          String    @unique @default(cuid())
+  titel          String
+  emne           String
+  baggrund       String?
+  deadline       DateTime?
+  kildeNavn      String
+  kildeKontakt   String
+  kildeRolle     String?
+  status         String    @default("Sendt") // "Sendt" | "Besvaret" | "DelvistBesvaret" | "ArtikelOprettet"
+  spoergsmaal    Json      // Array af { id, text, type, order }
+  svar           Json?     // Array af { questionId, text, audioUrl, answeredAt }
+  citater        Json?     // Ekstraherede citater
+  aiOpsummering  String?
+  noter          String?
+  instansId      String
+  instans        Instance  @relation(fields: [instansId], references: [id])
+  articleId      String?
+  article        Article?  @relation(fields: [articleId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([instansId, status])
+}
+
+// ── AI Library: Kildeinterview (InterviewSession) ────────────────────────────
+model InterviewSession {
+  id                  String    @id @default(cuid())
+  token               String    @unique @default(cuid())
+  titel               String    @default("Interview")
+  arbejdstitel        String?
+  emne                String
+  formaal             String?
+  baggrund            String?
+  journalistNavn      String?
+  kildeNavn           String
+  kildeTitel          String?
+  kildeRolle          String?
+  kildeKontakt        String
+  forventetPublicering String?
+  status              String    @default("Oprettet") // "Oprettet" | "Sendt" | "Igang" | "Besvaret" | "ArtikelOprettet"
+  spoergsmaal         Json      // Array af { id, text, questionType, priority }
+  svar                Json?     // Array af { questionId, text, audioUrl, transcript }
+  citater             Json?     // Array af verificerede citater
+  transskription      String?
+  aiOpsummering       String?
+  noter               String?
+  instansId           String
+  instans             Instance  @relation(fields: [instansId], references: [id])
+  articleId           String?
+  article             Article?  @relation(fields: [articleId], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([instansId, status])
+}
+
+// ── AI Library: Partner- og Sponsorindhold (SponsorBrief) ───────────────────
+model SponsorBrief {
+  id                  String    @id @default(cuid())
+  token               String    @unique @default(cuid())
+  partnerNavn         String
+  kontaktNavn         String
+  kontaktEmail        String
+  kontaktTelefon      String?
+  format              String    @default("native_artikel") // "native_artikel" | "fokus_interview" | "virksomhedsportraet"
+  status              String    @default("Booket") // "Booket" | "BriefIndsendt" | "UdkastKlar" | "Faktatjek" | "Godkendt" | "Publiceret"
+  pakkeNavn           String?
+  kampagnePeriode     String?
+  hovedbudskab        String?
+  baggrundstekst      String?
+  briefData           Json?
+  citater             Json?     // Array af { quote, speaker, title }
+  noegletal           Json?     // Array af { label, value, context }
+  materialerUrl       Json?
+  logoUrl             String?
+  billederUrl         Json?
+  reviewItems         Json?     // Faktatjek-punkter sendt til partner
+  noter               String?
+  instansId           String
+  instans             Instance  @relation(fields: [instansId], references: [id])
+  articleId           String?
+  article             Article?  @relation(fields: [articleId], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([instansId, status])
+}
+
+// ── AI Library: Meddeler-netværk (MeddelerProfile) ──────────────────────────
+model MeddelerProfile {
+  id             String        @id @default(cuid())
+  token          String        @unique @default(cuid())
+  navn           String
+  kontakt        String        // e-mail
+  telefon        String?
+  phone          String?
+  organisation   String?       // forening, klub eller institution
+  kategori       String        @default("tip") // "tip" | "sport" | "arrangement" | "haendelse" | "andet"
+  omraader       String?       // e.g. "Slagelse By, Boeslunde"
+  aktiv          Boolean       @default(true)
+  noter          String?
+  instansId      String
+  instans        Instance      @relation(fields: [instansId], references: [id])
+  sager          MeddelerSag[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([instansId, aktiv])
+}
+
+// ── AI Library: Meddeler Sag / Tip (MeddelerSag) ────────────────────────────
+model MeddelerSag {
+  id             String          @id @default(cuid())
+  meddelerId     String
+  meddeler       MeddelerProfile @relation(fields: [meddelerId], references: [id], onDelete: Cascade)
+  titel          String
+  kategori       String          @default("tip")
+  status         String          @default("Ny") // "Ny" | "UnderBehandling" | "BrugtIArtikel" | "Afvist"
+  tekst          String
+  billederUrl    Json?
+  audioUrl       String?
+  aiStruktureret Json?           // { who, what, where, when, facts, quotes, missing }
+  struktureret   Json?
+  opfoelgendeSpm Json?           // Array af opfølgende spørgsmål til meddeleren
+  opfoelgning    Json?
+  interneNoter   String?
+  instansId      String
+  instans        Instance        @relation(fields: [instansId], references: [id])
+  articleId      String?
+  article        Article?        @relation(fields: [articleId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([instansId, status])
+  @@index([meddelerId])
+}
+
 

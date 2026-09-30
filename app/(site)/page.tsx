@@ -9,6 +9,7 @@ import { WeekendCalendar } from "@/components/site/WeekendCalendar";
 import { BeaconPartners } from "@/components/site/BeaconPartners";
 import { NewsletterSignup } from "@/components/site/NewsletterSignup";
 import { FirstPartyAd } from "@/components/site/FirstPartyAd";
+import { AiNetworkEntryBlock } from "@/components/site/AiNetworkEntryBlock";
 import { MapPin, ArrowRight } from "lucide-react";
 
 export default async function Frontpage({
@@ -236,12 +237,15 @@ export default async function Frontpage({
           ))}
         </section>
 
-        {/* 7. Nyhedsbrevstilmelding (Mørk kontrast-banner fra Option 4a / DESIGN.md) */}
+        {/* 7. Åbne redaktionelle indgangsdøre (Q&A, Interview, Sponsor, Meddeler, Indsend) */}
+        <AiNetworkEntryBlock kommuneNavn={site.kommune} />
+
+        {/* 8. Nyhedsbrevstilmelding (Mørk kontrast-banner fra Option 4a / DESIGN.md) */}
         <div style={{ marginTop: "40px" }}>
           <NewsletterSignup siteNavn={site.navn} />
         </div>
 
-        {/* 8. Fyrtårnspartnere strip fra Option 2a */}
+        {/* 9. Fyrtårnspartnere strip fra Option 2a */}
         <BeaconPartners kommuneNavn={site.kommune} />
       </div>
     </div>

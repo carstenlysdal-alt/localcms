@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, Heart, MapPin, ChevronDown, Check } from "lucide-react";
 import { ALL_NETWORK_SITES, type NetworkSiteSummary } from "@/lib/network-sites";
+import { AiToolBar } from "@/components/site/AiToolBar";
 
 type CategoryItem = {
   id: string;
@@ -101,6 +102,9 @@ export function SiteHeader({
           </div>
         </div>
       )}
+
+      {/* AI Library Toolbar (Q&A, Interview, Sponsor, Meddeler, Indsend) */}
+      <AiToolBar />
 
       {/* Topbar */}
       <div className="site-header-topbar">

@@ -1,22 +1,160 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { SubmissionInbox } from "@/components/admin/SubmissionInbox";
-import { Inbox, MessageSquarePlus } from "lucide-react";
+import { UnifiedIntakeInbox, type IntakeItem } from "@/components/admin/UnifiedIntakeInbox";
+import { Inbox, MessageSquarePlus, ExternalLink } from "lucide-react";
 
 export default async function RedaktionIndbakkePage() {
   const session = await auth();
   if (!session?.user) return null;
 
-  const submissions = await db.submission.findMany({
-    where: { instansId: session.user.instansId },
-    include: {
-      omraade: { select: { id: true, navn: true } },
-      article: { select: { id: true, titel: true, slug: true, status: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const instansId = session.user.instansId;
 
-  const nyCount = submissions.filter((s) => s.status === "Ny").length;
+  // Hent alle 5 kilder sideløbende
+  const [qas, interviews, sponsorBriefs, meddelerSager, submissions] = await Promise.all([
+    db.sourceQA.findMany({
+      where: { instansId },
+      include: { article: { select: { id: true, titel: true, slug: true, status: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.interviewSession.findMany({
+      where: { instansId },
+      include: { article: { select: { id: true, titel: true, slug: true, status: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.sponsorBrief.findMany({
+      where: { instansId },
+      include: { article: { select: { id: true, titel: true, slug: true, status: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.meddelerSag.findMany({
+      where: { instansId },
+      include: {
+        meddeler: true,
+        article: { select: { id: true, titel: true, slug: true, status: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.submission.findMany({
+      where: { instansId },
+      include: {
+        omraade: { select: { id: true, navn: true } },
+        article: { select: { id: true, titel: true, slug: true, status: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  // Transformér til en samlet liste
+  const items: IntakeItem[] = [
+    ...qas.map((q) => ({
+      id: q.id,
+      channel: "qa" as const,
+      title: q.titel,
+      senderName: q.kildeNavn || "Ukendt kilde",
+      senderContact: q.kildeKontakt,
+      senderRole: q.kildeRolle,
+      status: q.status,
+      createdAt: q.createdAt,
+      summary: q.aiOpsummering || q.baggrund || q.emne,
+      token: q.token,
+      articleId: q.articleId,
+      article: q.article,
+      details: {
+        emne: q.emne,
+        baggrund: q.baggrund,
+        spørgsmål: q.spoergsmaal,
+        svar: q.svar,
+        citater: q.citater,
+      },
+    })),
+    ...interviews.map((i) => ({
+      id: i.id,
+      channel: "interview" as const,
+      title: i.titel,
+      senderName: i.kildeNavn,
+      senderContact: i.kildeKontakt,
+      senderRole: i.kildeRolle,
+      status: i.status,
+      createdAt: i.createdAt,
+      summary: i.aiOpsummering || `Interview om ${i.emne}`,
+      token: i.token,
+      articleId: i.articleId,
+      article: i.article,
+      details: {
+        emne: i.emne,
+        formaal: i.formaal,
+        transskription: i.transskription,
+        citater: i.citater,
+        svar: i.svar,
+      },
+    })),
+    ...sponsorBriefs.map((s) => ({
+      id: s.id,
+      channel: "sponsor" as const,
+      title: `${s.partnerNavn} (${s.format})`,
+      senderName: s.kontaktNavn,
+      senderContact: s.kontaktEmail,
+      senderRole: s.partnerNavn,
+      status: s.status,
+      createdAt: s.createdAt,
+      summary: (s.briefData as Record<string, string>)?.budskab || `Partnerbrief for ${s.partnerNavn}`,
+      token: s.token,
+      articleId: s.articleId,
+      article: s.article,
+      details: {
+        pakke: s.pakkeNavn,
+        format: s.format,
+        briefData: s.briefData,
+        citater: s.citater,
+        reviewItems: s.reviewItems,
+      },
+    })),
+    ...meddelerSager.map((m) => ({
+      id: m.id,
+      channel: "meddeler" as const,
+      title: m.titel,
+      senderName: m.meddeler?.navn || "Lokal meddeler",
+      senderContact: m.meddeler?.kontakt,
+      senderRole: m.meddeler?.organisation || m.kategori,
+      status: m.status,
+      createdAt: m.createdAt,
+      summary: m.tekst.length > 140 ? `${m.tekst.slice(0, 140)}...` : m.tekst,
+      token: m.meddeler?.token,
+      articleId: m.articleId,
+      article: m.article,
+      details: {
+        kategori: m.kategori,
+        tekst: m.tekst,
+        struktureret: m.struktureret,
+        opfoelgning: m.opfoelgning,
+      },
+    })),
+    ...submissions.map((sub) => ({
+      id: sub.id,
+      channel: "submission" as const,
+      title: sub.emne,
+      senderName: sub.navn,
+      senderContact: sub.kontakt,
+      senderRole: sub.omraade?.navn || "Borger",
+      status: sub.status,
+      createdAt: sub.createdAt,
+      summary: sub.tekst.length > 140 ? `${sub.tekst.slice(0, 140)}...` : sub.tekst,
+      articleId: sub.articleId,
+      article: sub.article,
+      details: {
+        tekst: sub.tekst,
+        omraade: sub.omraade?.navn,
+        noter: sub.noter,
+      },
+    })),
+  ];
+
+  // Sorter efter oprettelsesdato nyeste først
+  items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const nyCount = items.filter(
+    (i) => i.status === "Ny" || i.status === "AFVENTER_SVAR" || i.status === "OPRETTET" || i.status === "BriefModtaget" || i.status === "Modtaget"
+  ).length;
 
   return (
     <main className="admin-main">
@@ -37,29 +175,30 @@ export default async function RedaktionIndbakkePage() {
                   fontWeight: "700",
                 }}
               >
-                {nyCount} nye forslag
+                {nyCount} nye henvendelser
               </span>
             )}
           </div>
           <p className="text-muted" style={{ marginTop: "4px" }}>
-            Brugerindsendte historieforslag, tips og læserbreve (CMS-07, Spor A). Gennemgå, tag stilling og konvertér til artikler med ét klik.
+            Samlet gennemstrømning af kilde-Q&A, interviews, partner-briefs, meddeler-sager og borgerindlæg.
+            Konvertér til artikler med ét klik med korrekte indholdstyper og deklarationer.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <a
-            href="/indsend"
+            href="/qa"
             target="_blank"
             rel="noreferrer"
             className="btn btn-secondary"
             style={{ fontSize: "13px" }}
           >
-            <MessageSquarePlus size={14} /> Se offentlig formular ↗
+            Se kilde-portaler ↗
           </a>
         </div>
       </div>
 
-      <SubmissionInbox submissions={submissions} />
+      <UnifiedIntakeInbox items={items} />
     </main>
   );
 }
