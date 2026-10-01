@@ -48,7 +48,7 @@ export default async function VelkommenPage() {
             <Link href="/" className="site-btn-pill-primary">
               Læs dagens nyheder
             </Link>
-            <Link href="/login" className="site-btn-pill-secondary">
+            <Link href="/profil" className="site-btn-pill-secondary">
               Jeg har allerede en konto
             </Link>
           </div>

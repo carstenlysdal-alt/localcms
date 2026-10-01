@@ -1464,6 +1464,11 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </a>
 
+        <!-- User profile icon button (Public reader profile, NOT CMS login) -->
+        <a href="#profil" class="site-btn-icon" title="Min brugerprofil">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+
         <!-- Support compact button with dynamic site name -->
         <a href="#stoet" id="header-stoet-btn" class="site-header-btn-stoet">
           <span>❤️</span>
@@ -1525,6 +1530,7 @@
         <li><a href="#foreningsliv" onclick="toggleMobileMenu()" class="mobile-drawer-link">Foreningsliv <span>→</span></a></li>
         <li><a href="#debat" onclick="toggleMobileMenu()" class="mobile-drawer-link">Debat <span>→</span></a></li>
         <li><a href="#soeg" onclick="toggleMobileMenu()" class="mobile-drawer-link">Søg i artikler <span>🔍</span></a></li>
+        <li><a href="#profil" onclick="toggleMobileMenu()" class="mobile-drawer-link">Min brugerprofil <span>👤</span></a></li>
         <li><a href="#priser" onclick="toggleMobileMenu()" class="mobile-drawer-link" style="color:var(--site-accent); font-weight:700;">Priser & Annoncering <span>🏷️</span></a></li>
         <li><a href="#indsend" onclick="toggleMobileMenu()" class="mobile-drawer-link">Tip os & Indsend <span>✍️</span></a></li>
         <li><a href="#stoet" onclick="toggleMobileMenu()" class="mobile-drawer-link" style="color:var(--site-accent); font-weight:700;"><span id="drawer-stoet-label">Støt medlemskab</span> <span>❤️</span></a></li>
@@ -2464,6 +2470,109 @@
       </div>
     </section>
 
+    <!-- ============================================== -->
+    <!-- SEKTION 11: BRUGERPROFIL FOR LÆSERE            -->
+    <!-- ============================================== -->
+    <section id="profil" class="content-section">
+      <div class="support-card-container">
+        <span class="section-kicker">LÆSERKONTO</span>
+        <h2 style="font-family:var(--font-display); font-size:28px; font-weight:800; margin-bottom:8px;">Min Brugerprofil</h2>
+        <p style="font-size:14px; color:var(--ink-2); line-height:1.5; margin-bottom:20px;">
+          Her kan du administrere dine præferencer, lokalområder, nyhedsbreve og gemte artikler.
+        </p>
+
+        <!-- Profil Hovedkort -->
+        <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:var(--radius-md); padding:20px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="width:52px; height:52px; border-radius:50%; background:var(--site-accent-soft); color:var(--site-accent); display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700;">
+              👤
+            </div>
+            <div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <strong id="profile-display-name" style="font-size:18px; color:var(--ink);">Lokal Læser</strong>
+                <span style="font-size:11px; font-weight:700; background:var(--surface-2); color:var(--ink-2); padding:2px 8px; border-radius:999px;">Læser</span>
+              </div>
+              <div id="profile-display-area" style="font-size:13px; color:var(--ink-2); margin-top:2px;">Slagelse · Fri læseradgang</div>
+            </div>
+          </div>
+          <button onclick="toggleProfileEdit()" id="btn-edit-profile" class="site-subnav-pill" style="border:1px solid var(--line); font-weight:700;">
+            ✏️ Redigér profil
+          </button>
+        </div>
+
+        <!-- Redigér formular (skjult default) -->
+        <div id="profile-edit-box" style="display:none; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-md); padding:18px; margin-bottom:18px;">
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px;">Opdatér dine oplysninger</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+            <div>
+              <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Dit navn</label>
+              <input type="text" id="input-profile-name" value="Lokal Læser" class="form-control">
+            </div>
+            <div>
+              <label style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Dit lokalområde</label>
+              <input type="text" id="input-profile-area" value="Slagelse By" class="form-control">
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px;">
+            <button onclick="toggleProfileEdit()" style="padding:7px 14px; font-size:12.5px; border-radius:var(--radius-sm); border:1px solid var(--line); background:#fff;">Annullér</button>
+            <button onclick="saveProfile()" class="site-header-btn-stoet" style="padding:7px 16px; font-size:12.5px; border-radius:var(--radius-sm);">Gem oplysninger</button>
+          </div>
+        </div>
+
+        <!-- 2 Bokse: Følg emner & Nyhedsbreve -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-bottom:18px;">
+          <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:var(--radius-md); padding:18px;">
+            <div style="font-size:14.5px; font-weight:700; color:var(--ink); margin-bottom:8px;">🏷️ Følg emner</div>
+            <p style="font-size:12.5px; color:var(--ink-2); line-height:1.4; margin-bottom:12px;">
+              Vælg hvilke emner du vil have fremhævet på forsiden:
+            </p>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+              <span class="site-subnav-pill is-active" style="font-size:12px; padding:4px 10px;">✓ Trafik & Broen</span>
+              <span class="site-subnav-pill is-active" style="font-size:12px; padding:4px 10px;">✓ Byråd & Politik</span>
+              <span class="site-subnav-pill" style="font-size:12px; padding:4px 10px;">+ Erhverv</span>
+              <span class="site-subnav-pill" style="font-size:12px; padding:4px 10px;">+ Lokalsport</span>
+              <span class="site-subnav-pill" style="font-size:12px; padding:4px 10px;">+ Kultur</span>
+            </div>
+          </div>
+
+          <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:var(--radius-md); padding:18px;">
+            <div style="font-size:14.5px; font-weight:700; color:var(--ink); margin-bottom:8px;">📬 Nyhedsbreve</div>
+            <div style="display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--ink-2);">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" checked style="accent-color:var(--site-accent);">
+                <span>Morgenoverblik (hverdage kl. 07)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" checked style="accent-color:var(--site-accent);">
+                <span>Weekendguide (fredag kl. 14)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" style="accent-color:var(--site-accent);">
+                <span>Akutte advarsler (kun ved breaking)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Støttestatus & Meddeler -->
+        <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:var(--radius-md); padding:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+          <div>
+            <div style="font-size:14px; font-weight:700; color:var(--ink);">❤️ Støt lokaljournalistikken</div>
+            <div style="font-size:12.5px; color:var(--ink-2); margin-top:2px;">Aktuel status: Gratis læserkonto. Bak op fra 49 kr./md.</div>
+          </div>
+          <a href="#stoet" class="site-header-btn-stoet" style="font-size:12.5px; padding:7px 14px; border-radius:var(--radius-sm); text-decoration:none;">
+            Se støttemuligheder →
+          </a>
+        </div>
+
+        <!-- Diskret redaktionslogin info -->
+        <div style="border-top:1px solid var(--line); padding-top:14px; font-size:12px; color:var(--ink-3); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <span>Er du ansat på redaktionen eller journalist?</span>
+          <span style="font-weight:600; color:var(--ink-2);">Redaktionel adgang: /redaktion</span>
+        </div>
+      </div>
+    </section>
+
     <!-- ========================================================= -->
     <!-- SEKTION 11: DEDIKEREDE ARTIKLER (FULD SCROLLBARHED)       -->
     <!-- ========================================================= -->
@@ -3036,6 +3145,22 @@
         inp.value = t;
         runLiveSearch(t);
       }
+    }
+
+    function toggleProfileEdit() {
+      const box = document.getElementById('profile-edit-box');
+      if (box) {
+        box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
+      }
+    }
+
+    function saveProfile() {
+      const name = document.getElementById('input-profile-name').value;
+      const area = document.getElementById('input-profile-area').value;
+      if (name) document.getElementById('profile-display-name').textContent = name;
+      if (area) document.getElementById('profile-display-area').textContent = `${area} · Fri læseradgang`;
+      toggleProfileEdit();
+      alert('Dine profiloplysninger er opdateret!');
     }
 
     window.addEventListener('DOMContentLoaded', () => {

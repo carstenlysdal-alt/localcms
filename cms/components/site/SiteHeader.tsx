@@ -164,7 +164,7 @@ export function SiteHeader({
             </Link>
 
             {/* Desktop Profil / Konto */}
-            <Link href="/login" className="site-header-icon-btn site-desktop-only" aria-label="Min konto" title="Min konto">
+            <Link href="/profil" className="site-header-icon-btn site-desktop-only" aria-label="Min profil" title="Min profil">
               <User size={18} />
             </Link>
 
@@ -180,7 +180,7 @@ export function SiteHeader({
             </Link>
 
             {/* Mobil Profil/Konto icon */}
-            <Link href="/login" className="site-header-mobile-profile-btn site-mobile-only" aria-label="Min konto">
+            <Link href="/profil" className="site-header-mobile-profile-btn site-mobile-only" aria-label="Min profil">
               <User size={19} />
             </Link>
           </div>
