@@ -38,7 +38,7 @@ export async function createSponsorBrief(formData: {
         kontaktEmail: formData.kontaktEmail,
         kontaktTelefon: formData.kontaktTelefon || null,
         kampagnePeriode: formData.kampagnePeriode || "Løbende",
-        format: formData.format || "Sponsionsartikel",
+        format: formData.format || "Sponsoreret artikel",
         status: "BriefModtaget",
         briefData,
         citater: initialQuotes,

@@ -15,10 +15,10 @@ export const ALL_NETWORK_SITES: NetworkSiteSummary[] = [
 ];
 
 export const DEFAULT_TAGLINES: Record<string, string> = {
-  "slagelselokalt.dk": "Uafhængig lokaljournalistik, der sætter fællesskabet først",
-  "naestvedlokalt.dk": "Din uafhængige stemme i Næstved, Karrebæksminde og omegn",
-  "holbaeklokalt.dk": "Uafhængig lokaljournalistik fra Isefjorden til det åbne Vestsjælland",
-  "ringstedlokalt.dk": "Nyheder fra hjertet af Sjælland — lokalt, uafhængigt og tæt på dig",
+  "slagelselokalt.dk": "Lokaljournalistik, der sætter fællesskabet først",
+  "naestvedlokalt.dk": "Din lokale stemme i Næstved, Karrebæksminde og omegn",
+  "holbaeklokalt.dk": "Lokaljournalistik fra Isefjorden til det åbne Vestsjælland",
+  "ringstedlokalt.dk": "Nyheder fra hjertet af Sjælland — lokalt og tæt på dig",
   "koegelokalt.dk": "Lokaljournalistik med blik for Køges vækst, havn og stærke fællesskaber",
-  "roskildelokalt.dk": "Kultur, viden og byens puls — uafhængig lokaljournalistik i Roskilde",
+  "roskildelokalt.dk": "Kultur, viden og byens puls — lokaljournalistik i Roskilde",
 };

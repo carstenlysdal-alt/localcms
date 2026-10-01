@@ -15,7 +15,7 @@ export function SponsorBriefForm({ siteNavn }: { siteNavn: string }) {
   const [kontaktNavn, setKontaktNavn] = useState("");
   const [kontaktEmail, setKontaktEmail] = useState("");
   const [kontaktTelefon, setKontaktTelefon] = useState("");
-  const [format, setFormat] = useState("Sponsionsartikel");
+  const [format, setFormat] = useState("Sponsoreret artikel");
   const [formaal, setFormaal] = useState("");
   const [budskab, setBudskab] = useState("");
   const [citater, setCitater] = useState("");
@@ -188,7 +188,7 @@ export function SponsorBriefForm({ siteNavn }: { siteNavn: string }) {
                 onChange={(e) => setFormat(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: "1px solid var(--line)", borderRadius: "6px", background: "var(--surface)" }}
               >
-                <option value="Sponsionsartikel">Sponsionsartikel (dybdegående profil)</option>
+                <option value="Sponsoreret artikel">Sponsoreret artikel (dybdegående profil)</option>
                 <option value="Fyrtårnspartnerskab">Fyrtårnspartnerskab (helårig pakke)</option>
                 <option value="Native Tema">Temaartikel (Erhverv, Grøn omstilling m.m.)</option>
               </select>

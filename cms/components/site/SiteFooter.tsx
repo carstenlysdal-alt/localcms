@@ -28,7 +28,7 @@ export function SiteFooter({
           <div className="site-footer-brand-col">
             <div className="site-footer-logo">{siteNavn}</div>
             <p className="site-footer-desc">
-              {tagline || "Uafhængig lokaljournalistik, der sætter fællesskabet og demokratiet først."}
+              {tagline || "Lokaljournalistik, der sætter fællesskabet og demokratiet først."}
             </p>
             <div className="site-footer-trust-badge">
               <ShieldCheck size={18} />
@@ -122,7 +122,7 @@ export function SiteFooter({
         {/* Bundlinie med disclaimer og copyright */}
         <div className="site-footer-bottom">
           <p className="site-footer-disclaimer">
-            {siteNavn} udgives som et uafhængigt digitalt lokalmedie. Vi anvender ingen kommercielle
+            {siteNavn} udgives som et digitalt lokalmedie forankret i fællesskabet. Vi anvender ingen kommercielle
             sporingscookies eller tredjeparts-annoncenetværk.
           </p>
           <div className="site-footer-copy">

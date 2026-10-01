@@ -67,7 +67,7 @@ export function BeaconPartners({ kommuneNavn }: BeaconPartnersProps) {
       </div>
       <div className="site-beacon-footer">
         <Link href="/stoet" className="site-beacon-link">
-          Vil din virksomhed også støtte uafhængig lokaljournalistik? Læs om støtteaftaler her →
+          Vil din virksomhed også støtte lokaljournalistikken? Læs om støtteaftaler her →
         </Link>
       </div>
     </section>

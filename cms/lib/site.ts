@@ -91,7 +91,7 @@ export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site>
   const colors = parseSiteColors(instance.farver);
   const kommune = instance.navn.replace(/Lokalt$/i, "");
   const sideTekster = (instance.sideTekster as Record<string, string> | null) ?? null;
-  const tagline = sideTekster?.tagline || DEFAULT_TAGLINES[instance.domaene] || `Uafhængig lokaljournalistik for ${kommune}`;
+  const tagline = sideTekster?.tagline || DEFAULT_TAGLINES[instance.domaene] || `Lokaljournalistik for ${kommune}`;
 
   return {
     ...instance,

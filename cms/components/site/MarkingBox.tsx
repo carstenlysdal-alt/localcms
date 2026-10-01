@@ -50,7 +50,7 @@ export function MarkingBox({ indholdstype, marking }: MarkingBoxProps) {
         {indholdstype === "Sponsoreret" && (
           <p>
             Dette indhold er en betalt annonce produceret i samarbejde med <strong>{sponsor}</strong>.
-            Indholdet er ikke omfattet af mediets uafhængige redaktionelle dækning.
+            Indholdet er ikke omfattet af mediets redaktionelle dækning.
           </p>
         )}
 

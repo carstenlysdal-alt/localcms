@@ -170,7 +170,7 @@ export function SiteHeader({
 
             {/* Desktop Slogan til højre jf. mockup */}
             <div className="site-header-slogan site-desktop-only" aria-hidden="true">
-              <span>Uafhængig lokaljournalistik,</span>
+              <span>Lokaljournalistik,</span>
               <span>der sætter fællesskabet først</span>
             </div>
 

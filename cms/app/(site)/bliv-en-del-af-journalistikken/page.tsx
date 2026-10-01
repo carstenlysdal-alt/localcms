@@ -375,7 +375,7 @@ export default async function BlivEnDelAfJournalistikkenPage({
               <div style={{ background: "var(--surface)", border: "1px solid var(--line)", padding: "20px", borderRadius: "var(--radius-card)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "700", marginBottom: "8px", color: "var(--ink)" }}>
                   <FileText size={18} style={{ color: "var(--site-accent)" }} />
-                  Sponsionsartikel
+                  Sponsoreret artikel
                 </div>
                 <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
                   En dybdegående artikel om din virksomheds udvikling, medarbejdere eller samfundsengagement.
