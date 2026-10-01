@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="c382140c-abb6-4683-be2b-0b1c656997e3"></script>
+
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics=""><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("61b964c9-be5f-4fab-9bab-0c5d9eff1783") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("830a7fe6-dc10-41a5-a034-f9a46454cab2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("0df7cb67-fad0-4dbe-ba7e-b80cf85da510") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("20e1cbb1-5515-4763-a3fc-f29bf63377d9") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("798c91e1-14ad-4c60-865f-468413642db4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("df86748d-e21c-4def-b85b-08898d0763fb") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("4629f448-f52f-42cf-98dc-30df090ce512") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("61b964c9-be5f-4fab-9bab-0c5d9eff1783") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("830a7fe6-dc10-41a5-a034-f9a46454cab2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("0df7cb67-fad0-4dbe-ba7e-b80cf85da510") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("20e1cbb1-5515-4763-a3fc-f29bf63377d9") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("798c91e1-14ad-4c60-865f-468413642db4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("df86748d-e21c-4def-b85b-08898d0763fb") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("4629f448-f52f-42cf-98dc-30df090ce512") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("61b964c9-be5f-4fab-9bab-0c5d9eff1783") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("830a7fe6-dc10-41a5-a034-f9a46454cab2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("0df7cb67-fad0-4dbe-ba7e-b80cf85da510") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("20e1cbb1-5515-4763-a3fc-f29bf63377d9") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("798c91e1-14ad-4c60-865f-468413642db4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("df86748d-e21c-4def-b85b-08898d0763fb") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("4629f448-f52f-42cf-98dc-30df090ce512") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("61b964c9-be5f-4fab-9bab-0c5d9eff1783") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("830a7fe6-dc10-41a5-a034-f9a46454cab2") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("0df7cb67-fad0-4dbe-ba7e-b80cf85da510") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("20e1cbb1-5515-4763-a3fc-f29bf63377d9") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("798c91e1-14ad-4c60-865f-468413642db4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("df86748d-e21c-4def-b85b-08898d0763fb") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("4629f448-f52f-42cf-98dc-30df090ce512") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("929f3658-797f-4ecb-8461-09b6c5d26f44") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("41b6e141-9b44-48ea-ac5f-6baaf6f396b6") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("d76e50e4-dcc6-4a28-8137-1aa6fb51cb90") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("b9554853-0f45-4988-a722-c60dd1e1286f") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("3e57db89-8b36-44db-bb87-bad03bf1f1c4") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("9bca877b-e4b7-48c0-87ef-65778b09b85c") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("c9b757d3-d773-4fd7-80ce-f4d6ed5b3492") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("4803db31-1ced-48dc-a442-988d56eb7d1f") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("49c0820c-ddd4-4edf-8cb2-4e73942bbf12") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("1be067de-1ae4-45b6-8079-b205385def74") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("b2c7f009-8d9c-4f89-bc88-c106f497b089") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("af2ac1eb-1b29-4565-b51a-e0305c242548") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("1be067de-1ae4-45b6-8079-b205385def74") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("b2c7f009-8d9c-4f89-bc88-c106f497b089") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("af2ac1eb-1b29-4565-b51a-e0305c242548") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("1be067de-1ae4-45b6-8079-b205385def74") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("b2c7f009-8d9c-4f89-bc88-c106f497b089") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("af2ac1eb-1b29-4565-b51a-e0305c242548") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("1be067de-1ae4-45b6-8079-b205385def74") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("b2c7f009-8d9c-4f89-bc88-c106f497b089") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("af2ac1eb-1b29-4565-b51a-e0305c242548") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style><style>body{margin:0;background:#e9e6df;font-family:Inter,sans-serif}a{color:#a63d1e}a:hover{color:#7d2c14}.dv-turn{padding:40px 44px 32px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px system-ui;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.3 system-ui;color:rgba(0,0,0,.6)}.dv-card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui;color:rgba(0,0,0,.5)}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.ph{background:repeating-linear-gradient(135deg,rgba(0,0,0,.05) 0 10px,transparent 10px 20px);display:flex;align-items:flex-end;padding:10px;font:400 11px 'JetBrains Mono',monospace;color:rgba(0,0,0,.55)}.pd{background:repeating-linear-gradient(135deg,rgba(255,255,255,.06) 0 10px,transparent 10px 20px);color:rgba(255,255,255,.6)}.b:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(30,26,22,.14)}.b{transition:transform .15s,box-shadow .15s}</style></helmet>
+
+<section class="dv-turn" id="t5">
+<div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname">Artikelflow i stilen fra <a class="dv-oid" href="#4a">4a</a>: åbning → brødtekst med annonce midt i → afslutning med læs videre</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="5a"><div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Desktop-artikel · 680 px tekstspalte, ingen sidebar</div>
+<div class="dv-card" style="width:1200px;background:#faf7f1;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="position:sticky;top:0;background:rgba(250,247,241,.82);backdrop-filter:blur(16px) saturate(1.3);border-bottom:1px solid #ddd5c8"><div style="display:flex;align-items:center;justify-content:space-between;padding:0 64px;height:64px"><div style="display:flex;align-items:center;gap:22px"><span style="font:600 14px Inter;color:#4a433c">← Forside</span><span style="font:700 24px Newsreader,serif;letter-spacing:-.02em">Slagelse<span style="color:#a63d1e">Lokalt</span></span></div><div style="display:flex;gap:10px;align-items:center;font:600 13px Inter"><span style="color:#6b6258">4 min. · 38 % læst</span><span style="border:1px solid #ddd5c8;background:#fff;padding:8px 14px;border-radius:999px">☐ Gem</span><span style="border:1px solid #ddd5c8;background:#fff;padding:8px 14px;border-radius:999px">Del</span></div></div><div style="height:3px;background:linear-gradient(90deg,#a63d1e 38%,transparent 38%)"></div></div>
+
+ <div style="padding:52px 64px 0;max-width:1072px"><div style="font:500 13px Inter;color:#6b6258;display:flex;gap:8px"><span>Forside</span>›<span>Nyheder</span>›<span style="color:#1e1a16;font-weight:600">Slagelse By</span></div>
+  <div style="margin-top:26px;font:600 12px Inter;letter-spacing:.08em;color:#a63d1e">NYHEDER · BYUDVIKLING · SLAGELSE BY</div>
+  <h1 style="margin:18px 0 22px;font:500 84px/.99 Newsreader,serif;letter-spacing:-.035em;text-wrap:balance">Bymidten får 45 millioner og et nyt torv</h1>
+  <p style="margin:0;max-width:720px;font:400 24px/1.48 Newsreader,serif;color:#4a433c">Byrådet har sat retning. Her er, hvad der sker først, og hvad det betyder for dig.</p>
+  <div style="margin-top:26px;display:flex;align-items:center;gap:14px;font:500 13.5px Inter;color:#4a433c"><div class="ph" style="width:44px;height:44px;border-radius:50%;padding:0"></div><div><b style="color:#1e1a16">Rikke Møller</b><div style="color:#6b6258">Redaktør · 30. sep. 2026 · 4 min. læsning</div></div></div></div>
+
+ <div style="margin:40px 64px 0"><div class="ph" style="height:440px;border-radius:14px">foto · hero 16:9 (flyver ind fra kortet på forsiden)</div><div style="margin-top:10px;font:500 13px Inter;color:#6b6258;max-width:680px">Sådan kan Nytorv se ud i 2028. Illustration: Slagelse Kommune. Foto: Lene Sørensen.</div></div>
+
+ <div style="padding:48px 64px 0;display:grid;grid-template-columns:200px 680px 1fr;gap:40px">
+  <div style="font:500 13px Inter;color:#6b6258;position:sticky;top:90px;align-self:start"><div style="font:700 11px Inter;letter-spacing:.08em;color:#4a433c;margin-bottom:12px">I DENNE ARTIKEL</div><div style="display:grid;gap:10px;border-left:1px solid #ddd5c8;padding-left:14px"><b style="color:#a63d1e">Planen</b><span>Hvad sker først</span><span>Naboerne mener</span><span>Tidsplan</span></div></div>
+  <div style="font:400 20px/1.65 Newsreader,serif;color:#1e1a16">
+   <p style="margin:0 0 22px"><span style="font:600 66px/.85 Newsreader,serif;float:left;padding:6px 10px 0 0;color:#a63d1e">E</span>t bredt flertal i byrådet har besluttet at bruge 45 millioner kroner på bymidten frem mod 2028. Pengene går til et nyt torv, 60 nye træer og en legeplads midt i byen.</p>
+   <p style="margin:0 0 22px">Det er første gang i ti år, at et så stort beløb øremærkes til byens hjerte. Borgmesteren kalder det “et løft, vi har ventet på”.</p>
+   <h2 style="margin:38px 0 14px;font:600 30px/1.15 Newsreader,serif;letter-spacing:-.01em">Hvad sker først</h2>
+   <div style="display:grid;gap:12px;margin-bottom:22px"><div style="display:flex;gap:14px"><b style="font:700 14px Inter;color:#a63d1e;width:18px">1</b>Nytorv lukkes for biler fra marts 2027</div><div style="display:flex;gap:14px"><b style="font:700 14px Inter;color:#a63d1e;width:18px">2</b>Træerne plantes i efteråret</div><div style="display:flex;gap:14px"><b style="font:700 14px Inter;color:#a63d1e;width:18px">3</b>Legepladsen åbner sommeren 2028</div></div>
+
+   <div style="margin:36px 0;border:1px solid #ddd5c8;border-radius:14px;overflow:hidden;background:#fff"><div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#fce8a6;color:#4d3900;border-bottom:2px solid #b8860b"><b style="font:700 11px Inter;letter-spacing:.08em">ANNONCE · SLAGELSE SPAREKASSE</b><span style="font:600 11px Inter">Hvorfor ser jeg denne? ⓘ</span></div><div class="ph" style="height:200px;border-radius:0">display · 680×200 · skalerer ned på mobil</div></div>
+
+   <p style="margin:0 0 22px">Flere af de omkringboende er positive, men ikke alle. Ejeren af Café Torvet frygter, at byggeriet vil koste kunder i to sæsoner.</p>
+   <div style="margin:34px 0;padding:22px 0;border-top:2px solid #1e1a16;border-bottom:1px solid #ddd5c8;font:italic 400 30px/1.22 Newsreader,serif;text-wrap:balance">“Vi vil gerne have torvet, men vi skal også kunne holde åbent imens.”<div style="font:600 12px Inter;font-style:normal;color:#4a433c;margin-top:12px">Jesper Holm, Café Torvet</div></div>
+   <h2 style="margin:38px 0 14px;font:600 30px/1.15 Newsreader,serif;letter-spacing:-.01em">Tidsplan</h2>
+   <p style="margin:0">Byrådet behandler den endelige projektplan i november. Hold dig opdateret ved at følge emnet “Byudvikling”.</p>
+   <div style="margin-top:28px;padding:18px 20px;background:#fff;border:1px solid #ddd5c8;border-radius:14px;display:flex;justify-content:space-between;align-items:center;font:500 15px Inter"><span>Følg emnet <b>Byudvikling</b> og få besked om nyt.</span><span style="background:#1e1a16;color:#fff;padding:9px 16px;border-radius:999px;font:600 13px Inter">Følg ☐</span></div>
+  </div>
+  <div></div>
+ </div>
+
+ <div style="margin:64px 64px 0;border-top:1px solid #1e1a16;padding-top:30px"><h2 style="margin:0 0 6px;font:600 32px Newsreader,serif;letter-spacing:-.01em">Læs videre</h2>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr)">
+   <div style="padding:22px 28px 30px 0;border-right:1px solid #ddd5c8"><div style="font:600 11px Inter;letter-spacing:.08em;color:#4a433c">POLITIK · SLAGELSE BY</div><h3 style="margin:10px 0;font:600 26px/1.12 Newsreader,serif;text-wrap:balance">Sådan stemte byrådet: Se hvem der sagde hvad</h3><div style="font:500 13px Inter;color:#6b6258">Rikke Møller · 2 t.</div></div>
+   <div style="padding:22px 28px 30px;border-right:1px solid #ddd5c8"><div style="font:600 11px Inter;letter-spacing:.08em;color:#4a433c">ERHVERV · SLAGELSE BY</div><h3 style="margin:10px 0;font:600 26px/1.12 Newsreader,serif;text-wrap:balance">Nyt bageri på havnen skaber 40 jobs</h3><div style="font:500 13px Inter;color:#6b6258">Peter Nygaard · 9 t.</div></div>
+   <div style="padding:22px 0 30px 28px;color:#3f4a2a"><div style="font:700 11px Inter;letter-spacing:.06em">▣ INDSENDT · SLAGELSE BYLAUG</div><h3 style="margin:10px 0;font:600 26px/1.12 Newsreader,serif;color:#1e1a16;text-wrap:balance">Borgerne foreslår cykelparkering på det nye torv</h3><div style="font:500 13px Inter">1 d.</div></div></div></div>
+
+ <div style="margin:24px 64px 0;background:#1e1a16;color:#faf7f1;border-radius:14px;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:24px"><div><div style="font:500 28px/1.15 Newsreader,serif;max-width:620px">Få dagens vigtigste fra Slagelse, hver morgen kl. 7.</div><div style="font:500 13px Inter;color:#cfc6b8;margin-top:8px">Gratis. Afmeld med ét klik.</div></div><div style="display:flex;gap:10px;flex:none"><span style="background:#fff;color:#6b6258;padding:13px 20px;border-radius:999px;font:500 14px Inter;width:180px">din@mail.dk</span><span style="background:#a63d1e;color:#fff;padding:13px 22px;border-radius:999px;font:700 14px Inter">Tilmeld</span></div></div>
+
+ <div style="margin:24px 64px 0;background:#fce8a6;color:#4d3900;border:2px solid #b8860b;border-top-width:6px;border-radius:14px;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px"><div><span style="font:700 11px Inter;letter-spacing:.08em;border:1.5px solid #4d3900;padding:3px 8px;border-radius:4px">ANNONCE</span><div style="margin-top:8px;font:600 24px/1.15 Newsreader,serif">Byens bedste brunch: Book bord på Café Torvet</div></div><span style="background:#4d3900;color:#fce8a6;padding:12px 22px;border-radius:999px;font:700 14px Inter;flex:none">Se menu</span></div>
+
+ <div style="margin:40px 64px 0;padding:22px 0;border-top:1px solid #ddd5c8;display:flex;justify-content:space-between;font:500 13px Inter;color:#6b6258"><span>Fyrtårnspartnere: logo · logo · logo · logo</span><span>Om mediet · Rettelser · Kontakt · Hvordan vi bruger AI</span></div>
+ <div style="height:26px"></div>
+</div></div>
+
+<div class="dv-opt" id="5b"><div class="dv-olabel"><a class="dv-oid" href="#5b">5b</a>Mobil-artikel · annonce midt i, bundbar med næste historie</div>
+<div class="dv-card" style="width:375px;background:#faf7f1;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="position:sticky;top:0;background:rgba(250,247,241,.82);backdrop-filter:blur(16px);border-bottom:1px solid #ddd5c8"><div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:50px;font:600 13px Inter"><span>← Forside</span><span style="font:700 16px Newsreader,serif;color:#a63d1e">SlagelseLokalt</span><span>☐</span></div><div style="height:3px;background:linear-gradient(90deg,#a63d1e 38%,transparent 38%)"></div></div>
+ <div style="padding:22px 20px 0"><div style="font:600 11px Inter;letter-spacing:.08em;color:#a63d1e">NYHEDER · BYUDVIKLING</div><h1 style="margin:12px 0 14px;font:500 40px/1 Newsreader,serif;letter-spacing:-.03em;text-wrap:balance">Bymidten får 45 millioner og et nyt torv</h1><p style="margin:0;font:400 19px/1.45 Newsreader,serif;color:#4a433c">Byrådet har sat retning. Her er, hvad der sker først.</p><div style="margin:14px 0 18px;font:500 13px Inter;color:#6b6258">Rikke Møller · 30. sep. · 4 min.</div></div>
+ <div class="ph" style="height:210px">hero</div>
+ <div style="padding:22px 20px 0;font:400 18px/1.62 Newsreader,serif"><p style="margin:0 0 18px">Et bredt flertal i byrådet har besluttet at bruge 45 millioner kroner på bymidten frem mod 2028.</p><h2 style="margin:24px 0 10px;font:600 24px/1.15 Newsreader,serif">Hvad sker først</h2><div style="display:grid;gap:10px;margin-bottom:18px"><div style="display:flex;gap:12px"><b style="font:700 14px Inter;color:#a63d1e">1</b>Nytorv lukkes for biler i marts 2027</div><div style="display:flex;gap:12px"><b style="font:700 14px Inter;color:#a63d1e">2</b>Træerne plantes i efteråret</div></div></div>
+ <div style="margin:10px 20px 18px;border:1px solid #ddd5c8;border-radius:12px;overflow:hidden;background:#fff"><div style="padding:8px 12px;background:#fce8a6;color:#4d3900;border-bottom:2px solid #b8860b;font:700 10.5px Inter;letter-spacing:.08em">ANNONCE · SLAGELSE SPAREKASSE</div><div class="ph" style="height:250px;border-radius:0">display · 300×250</div></div>
+ <div style="padding:0 20px;font:400 18px/1.62 Newsreader,serif"><p style="margin:0 0 18px">Ikke alle er lige begejstrede. Café Torvet frygter at miste kunder i to sæsoner.</p><div style="padding:16px 0;border-top:2px solid #1e1a16;border-bottom:1px solid #ddd5c8;font:italic 400 24px/1.25 Newsreader,serif;margin-bottom:22px">“Vi vil gerne have torvet, men vi skal også kunne holde åbent.”<div style="font:600 12px Inter;font-style:normal;color:#4a433c;margin-top:8px">Jesper Holm, Café Torvet</div></div></div>
+ <div style="margin:0 20px;padding:16px;background:#fff;border:1px solid #ddd5c8;border-radius:12px;display:flex;justify-content:space-between;align-items:center;font:500 14px Inter"><span>Følg <b>Byudvikling</b></span><span style="background:#1e1a16;color:#fff;padding:8px 14px;border-radius:999px;font:600 13px Inter">Følg ☐</span></div>
+ <div style="margin:26px 20px 0;border-top:1px solid #1e1a16;padding-top:18px"><div style="font:600 24px Newsreader,serif;margin-bottom:4px">Læs videre</div><div style="padding:14px 0;border-bottom:1px solid #ddd5c8"><div style="font:600 10.5px Inter;letter-spacing:.06em;color:#4a433c">POLITIK</div><div style="font:600 20px/1.18 Newsreader,serif;margin-top:4px">Sådan stemte byrådet</div></div><div style="padding:14px 0"><div style="font:600 10.5px Inter;letter-spacing:.06em;color:#4a433c">ERHVERV</div><div style="font:600 20px/1.18 Newsreader,serif;margin-top:4px">Nyt bageri skaber 40 jobs</div></div></div>
+ <div style="margin:10px 20px 0;background:#1e1a16;color:#faf7f1;border-radius:12px;padding:18px"><div style="font:500 20px/1.2 Newsreader,serif">Dagens vigtigste, hver morgen kl. 7.</div><div style="margin-top:12px;display:inline-block;background:#a63d1e;color:#fff;padding:10px 18px;border-radius:999px;font:700 13px Inter">Tilmeld</div></div>
+ <div style="height:86px"></div>
+ <div style="position:sticky;bottom:10px;margin:0 12px 12px;background:rgba(255,255,255,.76);backdrop-filter:blur(18px) saturate(1.5);border:1px solid rgba(221,213,200,.9);border-radius:18px;padding:12px 16px;box-shadow:0 8px 24px rgba(30,26,22,.14);display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div style="font:600 10.5px Inter;letter-spacing:.06em;color:#6b6258">NÆSTE HISTORIE</div><div style="font:600 16px/1.2 Newsreader,serif;margin-top:2px">Sådan stemte byrådet</div></div><span style="font:700 18px Inter;color:#a63d1e">→</span></div>
+</div></div>
+
+</div>
+<p class="dv-next">Prøv næste: "sponsoreret artikel med eget layout" · "partnerfinansieret artikel med badge øverst" · "kommentarer og del-flow i bunden"</p>
+</section>
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Sammensmeltning af <a class="dv-oid" href="#3a">3a</a> og <a class="dv-oid" href="#1b">1b</a>: tekst-først forside med enkel visning, områdevælger og mærket indhold</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a"><div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Desktop · enkel visning (førstegangsgæst)</div>
+<div class="dv-card" style="width:1200px;background:#faf7f1;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="position:sticky;top:0;background:rgba(250,247,241,.82);backdrop-filter:blur(16px) saturate(1.3);border-bottom:1px solid #ddd5c8"><div style="display:flex;align-items:center;justify-content:space-between;padding:0 64px;height:72px"><div style="display:flex;align-items:center;gap:20px"><span style="font:700 27px Newsreader,serif;letter-spacing:-.02em">Slagelse<span style="color:#a63d1e">Lokalt</span></span><span style="display:flex;gap:7px;align-items:center;border:1px solid #ddd5c8;background:#fff;border-radius:999px;padding:7px 14px;font:600 13px Inter">◉ Slagelse By ▾</span></div><nav style="display:flex;gap:26px;font:500 14px Inter;color:#4a433c"><b style="color:#1e1a16;border-bottom:2px solid #a63d1e;padding-bottom:4px">Forside</b><span>Nyheder</span><span>Erhverv</span><span>Sport</span><span>Kultur</span><span>Debat</span><span>Kalender</span></nav><span style="font:600 14px Inter;background:#a63d1e;color:#fff;padding:10px 18px;border-radius:999px">Indsend historie</span></div><div style="height:3px;background:linear-gradient(90deg,#a63d1e 24%,transparent 24%)"></div></div>
+ <div style="padding:12px 64px;display:flex;gap:14px;align-items:center;font:500 14px Inter;border-bottom:1px solid #ddd5c8"><span style="font:700 11px Inter;letter-spacing:.06em;background:#f4e1d8;color:#7d2c14;padding:4px 9px;border-radius:4px">● SENESTE NYT</span><span style="color:#6b6258">12 min.</span><span style="font-weight:600">Kødannelse på Storebæltsbroen mod Fyn efter uheld</span></div>
+ <div style="padding:68px 64px 52px;display:grid;grid-template-columns:1fr 300px;gap:56px;align-items:end">
+  <div><div style="font:600 12px Inter;letter-spacing:.08em;color:#a63d1e">VELKOMMEN · DET VIGTIGSTE I DAG · SLAGELSE BY</div>
+   <h1 style="margin:22px 0 26px;font:500 92px/.98 Newsreader,serif;letter-spacing:-.035em;text-wrap:balance">Bymidten får 45 millioner og et nyt torv</h1>
+   <p style="margin:0;max-width:640px;font:400 23px/1.5 Newsreader,serif;color:#4a433c">Byrådet har sat retning. Her er, hvad der sker først, og hvad det betyder for dig.</p>
+   <div style="margin-top:28px;display:flex;align-items:center;gap:20px"><span style="background:#a63d1e;color:#fff;padding:14px 26px;border-radius:999px;font:600 15px Inter">Læs historien · 4 min.</span><span style="font:500 13px Inter;color:#6b6258">Rikke Møller · 1 t.</span></div></div>
+  <div class="ph" style="height:340px;border-radius:14px;align-items:flex-end">foto · 3:4 (valgfri)</div></div>
+ <div style="margin:0 64px;border-top:1px solid #1e1a16;display:grid;grid-template-columns:repeat(3,1fr)">
+  <div style="padding:26px 28px 34px 0;border-right:1px solid #ddd5c8"><div style="font:600 11px Inter;letter-spacing:.08em;color:#4a433c">SPORT · KORSØR</div><h3 style="margin:10px 0 12px;font:600 29px/1.1 Newsreader,serif;text-wrap:balance">Korsør IF rykker op efter 3–1 i forlænget spilletid</h3><p style="margin:0;font:400 17px/1.5 Newsreader,serif;color:#4a433c">Hjemmebanen kogte, og de første fans var på banen før slutfløjtet.</p><div style="margin-top:14px;font:500 13px Inter;color:#6b6258">Jonas Holm · 5 t.</div></div>
+  <div style="padding:26px 28px 34px;border-right:1px solid #ddd5c8;background:#e3ecf2;color:#1f3a4d;margin:0"><div style="font:700 10.5px Inter;letter-spacing:.05em;border:1px solid #1f3a4d;display:inline-block;padding:3px 8px;border-radius:4px">◆ FINANSIERET AF SLAGELSE SPAREKASSE</div><h3 style="margin:14px 0 12px;font:600 29px/1.1 Newsreader,serif;text-wrap:balance">Fra skur til scene: Sådan voksede Musikhuset på Skovsøen</h3><p style="margin:0;font:400 17px/1.5 Newsreader,serif">For ti år siden var det en lade. I dag spiller der 140 koncerter om året.</p><div style="margin-top:14px;font:500 13px Inter">Erhverv · Peter Nygaard · 3 t.</div></div>
+  <div style="padding:26px 0 34px 28px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font:700 11px Inter;letter-spacing:.08em;color:#a63d1e">KORT NYT</b><span style="font:600 10px Inter;border:1px dashed #4a433c;padding:2px 6px;border-radius:4px;color:#4a433c">✦ AI-ASSISTERET</span></div><div style="margin-top:12px;display:grid;gap:13px;font:500 15px/1.3 Inter"><div style="padding-bottom:13px;border-bottom:1px solid #ddd5c8"><span style="color:#6b6258">09.40</span> Ja til cykelsti ved Sorø Landevej</div><div style="padding-bottom:13px;border-bottom:1px solid #ddd5c8"><span style="color:#6b6258">08.15</span> Slagelse FK henter angriber</div><div><span style="color:#6b6258">07.50</span> Vandværk opgraderes i Vemmelev</div></div><div style="margin-top:14px;font:500 12px Inter;color:#6b6258">Godkendt af redaktionen</div></div>
+ </div>
+ <div style="margin:0 64px;border-top:1px solid #ddd5c8;padding-top:34px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><h2 style="margin:0;font:600 30px Newsreader,serif;letter-spacing:-.01em">Fra dit område</h2><div style="display:flex;gap:8px;font:600 13px Inter"><span style="background:#1e1a16;color:#fff;padding:7px 14px;border-radius:999px">Slagelse By</span><span style="border:1px solid #ddd5c8;background:#fff;padding:7px 14px;border-radius:999px">Korsør</span><span style="border:1px solid #ddd5c8;background:#fff;padding:7px 14px;border-radius:999px">Skælskør</span><span style="border:1px solid #ddd5c8;background:#fff;padding:7px 14px;border-radius:999px">Øerne</span></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;column-gap:56px"><div style="padding:20px 0;border-bottom:1px solid #ddd5c8;display:flex;justify-content:space-between;gap:20px;align-items:baseline"><div><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">KULTUR</div><div style="font:600 24px/1.18 Newsreader,serif;margin-top:6px">Byens ældste biograf åbner igen</div></div><span style="font:500 13px Inter;color:#6b6258">6 t.</span></div><div style="padding:20px 0;border-bottom:1px solid #ddd5c8;display:flex;justify-content:space-between;gap:20px;align-items:baseline"><div><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">FORENINGSLIV</div><div style="font:600 24px/1.18 Newsreader,serif;margin-top:6px">200 cykler samlet til ukrainske familier</div></div><span style="font:500 13px Inter;color:#6b6258">8 t.</span></div><div style="padding:20px 0;border-bottom:1px solid #ddd5c8;display:flex;justify-content:space-between;gap:20px;align-items:baseline"><div><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">ERHVERV</div><div style="font:600 24px/1.18 Newsreader,serif;margin-top:6px">Nyt bageri på havnen skaber 40 jobs</div></div><span style="font:500 13px Inter;color:#6b6258">9 t.</span></div><div style="padding:20px 0;border-bottom:1px dashed #3f4a2a;color:#3f4a2a;display:flex;justify-content:space-between;gap:20px;align-items:baseline"><div><div style="font:700 11px Inter;letter-spacing:.06em">▣ INDSENDT · BOESLUNDE BORGERFORENING</div><div style="font:600 24px/1.18 Newsreader,serif;margin-top:6px;color:#1e1a16">Loppemarked slog rekord</div></div><span style="font:500 13px Inter">1 d.</span></div></div></div>
+ <div style="margin:40px 64px 0;background:#fce8a6;color:#4d3900;border:2px solid #b8860b;border-top-width:6px;border-radius:14px;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;gap:24px"><div><span style="font:700 11px Inter;letter-spacing:.08em;border:1.5px solid #4d3900;padding:3px 8px;border-radius:4px">ANNONCE</span><div style="margin-top:10px;font:600 27px/1.12 Newsreader,serif">Skal dit hus skifte ejer i 2027? Få en gratis vurdering.</div></div><span style="flex:none;background:#4d3900;color:#fce8a6;padding:12px 22px;border-radius:999px;font:700 14px Inter">Book tid</span></div>
+ <div style="margin:32px 64px 0;padding:26px 32px;background:#1e1a16;color:#faf7f1;border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:24px"><div style="font:500 25px/1.2 Newsreader,serif;max-width:640px">Dagens vigtigste fra dit område, hver morgen kl. 7.</div><span style="flex:none;background:#faf7f1;color:#1e1a16;padding:13px 22px;border-radius:999px;font:700 14px Inter">Tilmeld nyhedsbrev</span></div>
+ <div style="margin-top:40px;padding:14px 64px;border-top:1px dashed #ddd5c8;font:500 12px Inter;color:#6b6258;display:flex;justify-content:space-between"><span>Tilpasset dig: enkel visning · <u>Skift til tæt visning</u> · <u>Mørk</u></span><span>Fyrtårnspartnere: logo · logo · logo · logo</span></div>
+</div></div>
+
+<div class="dv-opt" id="4b"><div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Mobil · samme system</div>
+<div class="dv-card" style="width:375px;background:#faf7f1;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:54px;border-bottom:1px solid #ddd5c8"><span style="font:700 22px Newsreader,serif;letter-spacing:-.02em">Slagelse<span style="color:#a63d1e">Lokalt</span></span><span style="border:1px solid #ddd5c8;background:#fff;border-radius:999px;padding:6px 11px;font:600 12px Inter">◉ Slagelse ▾</span></div>
+ <div style="padding:10px 16px;font:600 13px/1.25 Inter;border-bottom:1px solid #ddd5c8;display:flex;gap:10px;align-items:center"><span style="flex:none;font:700 10px Inter;letter-spacing:.06em;background:#f4e1d8;color:#7d2c14;padding:4px 7px;border-radius:4px">● NYT</span>Kødannelse på Storebælt efter uheld</div>
+ <div style="padding:34px 20px 28px"><div style="font:600 11px Inter;letter-spacing:.08em;color:#a63d1e">DET VIGTIGSTE I DAG</div><h1 style="margin:14px 0 16px;font:500 46px/1 Newsreader,serif;letter-spacing:-.03em;text-wrap:balance">Bymidten får 45 millioner og et nyt torv</h1><p style="margin:0;font:400 19px/1.5 Newsreader,serif;color:#4a433c">Byrådet har sat retning. Her er, hvad der sker først.</p><div style="margin-top:20px;display:inline-block;background:#a63d1e;color:#fff;padding:13px 22px;border-radius:999px;font:600 15px Inter">Læs historien · 4 min.</div></div>
+ <div style="margin:0 20px;border-top:1px solid #1e1a16"><div style="padding:20px 0;border-bottom:1px solid #ddd5c8"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">SPORT · KORSØR</div><div style="font:600 24px/1.15 Newsreader,serif;margin-top:6px">Korsør IF rykker op efter 3–1</div></div>
+  <div style="padding:16px;margin:16px 0;background:#e3ecf2;border:1px solid #1f3a4d;border-radius:12px;color:#1f3a4d"><div style="font:700 10.5px Inter;letter-spacing:.05em">◆ FINANSIERET AF SLAGELSE SPAREKASSE</div><div style="font:600 22px/1.15 Newsreader,serif;margin-top:8px">Fra skur til scene: Musikhuset på Skovsøen</div></div>
+  <div style="padding:16px;background:#fff;border:1px dashed #4a433c;border-radius:12px"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b style="font:700 11px Inter;letter-spacing:.08em">KORT NYT</b><span style="font:600 10px Inter;border:1px dashed #4a433c;padding:2px 6px;border-radius:4px">✦ AI-ASSISTERET</span></div><div style="font:500 14px/1.35 Inter;display:grid;gap:9px"><div><span style="color:#6b6258">09.40</span> Ja til cykelsti, Sorø Landevej</div><div><span style="color:#6b6258">08.15</span> Slagelse FK henter angriber</div></div></div>
+  <div style="margin:22px 0 4px;font:600 24px Newsreader,serif">Fra dit område</div><div style="display:flex;gap:8px;font:600 12px Inter;margin-bottom:4px"><span style="background:#1e1a16;color:#fff;padding:6px 12px;border-radius:999px">Slagelse</span><span style="border:1px solid #ddd5c8;background:#fff;padding:6px 12px;border-radius:999px">Korsør</span><span style="border:1px solid #ddd5c8;background:#fff;padding:6px 12px;border-radius:999px">Skælskør</span></div>
+  <div style="padding:16px 0;border-bottom:1px solid #ddd5c8;font:600 20px/1.2 Newsreader,serif">Byens ældste biograf åbner igen</div><div style="padding:16px 0;border-bottom:1px solid #ddd5c8;font:600 20px/1.2 Newsreader,serif">Nyt bageri på havnen skaber 40 jobs</div></div>
+ <div style="height:84px"></div>
+ <div style="position:sticky;bottom:10px;margin:0 12px 12px;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(255,255,255,.74);backdrop-filter:blur(18px) saturate(1.5);border:1px solid rgba(221,213,200,.9);border-radius:22px;padding:8px 4px;box-shadow:0 8px 24px rgba(30,26,22,.14);font:600 11px Inter;color:#4a433c;text-align:center"><div style="color:#a63d1e"><div style="font-size:17px">⌂</div>Forside</div><div><div style="font-size:17px">☰</div>Emner</div><div><div style="font-size:17px">▦</div>Kalender</div><div><div style="font-size:17px">⌕</div>Søg</div><div><div style="font-size:17px">◉</div>Profil</div></div>
+</div></div>
+
+</div>
+<p class="dv-next">Prøv næste: "artikelside i samme stil med View Transition" · "tæt visning af <a class="dv-oid" href="#4a">4a</a> til faste læsere" · "kategoriside og kalenderside"</p>
+</section>
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Rapportens kerne: Generativ UI. Samme indhold, to layouts efter læserens kontekst. Redaktionen sætter rammerne.</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a"><div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Førstegangsgæst · tekst-only hero, lav densitet, stor linjeafstand, én handling</div>
+<div class="dv-card" style="width:560px;background:#faf7f1;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="position:sticky;top:0;background:rgba(250,247,241,.8);backdrop-filter:blur(16px);border-bottom:1px solid #ddd5c8;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:60px"><span style="font:700 24px Newsreader,serif;color:#a63d1e;letter-spacing:-.02em">SlagelseLokalt</span><span style="display:flex;gap:6px;align-items:center;border:1px solid #ddd5c8;background:#fff;border-radius:999px;padding:7px 13px;font:600 13px Inter">◉ Slagelse By ▾</span></div>
+ <div style="padding:48px 28px 36px"><div style="font:600 12px Inter;letter-spacing:.08em;color:#a63d1e">VELKOMMEN · DET VIGTIGSTE I DAG</div>
+  <h1 style="margin:18px 0 20px;font:500 58px/1 Newsreader,serif;letter-spacing:-.035em;text-wrap:balance">Bymidten får 45 millioner og et nyt torv</h1>
+  <p style="margin:0;font:400 22px/1.55 Newsreader,serif;color:#4a433c">Byrådet har sat retning. Her er, hvad der sker først, og hvad det betyder for dig.</p>
+  <div style="margin-top:26px;display:inline-block;background:#a63d1e;color:#fff;padding:14px 24px;border-radius:999px;font:600 15px Inter">Læs historien · 4 min.</div></div>
+ <div style="margin:0 28px;border-top:1px solid #1e1a16;padding-top:22px"><div style="font:700 11px Inter;letter-spacing:.08em;color:#6b6258;margin-bottom:6px">OGSÅ I DAG</div>
+  <div style="display:grid;gap:0"><div style="padding:18px 0;border-bottom:1px solid #ddd5c8"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">SPORT · KORSØR</div><div style="font:600 24px/1.18 Newsreader,serif;margin-top:6px">Korsør IF rykker op efter 3–1</div></div><div style="padding:18px 0;border-bottom:1px solid #ddd5c8"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">KULTUR · SLAGELSE</div><div style="font:600 24px/1.18 Newsreader,serif;margin-top:6px">Byens ældste biograf åbner igen</div></div><div style="padding:18px 0"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">ERHVERV · SLAGELSE</div><div style="font:600 24px/1.18 Newsreader,serif;margin-top:6px">Nyt bageri skaber 40 arbejdspladser</div></div></div></div>
+ <div style="margin:10px 28px 32px;padding:18px 20px;background:#fff;border:1px solid #ddd5c8;border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:14px"><div style="font:500 15px/1.4 Inter">Få dagens vigtigste fra dit område kl. 7.</div><span style="flex:none;background:#1e1a16;color:#fff;padding:10px 16px;border-radius:999px;font:600 13px Inter">Nyhedsbrev</span></div>
+ <div style="padding:14px 28px;border-top:1px dashed #ddd5c8;font:500 12px Inter;color:#6b6258">Tilpasset dig: enkel visning · <u>Skift til tæt visning</u></div>
+</div></div>
+
+<div class="dv-opt" id="3b"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Fast læser · dashboard-layout · mørk, informationstæt, "Til dig"-modul + live + data</div>
+<div class="dv-card" style="width:1200px;background:#15171c;color:#ebe8e1;font-family:Inter,sans-serif;border-color:#15171c">
+ <div style="display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:60px;background:rgba(21,23,28,.8);backdrop-filter:blur(18px);border-bottom:1px solid #2a2e36"><div style="display:flex;align-items:center;gap:22px"><span style="font:700 25px Newsreader,serif;letter-spacing:-.02em">Slagelse<span style="color:#f2c94c">Lokalt</span></span><nav style="display:flex;gap:18px;font:500 13.5px Inter;color:#a9a69f"><b style="color:#ebe8e1">Forside</b><span>Nyheder</span><span>Erhverv</span><span>Sport</span><span>Kultur</span><span>Foreningsliv</span><span>Debat</span><span>Kalender</span></nav></div><div style="display:flex;gap:14px;align-items:center;font:500 13px Inter;color:#a9a69f"><span style="border:1px solid #2a2e36;padding:6px 12px;border-radius:8px">⌘K Søg</span><span style="background:#f2c94c;color:#15171c;padding:9px 16px;border-radius:999px;font-weight:700">Indsend</span></div></div>
+ <div style="padding:20px 32px 32px;display:grid;grid-template-columns:repeat(12,1fr);gap:12px;font:500 14px Inter">
+  <div style="grid-column:span 3;background:#1d2027;border:1px solid #2a2e36;border-radius:14px;padding:18px"><div style="font:700 11px Inter;letter-spacing:.08em;color:#f2c94c;margin-bottom:12px">TIL DIG · FULGTE EMNER</div><div style="display:grid;gap:12px"><div style="border-bottom:1px solid #2a2e36;padding-bottom:10px"><div style="color:#a9a69f;font-size:12px">Byudvikling · ny</div><div style="font:600 16px/1.2 Newsreader,serif;margin-top:3px">Planer for Nytorv offentliggjort</div></div><div style="border-bottom:1px solid #2a2e36;padding-bottom:10px"><div style="color:#a9a69f;font-size:12px">Korsør IF · ny</div><div style="font:600 16px/1.2 Newsreader,serif;margin-top:3px">Oprykning sikret efter forlænget spilletid</div></div><div><div style="color:#a9a69f;font-size:12px">Cykelstier · opdateret</div><div style="font:600 16px/1.2 Newsreader,serif;margin-top:3px">Ja til Sorø Landevej</div></div></div></div>
+  <div style="grid-column:span 6;background:#1d2027;border:1px solid #2a2e36;border-radius:14px;padding:22px;display:flex;flex-direction:column;justify-content:space-between"><div style="font:600 11px Inter;letter-spacing:.08em;color:#a9a69f">TOPHISTORIE · BYUDVIKLING</div><h1 style="margin:14px 0;font:600 38px/1.06 Newsreader,serif;letter-spacing:-.02em;text-wrap:balance">Bymidten får 45 millioner: nyt torv, flere træer, plads til børn</h1><div style="display:flex;gap:10px;align-items:center;color:#a9a69f;font-size:13px">Rikke Møller · 1 t. · 4 min.<span style="margin-left:auto;border:1px solid #2a2e36;padding:5px 10px;border-radius:8px;color:#ebe8e1">☐ Gem</span></div></div>
+  <div style="grid-column:span 3;background:#f2c94c;color:#15171c;border-radius:14px;padding:18px;display:flex;flex-direction:column;justify-content:space-between"><div style="font:700 11px Inter;letter-spacing:.08em">● LIVE · TRAFIK</div><div style="font:600 22px/1.15 Newsreader,serif">Storebælt: kø mod Fyn, ca. 45 min. forsinkelse</div><div style="font-size:12px;font-weight:600">Opdateret 09.52</div></div>
+  <div style="grid-column:span 3;background:#1d2027;border:1px solid #2a2e36;border-radius:14px;padding:18px"><div style="font:700 11px Inter;letter-spacing:.08em;color:#a9a69f">DATA · BYMIDTEN, MIO. KR.</div><div style="display:flex;align-items:flex-end;gap:8px;height:110px;margin-top:14px"><div style="flex:1;background:#3a3f4a;height:24%;border-radius:4px 4px 0 0"></div><div style="flex:1;background:#3a3f4a;height:38%;border-radius:4px 4px 0 0"></div><div style="flex:1;background:#3a3f4a;height:30%;border-radius:4px 4px 0 0"></div><div style="flex:1;background:#f2c94c;height:100%;border-radius:4px 4px 0 0"></div></div><div style="display:flex;gap:8px;font-size:11px;color:#a9a69f;margin-top:6px"><span style="flex:1">2024</span><span style="flex:1">25</span><span style="flex:1">26</span><span style="flex:1;color:#f2c94c">27</span></div></div>
+  <div style="grid-column:span 3;background:#1d2027;border:1px dashed #6b6f78;border-radius:14px;padding:18px"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b style="font:700 11px Inter;letter-spacing:.08em;color:#a9a69f">KORT NYT</b><span style="font:600 10px Inter;border:1px dashed #6b6f78;padding:2px 6px;border-radius:4px;color:#a9a69f">✦ AI-ASSISTERET</span></div><div style="display:grid;gap:9px;font-size:13.5px;line-height:1.3"><div><span style="color:#a9a69f">09.40</span> Ja til cykelsti, Sorø Landevej</div><div><span style="color:#a9a69f">08.15</span> FK henter angriber</div><div><span style="color:#a9a69f">07.50</span> Vandværk opgraderes, Vemmelev</div></div></div>
+  <div style="grid-column:span 3;background:#1d2027;border:1px dashed #8a9870;border-radius:14px;padding:18px"><b style="font:700 11px Inter;letter-spacing:.08em;color:#b7c29a">▣ FRA BORGERNE · INDSENDT</b><div style="display:grid;gap:9px;margin-top:10px;font-size:13.5px;line-height:1.3"><div>Loppemarked i Boeslunde slog rekord</div><div>Nye bænke ved Skælskør Nor</div><div>Fodboldskole for 8–12-årige</div></div></div>
+  <div style="grid-column:span 3;background:#1d2027;border:1px solid #2a2e36;border-radius:14px;padding:18px"><b style="font:700 11px Inter;letter-spacing:.08em;color:#a9a69f">KALENDER</b><div style="display:grid;gap:10px;margin-top:10px;font-size:13.5px"><div><b style="color:#f2c94c">3. okt</b> Høstmarked, Torvet</div><div><b style="color:#f2c94c">4. okt</b> Jazz, Korsør Kulturhus</div><div><b style="color:#f2c94c">5. okt</b> Familiedag, Museet</div></div></div>
+ </div>
+ <div style="padding:12px 32px;border-top:1px solid #2a2e36;font:500 12px Inter;color:#a9a69f;display:flex;justify-content:space-between"><span>Tilpasset dig: tæt visning · Mørk · <u>Skift til enkel</u></span><span>INP-budget: under 200 ms · Ingen tredjeparts-scripts i artikel</span></div>
+</div></div>
+
+</div>
+<p class="dv-next">Prøv næste: "lav artikelside med View Transition fra kort til hero" · "annoncepladser i tæt visning" · "lys version af <a class="dv-oid" href="#3b">3b</a>"</p>
+</section>
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Bygget på konceptet: forsidezoner, mærkede korttyper, områdevælger, borger- og AI-spor, mobil-først</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a"><div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Desktop-forside · zone 1–7 fra DESIGN.md, bento-rytme</div>
+<div class="dv-card" style="width:1200px;background:#f7f3ec;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="background:rgba(247,243,236,.8);backdrop-filter:blur(18px) saturate(1.4);border-bottom:1px solid #ddd5c8">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:68px">
+   <div style="display:flex;align-items:center;gap:20px"><span style="font:700 29px Newsreader,serif;color:#a63d1e;letter-spacing:-.02em">SlagelseLokalt</span><span style="display:flex;align-items:center;gap:8px;border:1px solid #ddd5c8;background:#fff;border-radius:999px;padding:7px 14px;font:600 13px Inter">◉ Slagelse By <span style="color:#6b6258">▾</span></span></div>
+   <nav style="display:flex;gap:22px;font:500 14px Inter;color:#4a433c"><b style="color:#1e1a16;border-bottom:2px solid #a63d1e;padding-bottom:4px">Forside</b><span>Nyheder</span><span>Erhverv</span><span>Sport</span><span>Kultur</span><span>Foreningsliv</span><span>Debat</span><span>Kalender</span></nav>
+   <div style="display:flex;gap:14px;align-items:center;font:500 14px Inter;color:#4a433c"><span>Søg</span><span style="background:#a63d1e;color:#fff;padding:10px 18px;border-radius:999px;font-weight:600">Indsend historie</span></div></div>
+  <div style="height:3px;background:linear-gradient(90deg,#a63d1e 28%,transparent 28%)"></div></div>
+ <div style="padding:13px 40px;display:flex;align-items:center;gap:14px;font:500 14px Inter;background:#fff;border-bottom:1px solid #ddd5c8"><span style="font:700 11px Inter;letter-spacing:.06em;background:#f4e1d8;color:#7d2c14;padding:4px 9px;border-radius:4px">● SENESTE NYT</span><span style="color:#6b6258">12 min.</span><span style="font-weight:600">Kødannelse på Storebæltsbroen mod Fyn efter uheld</span><span style="margin-left:auto;color:#6b6258">Opdateret 09.52</span></div>
+
+ <div style="padding:32px 40px 0;display:grid;grid-template-columns:repeat(12,1fr);gap:16px">
+  <div class="b" style="grid-column:span 8;background:#fff;border:1px solid #ddd5c8;border-radius:16px;overflow:hidden"><div class="ph" style="height:330px">foto · tophistorie 3:2</div>
+   <div style="padding:24px 28px 28px"><div style="font:600 12px Inter;letter-spacing:.06em;color:#4a433c">NYHEDER · BYUDVIKLING · SLAGELSE BY</div><h1 style="margin:10px 0 12px;font:600 44px/1.06 Newsreader,serif;letter-spacing:-.02em;text-wrap:balance">Bymidten får 45 millioner: Nyt torv, flere træer og plads til byens børn</h1><p style="margin:0;font:400 20px/1.45 Newsreader,serif;color:#4a433c;max-width:640px">Et bredt flertal i byrådet har sat retning. Vi har set planerne, talt med naboerne og samlet, hvad der sker først.</p><div style="margin-top:14px;font:500 13px Inter;color:#6b6258">Rikke Møller · 1 t. · 4 min. læsning</div></div></div>
+  <div style="grid-column:span 4;display:grid;gap:16px;grid-template-rows:1fr 1fr">
+   <div class="b" style="background:#e3ecf2;border:1px solid #1f3a4d;border-radius:16px;padding:20px;color:#1f3a4d;display:flex;flex-direction:column;justify-content:space-between"><div style="font:700 11px Inter;letter-spacing:.06em;border:1px solid #1f3a4d;align-self:flex-start;padding:4px 8px;border-radius:4px">◆ FINANSIERET AF SLAGELSE SPAREKASSE</div><h3 style="margin:14px 0;font:600 25px/1.14 Newsreader,serif">Fra skur til scene: Sådan voksede Musikhuset på Skovsøen</h3><div style="font:500 13px Inter">Erhverv · Peter Nygaard · 3 t.</div></div>
+   <div class="b" style="background:#fff;border:1px solid #ddd5c8;border-radius:16px;padding:20px;display:flex;flex-direction:column;justify-content:space-between"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">SPORT · KORSØR</div><h3 style="margin:14px 0;font:600 25px/1.14 Newsreader,serif">Korsør IF rykker op efter 3–1 i forlænget spilletid</h3><div style="font:500 13px Inter;color:#6b6258">Jonas Holm · 5 t.</div></div></div>
+ </div>
+
+ <div style="padding:44px 40px 0"><div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px"><h2 style="margin:0;font:600 28px Newsreader,serif;letter-spacing:-.01em">Fra dit område</h2><div style="display:flex;gap:8px;font:600 13px Inter"><span style="background:#1e1a16;color:#fff;padding:7px 14px;border-radius:999px">Slagelse By</span><span style="border:1px solid #ddd5c8;background:#fff;padding:7px 14px;border-radius:999px">Korsør</span><span style="border:1px solid #ddd5c8;background:#fff;padding:7px 14px;border-radius:999px">Skælskør</span><span style="border:1px solid #ddd5c8;background:#fff;padding:7px 14px;border-radius:999px">Øerne</span><span style="border:1px solid #ddd5c8;background:#fff;padding:7px 14px;border-radius:999px">Hele kommunen</span></div></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+   <div class="b" style="background:#fff;border:1px solid #ddd5c8;border-radius:16px;overflow:hidden"><div class="ph" style="height:170px">foto 3:2</div><div style="padding:18px 20px 22px"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">KULTUR · SLAGELSE BY</div><h3 style="margin:8px 0 10px;font:600 22px/1.15 Newsreader,serif">Byens ældste biograf åbner igen efter renovering</h3><div style="font:500 13px Inter;color:#6b6258">Lene Sørensen · 6 t.</div></div></div>
+   <div class="b" style="background:#fff;border:1px solid #ddd5c8;border-radius:16px;overflow:hidden"><div class="ph" style="height:170px">foto 3:2</div><div style="padding:18px 20px 22px"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">FORENINGSLIV · SLAGELSE BY</div><h3 style="margin:8px 0 10px;font:600 22px/1.15 Newsreader,serif">Frivillige har samlet 200 cykler til ukrainske familier</h3><div style="font:500 13px Inter;color:#6b6258">Rikke Møller · 8 t.</div></div></div>
+   <div class="b" style="background:#fff;border:1px solid #ddd5c8;border-radius:16px;overflow:hidden"><div class="ph" style="height:170px">foto 3:2</div><div style="padding:18px 20px 22px"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">ERHVERV · SLAGELSE BY</div><h3 style="margin:8px 0 10px;font:600 22px/1.15 Newsreader,serif">Nyt bageri på havnen skaber 40 arbejdspladser</h3><div style="font:500 13px Inter;color:#6b6258">Peter Nygaard · 9 t.</div></div></div>
+  </div></div>
+
+ <div style="padding:16px 40px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+  <div class="b" style="background:#fff;border:1px dashed #4a433c;border-radius:16px;padding:22px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font:700 12px Inter;letter-spacing:.06em">KORT NYT</span><span style="font:600 10.5px Inter;letter-spacing:.05em;border:1px dashed #4a433c;padding:3px 7px;border-radius:4px;color:#4a433c">✦ AI-ASSISTERET</span></div>
+   <div style="display:grid;gap:12px;font:500 14.5px/1.3 Inter"><div style="border-bottom:1px solid #ddd5c8;padding-bottom:12px"><span style="color:#6b6258">09.40</span> Byrådet sagde ja til ny cykelsti ved Sorø Landevej <div style="font:400 12px Inter;color:#6b6258;margin-top:3px">Kilde: referat, 29. sep.</div></div><div style="border-bottom:1px solid #ddd5c8;padding-bottom:12px"><span style="color:#6b6258">08.15</span> Slagelse FK henter angriber fra Næstved</div><div><span style="color:#6b6258">07.50</span> Vandværket opgraderer i Vemmelev i næste uge</div></div>
+   <div style="margin-top:14px;font:500 12px Inter;color:#6b6258">Godkendt af redaktionen · Hvordan vi bruger AI →</div></div>
+  <div class="b" style="background:#e7ebdd;border:1px dashed #3f4a2a;border-radius:16px;padding:22px;color:#3f4a2a"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font:700 12px Inter;letter-spacing:.06em">FRA BORGERNE</span><span style="font:600 10.5px Inter;letter-spacing:.05em">▣ INDSENDT</span></div>
+   <div style="display:grid;gap:12px"><div style="display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:center"><div class="ph" style="height:54px;padding:0"></div><div><div style="font:600 16px/1.2 Newsreader,serif">Loppemarked i Boeslunde slog rekord</div><div style="font:500 12px Inter;margin-top:3px">Indsendt af Boeslunde Borgerforening</div></div></div><div style="display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:center"><div class="ph" style="height:54px;padding:0"></div><div><div style="font:600 16px/1.2 Newsreader,serif">Nye bænke ved Skælskør Nor</div><div style="font:500 12px Inter;margin-top:3px">Indsendt af Hanne Bak</div></div></div><div style="display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:center"><div class="ph" style="height:54px;padding:0"></div><div><div style="font:600 16px/1.2 Newsreader,serif">Fodboldskole for alle 8–12-årige</div><div style="font:500 12px Inter;margin-top:3px">Indsendt af Slagelse BK</div></div></div></div>
+   <div style="margin-top:14px;font:700 13px Inter">Del din historie →</div></div>
+  <div class="b" style="background:#fff;border:1px solid #ddd5c8;border-radius:16px;padding:22px"><div style="font:700 12px Inter;letter-spacing:.06em;margin-bottom:14px">I DAG OG I WEEKENDEN</div>
+   <div style="display:grid;gap:14px"><div style="display:flex;gap:14px;align-items:center"><div style="flex:none;width:52px;text-align:center;background:#a63d1e;color:#fff;border-radius:10px;padding:6px 0"><div style="font:700 20px Inter">03</div><div style="font:600 10px Inter;letter-spacing:.06em">OKT</div></div><div><div style="font:600 16px/1.2 Newsreader,serif">Høstmarked på Slagelse Torv</div><div style="font:500 12px Inter;color:#6b6258;margin-top:3px">10–16 · Gratis</div></div></div><div style="display:flex;gap:14px;align-items:center"><div style="flex:none;width:52px;text-align:center;background:#a63d1e;color:#fff;border-radius:10px;padding:6px 0"><div style="font:700 20px Inter">04</div><div style="font:600 10px Inter;letter-spacing:.06em">OKT</div></div><div><div style="font:600 16px/1.2 Newsreader,serif">Jazz i Korsør Kulturhus</div><div style="font:500 12px Inter;color:#6b6258;margin-top:3px">20.00 · 120 kr.</div></div></div><div style="display:flex;gap:14px;align-items:center"><div style="flex:none;width:52px;text-align:center;background:#a63d1e;color:#fff;border-radius:10px;padding:6px 0"><div style="font:700 20px Inter">05</div><div style="font:600 10px Inter;letter-spacing:.06em">OKT</div></div><div><div style="font:600 16px/1.2 Newsreader,serif">Familiedag på Slagelse Museum</div><div style="font:500 12px Inter;color:#6b6258;margin-top:3px">11–15 · Børn gratis</div></div></div></div>
+   <div style="margin-top:14px;font:700 13px Inter">Hele kalenderen →</div></div>
+ </div>
+
+ <div style="padding:16px 40px 0"><div class="b" style="background:#fce8a6;color:#4d3900;border:2px solid #b8860b;border-top-width:6px;border-radius:16px;padding:22px 28px;display:grid;grid-template-columns:200px 1fr auto;gap:28px;align-items:center"><div class="ph" style="height:110px;background-color:rgba(255,255,255,.35)">annoncebillede</div><div><span style="font:700 11px Inter;letter-spacing:.08em;border:1.5px solid #4d3900;padding:3px 8px;border-radius:4px">ANNONCE</span><div style="margin-top:10px;font:600 28px/1.12 Newsreader,serif">Skal dit hus skifte ejer i 2027? Få en gratis vurdering.</div><div style="font:500 13px Inter;margin-top:6px">Slagelse Sparekasse · Ejendomsafdelingen</div></div><span style="background:#4d3900;color:#fce8a6;padding:12px 22px;border-radius:999px;font:700 14px Inter">Book tid</span></div></div>
+
+ <div style="padding:32px 40px 40px"><div style="font:700 11px Inter;letter-spacing:.08em;color:#6b6258;margin-bottom:12px">FYRTÅRNSPARTNERE · MED TIL AT GØRE LOKALJOURNALISTIK MULIG</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px"><div class="ph" style="height:56px;background-color:#fff;border:1px solid #ddd5c8;border-radius:10px;align-items:center;justify-content:center;padding:0">logo</div><div class="ph" style="height:56px;background-color:#fff;border:1px solid #ddd5c8;border-radius:10px;align-items:center;justify-content:center;padding:0">logo</div><div class="ph" style="height:56px;background-color:#fff;border:1px solid #ddd5c8;border-radius:10px;align-items:center;justify-content:center;padding:0">logo</div><div class="ph" style="height:56px;background-color:#fff;border:1px solid #ddd5c8;border-radius:10px;align-items:center;justify-content:center;padding:0">logo</div><div class="ph" style="height:56px;background-color:#fff;border:1px solid #ddd5c8;border-radius:10px;align-items:center;justify-content:center;padding:0">logo</div></div></div>
+</div></div>
+
+<div class="dv-opt" id="2b"><div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Mobil-forside · 375 px · bundmenu</div>
+<div class="dv-card" style="width:375px;background:#f7f3ec;color:#1e1a16;font-family:Inter,sans-serif;position:relative">
+ <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:56px;border-bottom:1px solid #ddd5c8"><span style="font:700 23px Newsreader,serif;color:#a63d1e;letter-spacing:-.02em">SlagelseLokalt</span><span style="display:flex;gap:6px;align-items:center;border:1px solid #ddd5c8;background:#fff;border-radius:999px;padding:6px 11px;font:600 12px Inter">◉ Slagelse ▾</span></div>
+ <div style="padding:11px 16px;background:#fff;border-bottom:1px solid #ddd5c8;display:flex;gap:10px;align-items:center;font:600 13px/1.25 Inter"><span style="flex:none;font:700 10px Inter;letter-spacing:.06em;background:#f4e1d8;color:#7d2c14;padding:4px 7px;border-radius:4px">● NYT</span>Kødannelse på Storebælt efter uheld</div>
+ <div style="padding:16px"><div style="background:#fff;border:1px solid #ddd5c8;border-radius:14px;overflow:hidden"><div class="ph" style="height:200px">foto 3:2</div><div style="padding:16px 18px 20px"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">NYHEDER · SLAGELSE BY</div><h1 style="margin:8px 0 10px;font:600 30px/1.08 Newsreader,serif;letter-spacing:-.02em">Bymidten får 45 millioner: nyt torv og plads til børn</h1><p style="margin:0;font:400 18px/1.45 Newsreader,serif;color:#4a433c">Byrådet har sat retning. Se, hvad der sker først.</p><div style="margin-top:10px;font:500 13px Inter;color:#6b6258">Rikke Møller · 1 t.</div></div></div>
+  <div style="margin-top:14px;background:#e3ecf2;border:1px solid #1f3a4d;border-radius:14px;padding:16px;color:#1f3a4d"><div style="font:700 10.5px Inter;letter-spacing:.05em">◆ FINANSIERET AF SLAGELSE SPAREKASSE</div><div style="margin-top:8px;font:600 20px/1.15 Newsreader,serif">Fra skur til scene: Musikhuset på Skovsøen</div></div>
+  <div style="margin-top:22px;font:600 22px Newsreader,serif">Fra dit område</div>
+  <div style="margin-top:10px;display:grid;gap:12px"><div style="display:grid;grid-template-columns:84px 1fr;gap:12px;align-items:center"><div class="ph" style="height:84px;border-radius:8px;padding:0"></div><div><div style="font:600 10.5px Inter;letter-spacing:.06em;color:#4a433c">KULTUR · SLAGELSE</div><div style="font:600 17px/1.2 Newsreader,serif;margin:4px 0">Byens ældste biograf åbner igen</div><div style="font:500 12px Inter;color:#6b6258">6 t.</div></div></div><div style="display:grid;grid-template-columns:84px 1fr;gap:12px;align-items:center"><div class="ph" style="height:84px;border-radius:8px;padding:0"></div><div><div style="font:600 10.5px Inter;letter-spacing:.06em;color:#4a433c">ERHVERV · SLAGELSE</div><div style="font:600 17px/1.2 Newsreader,serif;margin:4px 0">Nyt bageri skaber 40 jobs</div><div style="font:500 12px Inter;color:#6b6258">9 t.</div></div></div></div>
+  <div style="margin-top:20px;background:#fff;border:1px dashed #4a433c;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b style="font:700 12px Inter;letter-spacing:.06em">KORT NYT</b><span style="font:600 10px Inter;border:1px dashed #4a433c;padding:2px 6px;border-radius:4px">✦ AI-ASSISTERET</span></div><div style="font:500 14px/1.35 Inter;display:grid;gap:10px"><div><span style="color:#6b6258">09.40</span> Ja til ny cykelsti ved Sorø Landevej</div><div><span style="color:#6b6258">08.15</span> Slagelse FK henter angriber</div></div></div>
+  <div style="margin-top:14px;background:#e7ebdd;border:1px dashed #3f4a2a;border-radius:14px;padding:16px;color:#3f4a2a"><b style="font:700 12px Inter;letter-spacing:.06em">▣ FRA BORGERNE</b><div style="margin-top:8px;font:600 17px/1.2 Newsreader,serif">Loppemarked i Boeslunde slog rekord</div><div style="font:500 12px Inter;margin-top:3px">Indsendt af Boeslunde Borgerforening</div></div>
+  <div style="height:90px"></div></div>
+ <div style="position:sticky;bottom:10px;margin:0 12px 12px;display:grid;grid-template-columns:repeat(5,1fr);background:rgba(255,255,255,.72);backdrop-filter:blur(18px) saturate(1.5);border:1px solid rgba(221,213,200,.9);border-radius:22px;padding:8px 4px;box-shadow:0 8px 24px rgba(30,26,22,.14);font:600 11px Inter;color:#4a433c;text-align:center"><div style="color:#a63d1e"><div style="font-size:17px">⌂</div>Forside</div><div><div style="font-size:17px">☰</div>Emner</div><div><div style="font-size:17px">▦</div>Kalender</div><div><div style="font-size:17px">⌕</div>Søg</div><div><div style="font-size:17px">◉</div>Profil</div></div>
+</div></div>
+
+<div class="dv-opt" id="2c"><div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Mobil-artikel · partnerfinansieret · mærkning øverst, 65 tegn pr. linje, læsefremdrift</div>
+<div class="dv-card" style="width:375px;background:#faf7f1;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="position:sticky;top:0;background:rgba(250,247,241,.8);backdrop-filter:blur(16px);border-bottom:1px solid #ddd5c8"><div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:52px;font:600 13px Inter"><span>← Forside</span><span style="font:700 16px Newsreader,serif;color:#a63d1e">SlagelseLokalt</span><span style="font-size:17px">☐</span></div><div style="height:3px;background:linear-gradient(90deg,#a63d1e 38%,transparent 38%)"></div></div>
+ <div style="padding:20px 20px 0">
+  <div style="background:#e3ecf2;border:1px solid #1f3a4d;color:#1f3a4d;border-radius:10px;padding:12px 14px;font:500 13px/1.4 Inter"><b style="letter-spacing:.04em">◆ FINANSIERET AF SLAGELSE SPAREKASSE.</b> Historien er en del af en støtteaftale. Redaktionen har haft fuld redaktionel kontrol.</div>
+  <div style="margin-top:20px;font:600 11px Inter;letter-spacing:.08em;color:#4a433c">ERHVERV · SLAGELSE BY</div>
+  <h1 style="margin:10px 0 14px;font:600 36px/1.04 Newsreader,serif;letter-spacing:-.025em;text-wrap:balance">Fra skur til scene: Sådan voksede Musikhuset på Skovsøen</h1>
+  <p style="margin:0;font:400 20px/1.45 Newsreader,serif;color:#4a433c">For ti år siden var det en gammel lade. I dag spiller 140 koncerter om året, og halvdelen af gæsterne kommer fra nabokommunerne.</p>
+  <div style="margin:16px 0 20px;display:flex;align-items:center;gap:10px;font:500 13px Inter;color:#6b6258"><div class="ph" style="width:36px;height:36px;border-radius:50%;padding:0"></div>Peter Nygaard · 3 t. · 5 min.</div></div>
+ <div class="ph" style="height:210px;margin:0">foto · hero (View Transition fra kort)</div>
+ <div style="padding:22px 20px 28px;font:400 18px/1.62 Newsreader,serif">
+  <p style="margin:0 0 18px">Det startede med en idé over en øl i 2015. Tre musikere, en lånt traktor og en lade, der skulle rives ned.</p>
+  <h2 style="margin:26px 0 10px;font:600 22px/1.2 Newsreader,serif">Tre ting, der gjorde forskellen</h2>
+  <div style="display:grid;gap:10px;margin-bottom:18px"><div style="display:flex;gap:12px"><b style="font:700 14px Inter;color:#a63d1e">1</b>Frivillige stod for al ombygning</div><div style="display:flex;gap:12px"><b style="font:700 14px Inter;color:#a63d1e">2</b>Byrådet stillede grunden til rådighed</div><div style="display:flex;gap:12px"><b style="font:700 14px Inter;color:#a63d1e">3</b>Lokale virksomheder sikrede lyd og lys</div></div>
+  <div style="margin:22px 0;padding:18px 0;border-top:2px solid #1e1a16;border-bottom:1px solid #ddd5c8;font:italic 400 24px/1.25 Newsreader,serif;text-wrap:balance">“Vi troede, vi byggede en øvesal. Vi byggede et samlingssted.”<div style="font:600 12px Inter;font-style:normal;color:#4a433c;margin-top:10px">Mette Lind, formand</div></div>
+  <p style="margin:0">I dag er sæsonen booket til foråret, og der er venteliste på lokalet til private fester.</p></div>
+ <div style="padding:14px 20px 20px;border-top:1px solid #ddd5c8;display:flex;align-items:center;justify-content:space-between;font:600 13px Inter"><span>Følg emnet: Musik ☐</span><span style="background:#a63d1e;color:#fff;padding:9px 16px;border-radius:999px">Del</span></div>
+</div></div>
+
+</div>
+<p class="dv-next">Prøv næste: "kombinér bento fra <a class="dv-oid" href="#1a">1a</a> med zonerne i <a class="dv-oid" href="#2a">2a</a>" · "mørk tilstand af <a class="dv-oid" href="#2a">2a</a>" · "partnerdashboard og Bliv støtte-side" · "sponsoreret artikel med eget layout"</p>
+</section>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Forside, tre retninger ud fra rapporten — Newsreader + Inter, APCA-kontrast, ét signalfarve-accent, ingen bannere</span></div>
+<div class="dv-opts">
+
+<!-- 1a -->
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Bento-dagsavis · lys · asymmetrisk grid med blandede formater</div>
+<div class="dv-card" style="width:1200px;background:#f7f3ec;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="position:sticky;top:0;z-index:2;background:rgba(247,243,236,.78);backdrop-filter:blur(18px) saturate(1.4);border-bottom:1px solid #ddd5c8">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:68px">
+   <div style="display:flex;align-items:baseline;gap:28px"><span style="font:700 30px Newsreader,serif;color:#a63d1e;letter-spacing:-.02em">SlagelseLokalt</span>
+    <nav style="display:flex;gap:22px;font:500 14px Inter"><span style="color:#1e1a16;border-bottom:2px solid #a63d1e;padding-bottom:4px">Forside</span><span style="color:#4a433c">Nyheder</span><span style="color:#4a433c">Erhverv</span><span style="color:#4a433c">Sport</span><span style="color:#4a433c">Kultur</span><span style="color:#4a433c">Foreningsliv</span><span style="color:#4a433c">Debat</span></nav></div>
+   <div style="display:flex;align-items:center;gap:18px;font:500 14px Inter;color:#4a433c"><span>Søg</span><span>Indsend tip</span><span style="background:#a63d1e;color:#fff;padding:10px 18px;border-radius:999px;font-weight:600">Nyhedsbrev</span></div>
+  </div>
+  <div style="height:3px;background:linear-gradient(90deg,#a63d1e 34%,transparent 34%)"></div>
+ </div>
+ <div style="padding:14px 40px;display:flex;align-items:center;gap:14px;font:500 14px Inter;border-bottom:1px solid #ddd5c8"><span style="font:700 11px Inter;letter-spacing:.06em;background:#a63d1e;color:#fff;padding:4px 8px;border-radius:4px">SENESTE NYT</span><span style="color:#6b6258">1 t.</span><span style="font-weight:600">Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld</span></div>
+ <div style="padding:32px 40px 48px;display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:minmax(120px,auto);gap:16px">
+  <div class="b" style="grid-column:span 7;grid-row:span 4;background:#fff;border:1px solid #ddd5c8;border-radius:16px;overflow:hidden;display:flex;flex-direction:column">
+   <div class="ph" style="height:340px">foto · tophistorie 3:2</div>
+   <div style="padding:26px 30px 30px"><div style="font:600 12px Inter;letter-spacing:.06em;color:#4a433c">NYHEDER · TRAFIK · KORSØR</div>
+    <h1 style="margin:10px 0 12px;font:600 46px/1.06 Newsreader,serif;letter-spacing:-.02em;text-wrap:balance"><span style="font:700 11px Inter;letter-spacing:.06em;background:#a63d1e;color:#fff;padding:4px 8px;border-radius:4px;vertical-align:middle;margin-right:10px">BREAKING</span>Kødannelse på Storebæltsbroen efter trafikuheld</h1>
+    <p style="margin:0;font:400 20px/1.45 Newsreader,serif;color:#4a433c;max-width:600px">To biler stødte sammen tidligt tirsdag morgen. Vejhjælp arbejder på stedet, og der meldes om op mod 45 minutters forsinkelse.</p>
+    <div style="margin-top:16px;font:500 13px Inter;color:#6b6258">Rikke Møller · 12 min. · 2 min. læsning</div></div></div>
+  <div class="b" style="grid-column:span 5;grid-row:span 2;background:#fff;border:1px solid #ddd5c8;border-radius:16px;overflow:hidden;display:grid;grid-template-columns:150px 1fr">
+   <div class="ph" style="height:100%;min-height:200px">foto 1:1</div>
+   <div style="padding:20px"><div style="font:600 11px Inter;letter-spacing:.06em;color:#4a433c">POLITIK · SLAGELSE BY</div><h3 style="margin:8px 0 10px;font:600 24px/1.15 Newsreader,serif">Nyt flertal på rådhuset vil investere 45 millioner i bymidten</h3><div style="font:500 13px Inter;color:#6b6258">Rikke Møller · 2 t.</div></div></div>
+  <div class="b" style="grid-column:span 5;grid-row:span 2;background:#1e1a16;color:#f7f3ec;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between">
+   <div style="font:600 11px Inter;letter-spacing:.06em;color:#e9a98f">● LIVE · BYRÅDSMØDE</div>
+   <div><div style="font:600 26px/1.15 Newsreader,serif">Budgetforhandlingerne er i gang. Følg afstemningerne fortløbende.</div><div style="margin-top:14px;font:500 13px Inter;color:#cfc6b8">Opdateret for 4 min. siden · 18 opslag</div></div></div>
+  <div class="b" style="grid-column:span 3;grid-row:span 2;background:#e3ecf2;border:1px solid #1f3a4d;border-radius:16px;padding:20px;color:#1f3a4d;display:flex;flex-direction:column;justify-content:space-between">
+   <div style="font:600 11px Inter;letter-spacing:.06em">DATA · SKOLER</div><div><div style="font:600 76px/1 Newsreader,serif;letter-spacing:-.03em">45<span style="font-size:32px"> mio.</span></div><div style="font:500 14px/1.4 Inter;margin-top:8px">afsat til bymidten i 2027, mod 12 mio. i 2024</div></div></div>
+  <div class="b" style="grid-column:span 4;grid-row:span 2;background:#f0e4d8;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between">
+   <div style="font:italic 400 27px/1.2 Newsreader,serif;text-wrap:balance">“Vi bygger ikke en by til bilerne, men til dem, der går hjem fra skole.”</div><div style="font:600 12px Inter;color:#4a433c">Borgmester i debatindlæg · Debat</div></div>
+  <div class="b" style="grid-column:span 4;grid-row:span 2;background:#fff;border:1px solid #ddd5c8;border-radius:16px;padding:22px">
+   <div style="font:700 12px Inter;letter-spacing:.06em;color:#a63d1e;margin-bottom:12px">KORT NYT</div>
+   <div style="display:grid;gap:12px;font:500 15px/1.3 Inter"><div style="border-bottom:1px solid #ddd5c8;padding-bottom:12px"><span style="color:#6b6258">09.40</span> Ny cykelsti åbner ved Sorø Landevej</div><div style="border-bottom:1px solid #ddd5c8;padding-bottom:12px"><span style="color:#6b6258">08.15</span> Slagelse FK henter angriber</div><div><span style="color:#6b6258">07.50</span> Vandværk melder om lav trykgrad</div></div></div>
+  <div class="b" style="grid-column:span 4;grid-row:span 2;background:#fff;border:1px dashed #4a433c;border-radius:16px;padding:22px">
+   <div style="font:700 11px Inter;letter-spacing:.06em;color:#4a433c">LYD · PODCAST 24 MIN.</div><div style="margin:10px 0 18px;font:600 22px/1.15 Newsreader,serif">Ugen i Slagelse: fem ting du skal vide</div><div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:50%;background:#1e1a16;color:#fff;display:flex;align-items:center;justify-content:center">▶</span><div style="flex:1;height:4px;background:#ddd5c8;border-radius:4px"><div style="width:30%;height:100%;background:#1e1a16;border-radius:4px"></div></div></div></div>
+  <div class="b" style="grid-column:span 4;grid-row:span 2;background:#fce8a6;color:#4d3900;border:2px solid #b8860b;border-top-width:6px;border-radius:16px;padding:22px;display:flex;flex-direction:column;justify-content:space-between">
+   <div style="font:700 11px Inter;letter-spacing:.08em">ANNONCE · SLAGELSE SPAREKASSE</div><div style="font:600 27px/1.12 Newsreader,serif">Skal dit hus skifte ejer i 2027? Få en gratis bolig-vurdering.</div><div style="display:inline-block;align-self:flex-start;background:#4d3900;color:#fce8a6;padding:10px 18px;border-radius:999px;font:700 14px Inter">Book tid</div></div>
+ </div>
+</div></div>
+
+<!-- 1b -->
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Tekst-først · "digital bog" · overdimensioneret type i stedet for foto</div>
+<div class="dv-card" style="width:1200px;background:#faf7f1;color:#1e1a16;font-family:Inter,sans-serif">
+ <div style="height:3px;background:linear-gradient(90deg,#1e1a16 22%,transparent 22%)"></div>
+ <div style="display:flex;align-items:center;justify-content:space-between;padding:0 64px;height:72px;border-bottom:1px solid #ddd5c8"><span style="font:700 26px Newsreader,serif;letter-spacing:-.02em">Slagelse<span style="color:#a63d1e">Lokalt</span></span><nav style="display:flex;gap:26px;font:500 14px Inter;color:#4a433c"><b style="color:#1e1a16">Forside</b><span>Nyheder</span><span>Erhverv</span><span>Sport</span><span>Kultur</span><span>Debat</span></nav><span style="font:600 14px Inter;border:1.5px solid #1e1a16;padding:8px 16px;border-radius:999px">Nyhedsbrev</span></div>
+ <div style="padding:72px 64px 56px;max-width:1072px">
+  <div style="font:600 12px Inter;letter-spacing:.08em;color:#a63d1e">● TOPHISTORIE · TRAFIK · KORSØR · 12 MIN. SIDEN</div>
+  <h1 style="margin:22px 0 28px;font:500 clamp(56px,8vw,104px)/.98 Newsreader,serif;letter-spacing:-.035em;text-wrap:balance">Kødannelse på Storebælt: to biler ramt, 45 minutters forsinkelse</h1>
+  <p style="margin:0;max-width:680px;font:400 23px/1.5 Newsreader,serif;color:#4a433c">Vejhjælp arbejder stadig på stedet. Vi forklarer, hvor du kan undgå det værste, og hvornår politiet venter at åbne alle spor.</p>
+  <div style="margin-top:26px;font:500 13px Inter;color:#6b6258">Rikke Møller · 2 min. læsning</div>
+ </div>
+ <div style="margin:0 64px;border-top:1px solid #1e1a16;display:grid;grid-template-columns:repeat(3,1fr)">
+  <div style="padding:26px 28px 40px 0;border-right:1px solid #ddd5c8"><div style="font:600 11px Inter;letter-spacing:.08em;color:#4a433c">POLITIK</div><h3 style="margin:10px 0 12px;font:600 29px/1.1 Newsreader,serif;text-wrap:balance">Nyt flertal vil investere 45 millioner i bymidten</h3><p style="margin:0;font:400 17px/1.5 Newsreader,serif;color:#4a433c">Forhandlingerne fortsætter torsdag, men kursen er sat.</p><div style="margin-top:14px;font:500 13px Inter;color:#6b6258">2 t. · 4 min.</div></div>
+  <div style="padding:26px 28px 40px;border-right:1px solid #ddd5c8"><div style="font:600 11px Inter;letter-spacing:.08em;color:#4a433c">ERHVERV</div><h3 style="margin:10px 0 12px;font:600 29px/1.1 Newsreader,serif;text-wrap:balance">Nyt bageri i Slagelse: 40 nye arbejdspladser</h3><p style="margin:0;font:400 17px/1.5 Newsreader,serif;color:#4a433c">Produktionen rykker ind på havnen, og de første ansættes i foråret.</p><div style="margin-top:14px;font:500 13px Inter;color:#6b6258">4 t. · 5 min.</div></div>
+  <div style="padding:26px 0 40px 28px"><div style="font:700 11px Inter;letter-spacing:.08em;color:#a63d1e">KORT NYT</div><div style="margin-top:12px;display:grid;gap:14px;font:500 15px/1.3 Inter"><div style="padding-bottom:14px;border-bottom:1px solid #ddd5c8"><span style="color:#6b6258">09.40</span> Ny cykelsti åbner ved Sorø Landevej</div><div style="padding-bottom:14px;border-bottom:1px solid #ddd5c8"><span style="color:#6b6258">08.15</span> Slagelse FK henter angriber</div><div><span style="color:#6b6258">07.50</span> Lavt vandtryk i Vemmelev</div></div></div>
+ </div>
+ <div style="margin:0 64px 64px;padding:28px 32px;background:#1e1a16;color:#faf7f1;border-radius:14px;display:flex;align-items:center;justify-content:space-between;gap:24px"><div style="font:500 26px/1.15 Newsreader,serif;max-width:640px">Godt nyt fra Slagelse, hver morgen kl. 7. Gratis nyhedsbrev, støttet af lokale virksomheder.</div><span style="flex:none;background:#faf7f1;color:#1e1a16;padding:13px 22px;border-radius:999px;font:700 14px Inter">Tilmeld dig</span></div>
+</div></div>
+
+<!-- 1c -->
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Mørk baseline · egne dark-tokens, ingen ren sort · ét signalgult accent</div>
+<div class="dv-card" style="width:1200px;background:#15171c;color:#ebe8e1;font-family:Inter,sans-serif;border-color:#15171c">
+ <div style="display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:68px;background:rgba(21,23,28,.8);backdrop-filter:blur(18px);border-bottom:1px solid #2a2e36"><div style="display:flex;align-items:baseline;gap:28px"><span style="font:700 28px Newsreader,serif;letter-spacing:-.02em">Slagelse<span style="color:#f2c94c">Lokalt</span></span><nav style="display:flex;gap:22px;font:500 14px Inter;color:#a9a69f"><b style="color:#ebe8e1">Forside</b><span>Nyheder</span><span>Erhverv</span><span>Sport</span><span>Kultur</span><span>Debat</span></nav></div><div style="display:flex;gap:18px;align-items:center;font:500 14px Inter;color:#a9a69f"><span>Søg</span><span style="background:#f2c94c;color:#15171c;padding:10px 18px;border-radius:999px;font-weight:700">Nyhedsbrev</span></div></div>
+ <div style="padding:14px 40px;display:flex;align-items:center;gap:14px;font:500 14px Inter;border-bottom:1px solid #2a2e36"><span style="font:700 11px Inter;letter-spacing:.06em;background:#f2c94c;color:#15171c;padding:4px 8px;border-radius:4px">SENESTE NYT</span><span style="color:#a9a69f">1 t.</span><span style="font-weight:600">Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld</span></div>
+ <div style="padding:32px 40px 48px;display:grid;grid-template-columns:repeat(12,1fr);gap:16px">
+  <div style="grid-column:span 8;background:#1d2027;border:1px solid #2a2e36;border-radius:16px;overflow:hidden;display:grid;grid-template-columns:1.1fr 1fr"><div class="ph pd" style="min-height:420px;background-color:#23272f">foto · tophistorie</div>
+   <div style="padding:30px;display:flex;flex-direction:column;justify-content:space-between"><div><div style="font:600 11px Inter;letter-spacing:.08em;color:#f2c94c">● BREAKING · TRAFIK · KORSØR</div><h1 style="margin:14px 0;font:600 42px/1.06 Newsreader,serif;letter-spacing:-.02em;text-wrap:balance">Kødannelse på Storebælt efter trafikuheld</h1><p style="margin:0;font:400 19px/1.5 Newsreader,serif;color:#b9b5ad">Op mod 45 minutters forsinkelse mod Fyn. Vejhjælp er på stedet.</p></div><div style="font:500 13px Inter;color:#a9a69f">Rikke Møller · 12 min.</div></div></div>
+  <div style="grid-column:span 4;background:#1d2027;border:1px solid #2a2e36;border-radius:16px;padding:24px;display:flex;flex-direction:column;justify-content:space-between"><div style="font:600 11px Inter;letter-spacing:.08em;color:#a9a69f">POLITIK · SLAGELSE BY</div><h3 style="margin:0;font:600 28px/1.12 Newsreader,serif">Nyt flertal vil investere 45 millioner i bymidten</h3><div style="font:500 13px Inter;color:#a9a69f">Rikke Møller · 2 t.</div></div>
+  <div style="grid-column:span 4;background:#f2c94c;color:#15171c;border-radius:16px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:200px"><div style="font:700 11px Inter;letter-spacing:.08em">● LIVE · BYRÅDSMØDE</div><div style="font:600 28px/1.12 Newsreader,serif">Budgetforhandlinger: følg afstemningerne her</div></div>
+  <div style="grid-column:span 4;background:#1d2027;border:1px solid #2a2e36;border-radius:16px;padding:24px"><div style="font:700 12px Inter;letter-spacing:.08em;color:#f2c94c;margin-bottom:12px">KORT NYT</div><div style="display:grid;gap:12px;font:500 15px/1.3 Inter"><div style="border-bottom:1px solid #2a2e36;padding-bottom:12px"><span style="color:#a9a69f">09.40</span> Ny cykelsti ved Sorø Landevej</div><div style="border-bottom:1px solid #2a2e36;padding-bottom:12px"><span style="color:#a9a69f">08.15</span> Slagelse FK henter angriber</div><div><span style="color:#a9a69f">07.50</span> Lavt vandtryk i Vemmelev</div></div></div>
+  <div style="grid-column:span 4;background:#1d2027;border:1px solid #2a2e36;border-radius:16px;padding:24px;display:flex;flex-direction:column;justify-content:space-between"><div style="font:600 11px Inter;letter-spacing:.08em;color:#a9a69f">DATA · BYMIDTEN</div><div style="font:600 80px/1 Newsreader,serif;letter-spacing:-.03em">45<span style="font-size:30px;color:#f2c94c"> mio.</span></div><div style="height:6px;background:#2a2e36;border-radius:6px"><div style="width:72%;height:100%;background:#f2c94c;border-radius:6px"></div></div></div>
+ </div>
+</div></div>
+
+</div>
+<p class="dv-next">Prøv næste: "kombinér bento fra <a class="dv-oid" href="#1a">1a</a> med typografien i <a class="dv-oid" href="#1b">1b</a>" · "lav artikelside med View Transition-hero" · "mobilversion + paywall / cancel-flow"</p>
+</section>
+</x-dc>
+
+
+</body></html>
