@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { getCurrentSite } from "@/lib/site";
+import { breadcrumbList } from "@/lib/seo/jsonld";
+import { siteBase } from "@/lib/seo/url";
+import { JsonLd } from "@/components/site/JsonLd";
 
 export type BreadcrumbItem = {
   label: string;
@@ -10,27 +14,16 @@ type BreadcrumbsProps = {
   items: BreadcrumbItem[];
 };
 
-export function Breadcrumbs({ items }: BreadcrumbsProps) {
+export async function Breadcrumbs({ items }: BreadcrumbsProps) {
   if (!items || items.length === 0) return null;
 
-  // Byg schema.org BreadcrumbList JSON-LD
-  const schemaData = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: items.map((item, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: item.label,
-      ...(item.href ? { item: item.href } : {}),
-    })),
-  };
+  // BreadcrumbList med absolutte URL'er (Google kræver absolut `item`).
+  const site = await getCurrentSite();
+  const schemaData = breadcrumbList(items, siteBase(site));
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
-      />
+      <JsonLd data={schemaData} />
       <nav className="site-breadcrumbs" aria-label="Brødkrumme">
         <ol className="site-breadcrumbs-list">
           {items.map((item, index) => {
