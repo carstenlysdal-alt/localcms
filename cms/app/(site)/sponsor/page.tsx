@@ -51,9 +51,9 @@ export default async function SponsorPortalPage() {
             Styrk din lokale forankring med troværdigt partnerindhold
           </h1>
           <p className="site-page-desc" style={{ fontSize: "17px", color: "var(--ink-2)", lineHeight: "1.5" }}>
-            På {site.navn} tror vi på, at stærke lokale virksomheder er en vital del af {site.kommune}s liv.
-            Vi tilbyder transparente formater, hvor din virksomhed eller organisation kan formidle budskaber,
-            ekspertise og historier direkte til lokale læsere.
+            På {site.navn} tror vi på, at et stærkt lokalt erhvervsliv er forudsætningen for udvikling, arbejdspladser
+            og lokal sammenhængskraft i {site.kommune}. Vi tilbyder gennemskuelige samarbejdsformater, hvor din virksomhed
+            kan formidle vigtige budskaber, faglig ekspertise og lokale milepæle direkte til områdets borgere.
           </p>
         </header>
 
@@ -75,25 +75,47 @@ export default async function SponsorPortalPage() {
           </ul>
         </div>
 
+        {/* Formater og Priser */}
+        <div style={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius-card)", padding: "20px 24px", marginBottom: "32px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+          <div>
+            <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "var(--site-accent)", letterSpacing: "0.05em", marginBottom: "4px" }}>
+              Særlige opstartspriser 2026
+            </div>
+            <div style={{ fontSize: "18px", fontWeight: "800", color: "var(--ink)", marginBottom: "4px" }}>
+              Lokal synlighed til ca. 25 % af de store bymediers priser
+            </div>
+            <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
+              Event i kalenderen fra <strong>125 kr.</strong> · Sponsoreret artikel fra <strong>4.995 kr.</strong> inkl. Facebook-distribution · Profil i guiden <strong>249 kr./md.</strong>
+            </p>
+          </div>
+          <Link
+            href="/priser"
+            className="site-header-btn-solid"
+            style={{ textDecoration: "none", whiteSpace: "nowrap", padding: "10px 18px", fontSize: "13.5px" }}
+          >
+            Se hele prislisten & pakker →
+          </Link>
+        </div>
+
         {/* Formater */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "36px" }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--line)", padding: "20px", borderRadius: "var(--radius-card)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "700", marginBottom: "8px", color: "var(--ink)" }}>
               <FileText size={18} style={{ color: "var(--site-accent)" }} />
-              Sponsoreret artikel
+              Sponsoreret artikel (4.995 kr.)
             </div>
             <p style={{ margin: 0, fontSize: "13px", color: "var(--ink-2)", lineHeight: "1.4" }}>
-              En dybdegående artikel om din virksomheds udvikling, medarbejdere eller samfundsengagement.
+              En dybdegående artikel om din virksomheds udvikling eller medarbejdere, inkl. fuld distribution på Facebook og nyhedsbrev.
             </p>
           </div>
 
           <div style={{ background: "var(--surface)", border: "1px solid var(--line)", padding: "20px", borderRadius: "var(--radius-card)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "700", marginBottom: "8px", color: "var(--ink)" }}>
               <Award size={18} style={{ color: "var(--site-accent)" }} />
-              Fyrtårnspartnerskab
+              Faste partnerskaber (fra 795 kr./md.)
             </div>
             <p style={{ margin: 0, fontSize: "13px", color: "var(--ink-2)", lineHeight: "1.4" }}>
-              Helårligt samarbejde med fast synlighed i bunden af sitet, native artikler og nyhedsbrevsmention.
+              Helårligt samarbejde med fast synlighed på forsiden, native artikler, videoer og nyhedsbrevsomtale.
             </p>
           </div>
         </div>

@@ -65,6 +65,9 @@ export function SiteFooter({
                 <Link href="/bliv-stoette">Bliv lokal støtte</Link>
               </li>
               <li>
+                <Link href="/priser">Priser & annoncering</Link>
+              </li>
+              <li>
                 <Link href="/kalender">Det sker (Kalender)</Link>
               </li>
               <li>

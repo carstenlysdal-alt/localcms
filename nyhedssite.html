@@ -388,6 +388,124 @@
       .site-hamburger-btn { display: none; }
     }
 
+    /* MOBILE TOOLBAR COMPACTING & BOTTOM APP BAR */
+    @media (max-width: 768px) {
+      .site-city-picker-btn { display: none !important; }
+      .site-header-btn-stoet { display: none !important; }
+      .site-header-inner { height: 56px !important; }
+      .site-brand-logo { font-size: 24px !important; }
+      .site-main-content { padding-bottom: 84px !important; }
+    }
+
+    .mobile-bottom-bar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: #FFFFFF;
+      border-top: 1px solid var(--line);
+      z-index: 980;
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+    }
+    @media (max-width: 768px) {
+      .mobile-bottom-bar { display: flex; }
+    }
+    .mobile-bottom-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--ink-3);
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 600;
+      flex: 1;
+      height: 100%;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .mobile-bottom-item.is-active, .mobile-bottom-item:hover {
+      color: var(--site-accent);
+    }
+
+    /* HERO PIXEL-PERFECT STYLING */
+    .site-hero-top-meta {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 3px;
+      display: block;
+    }
+    .site-hero-subkicker {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 8px;
+      display: block;
+    }
+    .site-hero-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #FFFFFF;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      backdrop-filter: blur(4px);
+    }
+    .hero-live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #EF4444;
+      display: inline-block;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5);
+      animation: pulse 1.8s infinite;
+    }
+
+    /* 4-MODE TIP OS TABS */
+    .tip-mode-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .tip-mode-tabs::-webkit-scrollbar { display: none; }
+    .tip-tab-btn {
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink-2);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .tip-tab-btn.is-active {
+      color: #FFFFFF;
+      background: var(--site-accent);
+      border-color: var(--site-accent);
+      box-shadow: var(--shadow-sm);
+    }
+
     /* 3. HORIZONTALLY SCROLLABLE SUBNAV PILLS */
     .site-subnav-strip {
       background: var(--surface);
@@ -1335,6 +1453,7 @@
             <li><a href="#kultur" class="site-header-primary-link">Kultur</a></li>
             <li><a href="#foreningsliv" class="site-header-primary-link">Foreningsliv</a></li>
             <li><a href="#debat" class="site-header-primary-link">Debat</a></li>
+            <li><a href="#priser" class="site-header-primary-link" style="color:var(--site-accent);">Priser</a></li>
           </ul>
         </nav>
       </div>
@@ -1359,18 +1478,17 @@
     </div>
   </header>
 
-  <!-- 3. MOBILE SUBNAV PILLS (HORIZONTALLY SCROLLABLE) -->
+  <!-- 3. MOBILE SUBNAV PILLS (HORIZONTALLY SCROLLABLE - MATCHING MOCKUP & AUDIO) -->
   <div class="site-subnav-strip">
     <div class="site-subnav-pills-list">
-      <a href="#forside" class="site-subnav-pill is-active">Forside</a>
-      <a href="#nyheder" class="site-subnav-pill">Nyheder</a>
+      <a href="#forside" class="site-subnav-pill is-active">Nyheder</a>
       <a href="#erhverv" class="site-subnav-pill">Erhverv</a>
       <a href="#sport" class="site-subnav-pill">Sport</a>
       <a href="#kultur" class="site-subnav-pill">Kultur</a>
-      <a href="#foreningsliv" class="site-subnav-pill">Foreningsliv</a>
-      <a href="#debat" class="site-subnav-pill">Debat</a>
-      <a href="#stoet" class="site-subnav-pill is-highlight">❤️ Støt</a>
-      <a href="#indsend" class="site-subnav-pill">✍️ Indsend</a>
+      <a href="#priser" class="site-subnav-pill" style="color:var(--site-accent); font-weight:700;">Priser & Annoncer</a>
+      <a href="#stoet" class="site-subnav-pill">Støt os</a>
+      <a href="#indsend" class="site-subnav-pill">Tip os</a>
+      <a href="javascript:void(0)" onclick="toggleMobileMenu()" class="site-subnav-pill">Mere</a>
     </div>
   </div>
 
@@ -1407,7 +1525,8 @@
         <li><a href="#foreningsliv" onclick="toggleMobileMenu()" class="mobile-drawer-link">Foreningsliv <span>→</span></a></li>
         <li><a href="#debat" onclick="toggleMobileMenu()" class="mobile-drawer-link">Debat <span>→</span></a></li>
         <li><a href="#soeg" onclick="toggleMobileMenu()" class="mobile-drawer-link">Søg i artikler <span>🔍</span></a></li>
-        <li><a href="#indsend" onclick="toggleMobileMenu()" class="mobile-drawer-link">Indsend historie <span>✍️</span></a></li>
+        <li><a href="#priser" onclick="toggleMobileMenu()" class="mobile-drawer-link" style="color:var(--site-accent); font-weight:700;">Priser & Annoncering <span>🏷️</span></a></li>
+        <li><a href="#indsend" onclick="toggleMobileMenu()" class="mobile-drawer-link">Tip os & Indsend <span>✍️</span></a></li>
         <li><a href="#stoet" onclick="toggleMobileMenu()" class="mobile-drawer-link" style="color:var(--site-accent); font-weight:700;"><span id="drawer-stoet-label">Støt medlemskab</span> <span>❤️</span></a></li>
       </ul>
     </div>
@@ -1427,15 +1546,19 @@
           <div class="site-hero-bg-layer card-img-cover img-storebaelt"></div>
           <div class="site-hero-gradient"></div>
           <div class="site-hero-content">
-            <span id="hero-kicker" class="site-hero-kicker">TRAFIK · STOREBÆLT</span>
-            <h1 id="hero-title" class="site-hero-title">Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld</h1>
-            <p id="hero-manchet" class="site-hero-manchet">Et trafikuheld spærrer et spor på Storebæltsbroen. Bilister skal forvente 20-30 minutters ekstra rejsetid.</p>
+            <div class="site-hero-top-meta" id="hero-meta-byline">Jonas Vestergaard · 2 t. siden</div>
+            <span id="hero-kicker" class="site-hero-subkicker">BÆLTET · STOREBÆLT</span>
+            <h1 id="hero-title" class="site-hero-title">Kødannelse på Storebæltsbroen i retning mod Fyn</h1>
+            <p id="hero-manchet" class="site-hero-manchet">Et trafikuheld spærrer et spor på Storebæltsbroen. Bilister skal forvente længere rejsetid.</p>
             <div class="site-hero-actions-row">
               <span class="site-hero-btn-read">
                 <span>Læs artiklen</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <span style="font-size:14px; margin-left:3px;">→</span>
               </span>
-              <span id="hero-meta" style="font-size:12px; font-weight:600; color:#CBD5E1;">2 t. siden</span>
+              <span class="site-hero-live-badge">
+                <span class="hero-live-dot"></span>
+                <span>LIVE</span>
+              </span>
             </div>
           </div>
         </a>
@@ -1443,8 +1566,8 @@
         <!-- Wire Card: Seneste nyt -->
         <aside class="site-wire-card">
           <div class="site-wire-header">
-            <span>Seneste nyt</span>
-            <span id="wire-kommune-name" style="font-size:11.5px; font-weight:700; color:var(--site-accent); transition:color 0.3s;">Slagelse Kommune</span>
+            <span style="font-family:var(--font-body); font-size:17px; font-weight:800; color:var(--ink);">Seneste nyt</span>
+            <a href="#nyheder" style="font-size:13px; font-weight:700; color:var(--site-accent); text-decoration:none; display:inline-flex; align-items:center; gap:3px;">Se alle →</a>
           </div>
           <div id="wire-list-container" class="site-wire-list">
             <a href="#art-byraad" class="site-wire-item">
@@ -1951,41 +2074,371 @@
     </section>
 
     <!-- ============================================== -->
-    <!-- SEKTION 9: INDSEND HISTORIE                    -->
+    <!-- SEKTION 8B: PRISER & ANNONCERING (INTRO 25 %)  -->
+    <!-- ============================================== -->
+    <section id="priser" class="content-section">
+      <div class="section-header-box" style="background:#FFFFFF; border:1px solid var(--line); border-left:4px solid var(--site-accent); border-radius:var(--radius-lg); padding:28px 24px; margin-bottom:28px; box-shadow:var(--shadow-sm);">
+        <div style="display:inline-flex; align-items:center; gap:6px; background:var(--site-accent-soft); color:var(--site-accent); padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700; margin-bottom:12px;">
+          <span>🎉 Særlige opstartspriser 2026 · 75 % introrabat ift. Min By Media</span>
+        </div>
+        <h2 id="price-section-title" class="section-title" style="font-size:30px; margin-bottom:8px;">
+          Lokal synlighed til priser, alle kan være med på
+        </h2>
+        <p id="price-section-desc" class="section-desc" style="font-size:15px; max-width:820px; line-height:1.55;">
+          På SlagelseLokalt skal markedsføring ikke koste en formue. Vores introrater starter på ca. <strong>25 % af de store bymediers priser</strong>.
+          Til gengæld får du ægte lokal rækkevidde, professionelt journalistisk håndværk og <strong>fuld distribution på vores Facebook-side</strong> og i nyhedsbrevet — uden merpris.
+        </p>
+      </div>
+
+      <!-- 4 ENKELTSTÅENDE PRODUKTER -->
+      <div style="margin-bottom:24px;">
+        <span class="section-kicker">ENKELTPRODUKTER</span>
+        <h3 style="font-family:var(--font-display); font-size:22px; font-weight:800; color:var(--ink); margin:2px 0 16px 0;">
+          Vælg dit format og kom i gang
+        </h3>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:18px; margin-bottom:36px;">
+        <!-- 1. Event i kalenderen -->
+        <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:var(--radius-md); padding:22px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:var(--shadow-sm);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:12px; font-weight:700; color:var(--site-accent); text-transform:uppercase;">Kalender</span>
+              <span style="font-size:11px; font-weight:700; background:#FEF3C7; color:#92400E; padding:2px 8px; border-radius:999px;">Laveste pris</span>
+            </div>
+            <h4 style="font-size:18px; font-weight:800; color:var(--ink); margin-bottom:6px;">Event i kalenderen</h4>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:6px;">
+              <span style="font-size:28px; font-weight:800; color:var(--ink);">125 kr.</span>
+              <span style="font-size:12px; color:var(--ink-3);">ex. moms</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--ink-3); text-decoration:line-through; margin-bottom:12px;">Min By pris: 499 kr.</div>
+            <p style="font-size:13px; color:var(--ink-2); line-height:1.45; margin-bottom:14px;">
+              Få dit arrangement vist i kommunens kalender &quot;Det Sker&quot; med dato, tid, billede og direkte billetlink.
+            </p>
+            <ul style="padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.5; margin-bottom:14px;">
+              <li>Visning i Det Sker kalenderen</li>
+              <li>Omtale i ugens weekend-guide</li>
+              <li><strong>Gratis for ikke-kommercielle foreninger</strong></li>
+            </ul>
+          </div>
+          <button onclick="selectPriceProduct('event')" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:10px; font-size:13px; border-radius:var(--radius-sm);">
+            Opret event (125 kr.) →
+          </button>
+        </div>
+
+        <!-- 2. Sponsoreret artikel -->
+        <div style="background:#FFFFFF; border:2px solid var(--site-accent); border-radius:var(--radius-md); padding:22px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:var(--shadow-md); position:relative;">
+          <div style="position:absolute; top:-10px; right:16px; background:var(--site-accent); color:#fff; font-size:10.5px; font-weight:700; padding:2px 10px; border-radius:999px;">
+            Mest populære
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:12px; font-weight:700; color:var(--site-accent); text-transform:uppercase;">Native Artikel</span>
+              <span style="font-size:11px; font-weight:700; background:var(--site-accent-soft); color:var(--site-accent); padding:2px 8px; border-radius:999px;">Spar 80 %</span>
+            </div>
+            <h4 style="font-size:18px; font-weight:800; color:var(--ink); margin-bottom:6px;">Sponsoreret artikel</h4>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:6px;">
+              <span style="font-size:28px; font-weight:800; color:var(--ink);">4.995 kr.</span>
+              <span style="font-size:12px; color:var(--ink-3);">samlet pakke</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--ink-3); text-decoration:line-through; margin-bottom:12px;">Min By pris: 25.995 - 33.995 kr.</div>
+            <p style="font-size:13px; color:var(--ink-2); line-height:1.45; margin-bottom:14px;">
+              En professionelt skrevet profilartikel om din virksomhed, nye åbning, jubilæum eller grønne omstilling.
+            </p>
+            <ul style="padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.5; margin-bottom:14px;">
+              <li>Journalistisk interview & vinkling</li>
+              <li>Professionel fotoserie</li>
+              <li>Placering på forsiden og i Erhverv</li>
+              <li><strong>Delt direkte på vores Facebook-side</strong></li>
+              <li>Omtale i det ugentlige nyhedsbrev</li>
+            </ul>
+          </div>
+          <button onclick="selectPriceProduct('sponsor')" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:10px; font-size:13px; border-radius:var(--radius-sm);">
+            Bestil artikel (4.995 kr.) →
+          </button>
+        </div>
+
+        <!-- 3. Profil i guiden -->
+        <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:var(--radius-md); padding:22px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:var(--shadow-sm);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:12px; font-weight:700; color:var(--site-accent); text-transform:uppercase;">Lokalguide</span>
+              <span style="font-size:11px; font-weight:700; background:#E0F2FE; color:#0369A1; padding:2px 8px; border-radius:999px;">Abonnement</span>
+            </div>
+            <h4 style="font-size:18px; font-weight:800; color:var(--ink); margin-bottom:6px;">Profil i Lokalguiden</h4>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:6px;">
+              <span style="font-size:28px; font-weight:800; color:var(--ink);">249 kr.</span>
+              <span style="font-size:12px; color:var(--ink-3);">/ måned</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--ink-3); text-decoration:line-through; margin-bottom:12px;">Min By pris: 995 kr./md.</div>
+            <p style="font-size:13px; color:var(--ink-2); line-height:1.45; margin-bottom:14px;">
+              Fast præsentation i Spise- & Erhvervsguiden for restauranter, butikker, caféer og lokale håndværkere.
+            </p>
+            <ul style="padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.5; margin-bottom:14px;">
+              <li>Flot profilside med logo og fotos</li>
+              <li>Åbningstider, adresse og Google-kort</li>
+              <li>Direkte booking-knap eller telefonlink</li>
+              <li>Ingen binding — opsig når du vil</li>
+            </ul>
+          </div>
+          <button onclick="selectPriceProduct('sponsor')" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:10px; font-size:13px; border-radius:var(--radius-sm);">
+            Kom i guiden (249 kr./md) →
+          </button>
+        </div>
+
+        <!-- 4. Nyhedsbrevssponsorat -->
+        <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:var(--radius-md); padding:22px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:var(--shadow-sm);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:12px; font-weight:700; color:var(--site-accent); text-transform:uppercase;">Nyhedsbrev</span>
+              <span style="font-size:11px; font-weight:700; background:#F3E8FF; color:#7E22CE; padding:2px 8px; border-radius:999px;">Høj rækkevidde</span>
+            </div>
+            <h4 style="font-size:18px; font-weight:800; color:var(--ink); margin-bottom:6px;">Ugens Sponsorat</h4>
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:6px;">
+              <span style="font-size:28px; font-weight:800; color:var(--ink);">895 kr.</span>
+              <span style="font-size:12px; color:var(--ink-3);">/ uge</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--ink-3); text-decoration:line-through; margin-bottom:12px;">Min By pris: 4.995 kr./uge</div>
+            <p style="font-size:13px; color:var(--ink-2); line-height:1.45; margin-bottom:14px;">
+              Eksklusiv topplacering i fredagsnyhedsbrevet sendt direkte ud i indbakken hos byens aktive borgere.
+            </p>
+            <ul style="padding-left:18px; font-size:12.5px; color:var(--ink-2); line-height:1.5; margin-bottom:14px;">
+              <li>Topbanner eller redaktionel shout-out</li>
+              <li>Direkte link og sporbare kliks</li>
+              <li>Kun 1 sponsor pr. uge for maksimal opmærksomhed</li>
+            </ul>
+          </div>
+          <button onclick="selectPriceProduct('sponsor')" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:10px; font-size:13px; border-radius:var(--radius-sm);">
+            Book uge (895 kr.) →
+          </button>
+        </div>
+      </div>
+
+      <!-- FASTE PARTNERSKABSPAKKER -->
+      <div style="background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-lg); padding:28px 24px; margin-bottom:28px;">
+        <div style="margin-bottom:16px;">
+          <span class="section-kicker">HELÅRLIGT SAMARBEJDE</span>
+          <h3 style="font-family:var(--font-display); font-size:24px; font-weight:800; color:var(--ink); margin:2px 0 6px 0;">
+            Faste partnerskaber for lokale virksomheder
+          </h3>
+          <p style="font-size:14px; color:var(--ink-2); margin:0;">
+            Vil I bakke fast op om lokaljournalistikken og have kontinuerlig synlighed året rundt? Vælg mellem tre niveauer:
+          </p>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:16px;">
+          <div style="background:#FFFFFF; border:1px solid var(--line); padding:20px; border-radius:var(--radius-md);">
+            <strong style="font-size:17px; color:var(--ink); display:block; margin-bottom:4px;">1. Naboskab</strong>
+            <div style="font-size:12px; color:var(--ink-3); margin-bottom:10px;">Håndværkere og butikker</div>
+            <div style="font-size:22px; font-weight:800; color:var(--ink); margin-bottom:10px;">795 kr. <span style="font-size:12px; font-weight:500; color:var(--ink-3);">/ md</span></div>
+            <ul style="padding-left:16px; font-size:12px; color:var(--ink-2); line-height:1.55; margin-bottom:14px;">
+              <li><strong>2 sponsorerede artikler</strong> årligt</li>
+              <li>Logo i partnersektionen på sitet</li>
+              <li>4 opslag på mediets sociale medier</li>
+              <li>Omtale i kvartalsvis Erhvervsguide</li>
+            </ul>
+            <button onclick="selectPriceProduct('sponsor')" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:8px; font-size:12.5px; border-radius:var(--radius-sm);">Vælg Naboskab →</button>
+          </div>
+
+          <div style="background:#FFFFFF; border:2px solid var(--site-accent); padding:20px; border-radius:var(--radius-md); position:relative;">
+            <div style="position:absolute; top:-9px; right:14px; background:var(--site-accent); color:#fff; font-size:10px; font-weight:700; padding:1px 8px; border-radius:999px;">Anbefalet</div>
+            <strong style="font-size:17px; color:var(--ink); display:block; margin-bottom:4px;">2. Fællesskab</strong>
+            <div style="font-size:12px; color:var(--ink-3); margin-bottom:10px;">Mellemstore virksomheder & mæglere</div>
+            <div style="font-size:22px; font-weight:800; color:var(--ink); margin-bottom:10px;">1.995 kr. <span style="font-size:12px; font-weight:500; color:var(--ink-3);">/ md</span></div>
+            <ul style="padding-left:16px; font-size:12px; color:var(--ink-2); line-height:1.55; margin-bottom:14px;">
+              <li><strong>4 sponsorerede artikler</strong> årligt</li>
+              <li><strong>1 videoproduktion (Reels/video)</strong></li>
+              <li>8 delinger på Facebook og LinkedIn</li>
+              <li>Fast roterende logo på forsiden</li>
+              <li>Kvartalsvist statusmøde med redaktionen</li>
+            </ul>
+            <button onclick="selectPriceProduct('sponsor')" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:8px; font-size:12.5px; border-radius:var(--radius-sm);">Vælg Fællesskab →</button>
+          </div>
+
+          <div style="background:#FFFFFF; border:1px solid var(--line); padding:20px; border-radius:var(--radius-md);">
+            <strong style="font-size:17px; color:var(--ink); display:block; margin-bottom:4px;">3. Fyrtårn</strong>
+            <div style="font-size:12px; color:var(--ink-3); margin-bottom:10px;">Banker, energi & større aktører</div>
+            <div style="font-size:22px; font-weight:800; color:var(--ink); margin-bottom:10px;">4.495 kr. <span style="font-size:12px; font-weight:500; color:var(--ink-3);">/ md</span></div>
+            <ul style="padding-left:16px; font-size:12px; color:var(--ink-2); line-height:1.55; margin-bottom:14px;">
+              <li><strong>8 sponsorerede artikler</strong> årligt</li>
+              <li><strong>2 professionelle videoproduktioner</strong></li>
+              <li>Permanent logo på forsiden</li>
+              <li>Månedlig omtale i nyhedsbrevet</li>
+              <li>Mulighed for dækning i hele Sjællands-netværket</li>
+            </ul>
+            <button onclick="selectPriceProduct('sponsor')" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:8px; font-size:12.5px; border-radius:var(--radius-sm);">Vælg Fyrtårn →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- SEKTION 9: TIP OS & DELTAGELSE (4 SPOR)        -->
     <!-- ============================================== -->
     <section id="indsend" class="content-section">
       <div class="support-card-container">
-        <span class="section-kicker">BORGERJOURNALISTIK</span>
-        <h2 style="font-family:var(--font-display); font-size:28px; font-weight:800; margin-bottom:8px;">Indsend historie eller tip</h2>
+        <span class="section-kicker">BORGER & ERHVERV</span>
+        <h2 style="font-family:var(--font-display); font-size:28px; font-weight:800; margin-bottom:8px;">Tip redaktionen & Vær med</h2>
         <p style="font-size:14px; color:var(--ink-2); line-height:1.5; margin-bottom:20px;">
-          Har du set noget i trafikken, har din forening haft en god oplevelse, eller har du et debatindlæg?
+          Lokaljournalistik skabes i tæt samspil med dig. Vælg herunder hvad din henvendelse drejer sig om:
         </p>
 
-        <form onsubmit="event.preventDefault(); submitTip();" style="display:flex; flex-direction:column; gap:14px;">
+        <!-- 4-Mode Selector Tabs -->
+        <div class="tip-mode-tabs">
+          <button type="button" onclick="switchTipMode('tip')" id="tab-tip-tip" class="tip-tab-btn is-active">🚨 Giv et tip</button>
+          <button type="button" onclick="switchTipMode('event')" id="tab-tip-event" class="tip-tab-btn">📅 Arrangement</button>
+          <button type="button" onclick="switchTipMode('sponsor')" id="tab-tip-sponsor" class="tip-tab-btn">💼 Sponsoreret artikel</button>
+          <button type="button" onclick="switchTipMode('citat')" id="tab-tip-citat" class="tip-tab-btn">💬 Giv et citat</button>
+        </div>
+
+        <!-- 1. SPOR: GIV ET TIP -->
+        <form id="form-tip-tip" onsubmit="event.preventDefault(); submitTipMode('tip');" style="display:flex; flex-direction:column; gap:14px;">
+          <div style="background:var(--surface-2); padding:12px 14px; border-radius:var(--radius-sm); font-size:13px; color:var(--ink-2); border-left:3px solid var(--site-accent);">
+            🚨 <strong>Har du set eller hørt noget?</strong> Uheld, vejrudsigter, akutte hændelser eller tip om sager, redaktionen bør undersøge. Fuld kildebeskyttelse jf. medieansvarsloven.
+          </div>
           <div>
-            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Kategori</label>
-            <select class="form-control" id="tip-category" required>
-              <option value="nyhed">Nyhed eller tip</option>
-              <option value="foreningsliv">Foreningsliv & arrangement</option>
-              <option value="debat">Debatindlæg</option>
-              <option value="erhverv">Erhvervsnyt</option>
-              <option value="kultur">Kultur & oplevelser</option>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Hvad handler tippet om? *</label>
+            <input type="text" class="form-control" id="tip-headline" placeholder="F.eks. Trafikprop ved broen, vandstigning eller byggerod..." required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Hvor skete det? *</label>
+              <input type="text" class="form-control" id="tip-place" placeholder="F.eks. Korsør Havn eller Nytorv" required>
+            </div>
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Hvornår? *</label>
+              <input type="text" class="form-control" id="tip-time" placeholder="F.eks. Netop nu el. i morges kl. 8" required>
+            </div>
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Beskrivelse af hændelsen *</label>
+            <textarea class="form-control" id="tip-desc" rows="3" placeholder="Beskriv hvad du har set, hørt eller oplevet..." required></textarea>
+          </div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); cursor:pointer;">
+            <input type="checkbox" id="tip-anon" checked style="accent-color:var(--site-accent); width:16px; height:16px;">
+            <span>Jeg ønsker kildebeskyttelse / anonymitet over for offentligheden</span>
+          </label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <input type="text" class="form-control" id="tip-user-name" placeholder="Dit navn" required>
+            <input type="text" class="form-control" id="tip-user-contact" placeholder="Tlf. eller e-mail (kun til redaktionen)" required>
+          </div>
+          <button type="submit" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:12px; font-size:14px; border-radius:var(--radius-sm);">
+            Send tip til redaktionen
+          </button>
+        </form>
+
+        <!-- 2. SPOR: INDSEND ARRANGEMENT -->
+        <form id="form-tip-event" onsubmit="event.preventDefault(); submitTipMode('event');" style="display:none; flex-direction:column; gap:14px;">
+          <div style="background:var(--surface-2); padding:12px 14px; border-radius:var(--radius-sm); font-size:13px; color:var(--ink-2); border-left:3px solid var(--site-accent);">
+            📅 <strong>Få jeres arrangement i den lokale kalender:</strong> Koncerter, foreningsmøder, teater, loppemarkeder og bylaugsmøder i hele kommunen.
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Arrangementets titel *</label>
+            <input type="text" class="form-control" id="event-title" placeholder="F.eks. Forårskoncert på Torvet eller Loppemarked på havnen" required>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Dato og starttidspunkt *</label>
+              <input type="text" class="form-control" id="event-datetime" placeholder="F.eks. Lørdag 25. april kl. 14:00" required>
+            </div>
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Sted / Adresse *</label>
+              <input type="text" class="form-control" id="event-location" placeholder="F.eks. Schweizerpladsen eller Kulturhuset" required>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Arrangør / Forening *</label>
+              <input type="text" class="form-control" id="event-organizer" placeholder="F.eks. Slagelse Musikforening" required>
+            </div>
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Entré / Billetpris</label>
+              <input type="text" class="form-control" id="event-price" placeholder="F.eks. Gratis adgang eller 50 kr.">
+            </div>
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Kort beskrivelse af programmet *</label>
+            <textarea class="form-control" id="event-desc" rows="3" placeholder="Hvad kan gæsterne opleve?" required></textarea>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <input type="text" class="form-control" id="event-contact-name" placeholder="Kontaktperson" required>
+            <input type="text" class="form-control" id="event-link" placeholder="Evt. billetlink el. hjemmeside">
+          </div>
+          <button type="submit" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:12px; font-size:14px; border-radius:var(--radius-sm);">
+            Indsend arrangement til kalenderen
+          </button>
+        </form>
+
+        <!-- 3. SPOR: SPONSORERET ARTIKEL -->
+        <form id="form-tip-sponsor" onsubmit="event.preventDefault(); submitTipMode('sponsor');" style="display:none; flex-direction:column; gap:14px;">
+          <div style="background:var(--surface-2); padding:12px 14px; border-radius:var(--radius-sm); font-size:13px; color:var(--ink-2); border-left:3px solid var(--site-accent);">
+            💼 <strong>Fortæl din virksomheds historie med troværdighed:</strong> En sponsoreret artikel giver jer en professionelt skrevet profilartikel på forsiden og i relevante sektioner, tydeligt mærket med <code>◆ FINANSIERET AF...</code>.
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Virksomhedens navn *</label>
+              <input type="text" class="form-control" id="sponsor-company" placeholder="F.eks. Slagelse El & Energi A/S" required>
+            </div>
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Kontaktperson *</label>
+              <input type="text" class="form-control" id="sponsor-contact-name" placeholder="F.eks. Henrik Nielsen" required>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">E-mailadresse *</label>
+              <input type="email" class="form-control" id="sponsor-email" placeholder="kontakt@virksomhed.dk" required>
+            </div>
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Telefonnummer *</label>
+              <input type="tel" class="form-control" id="sponsor-phone" placeholder="+45 20 12 34 56" required>
+            </div>
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Anledning & Nøglebudskaber *</label>
+            <textarea class="form-control" id="sponsor-message" rows="3" placeholder="F.eks. Jubilæum, ny afdeling, rekruttering af lærlinge eller grønne tiltag..." required></textarea>
+          </div>
+          <button type="submit" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:12px; font-size:14px; border-radius:var(--radius-sm);">
+            Send forespørgsel om sponsoreret artikel
+          </button>
+        </form>
+
+        <!-- 4. SPOR: GIV ET CITAT -->
+        <form id="form-tip-citat" onsubmit="event.preventDefault(); submitTipMode('citat');" style="display:none; flex-direction:column; gap:14px;">
+          <div style="background:var(--surface-2); padding:12px 14px; border-radius:var(--radius-sm); font-size:13px; color:var(--ink-2); border-left:3px solid var(--site-accent);">
+            💬 <strong>Giv et citat med til en aktuel sag:</strong> Hvad mener du som lokal borger? Send os dit citat, så redaktionen kan tage din stemme med, når vi skriver om emnet.
+          </div>
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Hvilket emne eller sag udtaler du dig om? *</label>
+            <select class="form-control" id="citat-topic" required>
+              <option value="Storebælt & Pendling">Trafik og Storebæltsbroen</option>
+              <option value="Bymidteinvestering på 45 mio.">De 45 mio. kr. til fornyelse af bymidten</option>
+              <option value="Kystbeskyttelse & Natur">Kystbeskyttelse og Tude Å vådområdet</option>
+              <option value="Tryghed & Sommerhuse">Sommerhusindbrud og lokal tryghed</option>
+              <option value="Lokalsport & Idræt">Sport, faciliteter og Harboe Arena</option>
+              <option value="Andet lokalt emne">Andet lokalt emne (skriv nedenfor)</option>
             </select>
           </div>
           <div>
-            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Overskrift *</label>
-            <input type="text" class="form-control" id="tip-title" placeholder="Hvad handler det om?" required>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Dit citat — hvad vil du gerne sige? *</label>
+            <textarea class="form-control" id="citat-text" rows="3" placeholder="F.eks. 'Det er afgørende, at man tænker på de små butikker, når gågaden graves op...' eller 'Pendlerne bliver ofte overset...'" required></textarea>
           </div>
-          <div>
-            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Din historie *</label>
-            <textarea class="form-control" id="tip-body" rows="4" placeholder="Beskriv forløbet, dato, sted..." required></textarea>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Dit fulde navn *</label>
+              <input type="text" class="form-control" id="citat-author" placeholder="F.eks. Lise Holm" required>
+            </div>
+            <div>
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Bydel / By i kommunen *</label>
+              <input type="text" class="form-control" id="citat-city-part" placeholder="F.eks. Korsør, Slagelse eller Skælskør" required>
+            </div>
           </div>
-          <div style="display:grid; grid-template-columns:1fr; gap:10px;">
-            <input type="text" class="form-control" id="tip-name" placeholder="Dit navn" required>
-            <input type="text" class="form-control" id="tip-contact" placeholder="Telefon eller e-mail" required>
-          </div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); cursor:pointer;">
+            <input type="checkbox" id="citat-consent" checked required style="accent-color:var(--site-accent); width:16px; height:16px;">
+            <span>Jeg giver samtykke til, at redaktionen må bringe mit citat med navn og bydel i redaktionelle artikler</span>
+          </label>
           <button type="submit" class="site-header-btn-stoet" style="width:100%; justify-content:center; padding:12px; font-size:14px; border-radius:var(--radius-sm);">
-            Send til redaktionen
+            Indsend citat til redaktionen
           </button>
         </form>
       </div>
@@ -2208,6 +2661,26 @@
 
   </main>
 
+  <!-- MOBILE BOTTOM APP BAR (ACCORDING TO USER MOCKUP) -->
+  <nav class="mobile-bottom-bar" aria-label="Mobil navigation">
+    <a href="#forside" class="mobile-bottom-item is-active" id="mbar-home">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Hjem</span>
+    </a>
+    <a href="#nabolag" class="mobile-bottom-item" id="mbar-area">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>Mit område</span>
+    </a>
+    <a href="#indsend" class="mobile-bottom-item" id="mbar-tip">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <span>Tip os</span>
+    </a>
+    <button onclick="toggleMobileMenu()" class="mobile-bottom-item" id="mbar-more" aria-label="Mere">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+      <span>Mere</span>
+    </button>
+  </nav>
+
   <!-- 5. FOOTER -->
   <footer class="site-footer">
     <div class="site-container">
@@ -2265,7 +2738,7 @@
 
   <!-- 6. INTERAKTIVE SCRIPTS & DYNAMISK BYSKIFTE -->
   <script>
-    const CITIES_DATA = {"slagelse": {"navn": "SlagelseLokalt", "prefix": "Slagelse", "by": "Slagelse", "kommune": "Slagelse Kommune", "accent": "#007038", "accent_soft": "#EBF7EE", "tagline": "Lokaljournalistik, der sætter fællesskabet først", "omraader": ["Slagelse C", "Korsør", "Skælskør", "Dalmose", "Vemmelev"], "hero_kicker": "TRAFIK · STOREBÆLT", "hero_title": "Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld", "hero_manchet": "Et trafikuheld spærrer et spor på Storebæltsbroen. Bilister skal forvente 20-30 minutters ekstra rejsetid.", "hero_meta": "2 t. siden", "hero_img": "img-storebaelt", "wire": [["08:12", "Nyt flertal på rådhuset vil investere 45 millioner i bymidten", "art-byraad"], ["07:48", "Flere sommerhuse udsat for indbrud ved Skælskør Næs", "art-sommerhuse"], ["06:32", "Ny butikskæde åbner på Schweizerpladsen til foråret", "art-butik"], ["22:15", "Slagelse B&I tager vigtig sejr i topopgøret på Harboe Arena", "art-sport"], ["21:05", "Stort naturprojekt ved Tude Å skal sikre mod oversvømmelser", "art-tudeaa"]], "nabolag_text": "Slagelse C: 4 nye byggeprojekter godkendt i bymidten. Håndværkere er i gang ved Nytorv."}, "naestved": {"navn": "NæstvedLokalt", "prefix": "Næstved", "by": "Næstved", "kommune": "Næstved Kommune", "accent": "#1F5663", "accent_soft": "#E8F2F4", "tagline": "Din lokale stemme i Næstved, Karrebæksminde og omegn", "omraader": ["Næstved By", "Karrebæksminde", "Fuglebjerg", "Holme-Olstrup", "Rønnebæk"], "hero_kicker": "HAVN & KLIMA · KARREBÆKSMINDE", "hero_title": "Ny havne- og klimapromenade godkendt: Forvandler Karrebæksminde", "hero_manchet": "En investering på 38 millioner kroner skal sikre havnen mod stormflod og skabe nyt maritimt samlingspunkt.", "hero_meta": "1 t. siden", "hero_img": "img-storebaelt", "wire": [["08:30", "Grønnegades Kaserne Kulturcenter melder om rekordstort forårsprogram", "art-kultur"], ["07:55", "Næstved Byråd afsætter 25 millioner til nye cykelstier i oplandet", "art-byraad"], ["06:40", "Lokale fiskere i Karrebæksminde fejrer starten på forårssæsonen", "art-butik"], ["21:45", "Næstved Boldklub henter stærk sejr foran 1.400 tilskuere", "art-sport"], ["19:20", "Susåen sikres med nyt natur- og vådområde ved Herlufsholm", "art-tudeaa"]], "nabolag_text": "Næstved By: Omfattende renovering af gågadenettet ved Axeltorv starter i næste måned."}, "holbaek": {"navn": "HolbækLokalt", "prefix": "Holbæk", "by": "Holbæk", "kommune": "Holbæk Kommune", "accent": "#4F5B1E", "accent_soft": "#F2F5E8", "tagline": "Lokaljournalistik fra Isefjorden til det åbne Vestsjælland", "omraader": ["Holbæk By", "Jyderup", "Tølløse", "Orø", "Vipperød"], "hero_kicker": "INFRASTRUKTUR · ORØ", "hero_title": "Ny grøn elfærge til Orø er sat i drift: Halverer rejsetiden over fjorden", "hero_manchet": "Den nye færgeforbindelse er officielt indviet med gratis overfart for alle øens beboere og pendlere.", "hero_meta": "3 t. siden", "hero_img": "img-storebaelt", "wire": [["08:15", "Holbæk Havneby udvides med 80 nye bæredygtige boliger", "art-byraad"], ["07:30", "Jyderup Erhvervsforening lancerer nyt lærlinge-initiativ for unge", "art-butik"], ["06:50", "Isefjordens fuglereservater oplever markant fremgang i 2026", "art-tudeaa"], ["22:00", "Holbæk B&I rykker tættere på oprykning efter flot sejr", "art-sport"], ["20:10", "Kulturkasernen i Holbæk inviterer til gratis forårskoncerter", "art-kultur"]], "nabolag_text": "Holbæk By: Omlægning af havnefronten giver plads til nye caféer og rekreativt byliv."}, "ringsted": {"navn": "RingstedLokalt", "prefix": "Ringsted", "by": "Ringsted", "kommune": "Ringsted Kommune", "accent": "#8A5A00", "accent_soft": "#FBF4E6", "tagline": "Nyheder fra hjertet af Sjælland — lokalt og tæt på dig", "omraader": ["Ringsted By", "Benløse", "Jystrup", "Kværkeby", "Vetterslev"], "hero_kicker": "ERHVERV & HANDEL · RINGSTED", "hero_title": "Ringsted Outlet og bymidten indgår unikt samarbejde med gratis busser", "hero_manchet": "Nyt fælles initiativ skal sikre, at de mange tusinde besøgende i outletbyen også finder vej til handelsgaderne.", "hero_meta": "2 t. siden", "hero_img": "img-erhverv", "wire": [["08:40", "Ringsted Festival melder om tæt på udsolgt til jubilæumskoncert", "art-kultur"], ["08:05", "Ny cykelsti langs Kværkebyvej øger trafiksikkerheden for skolebørn", "art-byraad"], ["07:15", "Erhvervspark Ringsted Syd tiltrækker to nye højteknologiske firmaer", "art-butik"], ["21:30", "TMS Ringsted leverer kæmpe overraskelse i håndboldligaen", "art-sport"], ["18:50", "Oplevelsesstien omkring Haraldsted Sø udvides med nye shelters", "art-tudeaa"]], "nabolag_text": "Ringsted By: Torvet summer af liv efter etablering af nye udendørs serveringsarealer."}, "koege": {"navn": "KøgeLokalt", "prefix": "Køge", "by": "Køge", "kommune": "Køge Kommune", "accent": "#24533A", "accent_soft": "#EAF3EE", "tagline": "Lokaljournalistik med blik for Køges vækst, havn og stærke fællesskaber", "omraader": ["Køge By", "Køge Nord", "Herfølge", "Borup", "Ejby"], "hero_kicker": "VÆKST & ERHVERV · KØGE HAVN", "hero_title": "Køge Havn indvier ny terminal og skaber 150 nye arbejdspladser", "hero_manchet": "Nordens hurtigst voksende erhvervshavn udvider faciliteterne med 120.000 kvm nyt logistikareal.", "hero_meta": "4 t. siden", "hero_img": "img-erhverv", "wire": [["08:20", "Køge Nord Station runder milepæl med over 10.000 daglige passagerer", "art-byraad"], ["07:45", "Kulturstrøget i Køge Bymidte åbner for nye kunstneriske værksteder", "art-kultur"], ["06:30", "Herfølge Idrætscenter udvider faciliteterne med ny moderne springhal", "art-sport"], ["22:10", "HB Køge tager vigtig sejr foran et feststemt hjemmepublikum", "art-sport"], ["20:40", "Køge Å-stien renoveres med nye træbroer og forbedret belysning", "art-tudeaa"]], "nabolag_text": "Køge Nord: Nye grønne boligkvarterer skyder op med fælleshaver og delebilsordninger."}, "roskilde": {"navn": "RoskildeLokalt", "prefix": "Roskilde", "by": "Roskilde", "kommune": "Roskilde Kommune", "accent": "#6A3553", "accent_soft": "#F7EDF3", "tagline": "Kultur, viden og byens puls — lokaljournalistik i Roskilde", "omraader": ["Roskilde By", "Trekroner", "Jyllinge", "Viby Sjælland", "Svogerslev"], "hero_kicker": "KULTURARV · ROSKILDE FJORD", "hero_title": "Vikingeskibsmuseets nye klimasikrede museumsbygning godkendt af byrådet", "hero_manchet": "En historisk bevilling sikrer de fem originale vikingeskibe mod fremtidige stormfloder og skaber et nyt vartegn.", "hero_meta": "2 t. siden", "hero_img": "img-storebaelt", "wire": [["08:35", "Roskilde Festival løfter sløret for 24 nye internationale kunstnere", "art-kultur"], ["07:50", "RUC i Trekroner etablerer nyt forskningscenter for grøn omstilling", "art-byraad"], ["07:10", "Stændertorvet omdannes til levende madmarked hver lørdag i foråret", "art-butik"], ["21:50", "Roskilde KFUM vinder topopgør og fastholder førstepladsen", "art-sport"], ["19:15", "Jyllinge Havn sikres med ny højvandsport og forstærket dige", "art-tudeaa"]], "nabolag_text": "Roskilde By: Historiske brolægninger omkring Domkirken og Algade restaureres med respekt for arven."}, "kalundborg": {"navn": "KalundborgLokalt", "prefix": "Kalundborg", "by": "Kalundborg", "kommune": "Kalundborg Kommune", "accent": "#0284C7", "accent_soft": "#EBF6FC", "tagline": "Biotekbyen, havnen og livet langs kysten i Kalundborg", "omraader": ["Kalundborg By", "Høng", "Gørlev", "Svebølle", "Havnsø"], "hero_kicker": "BIOTEK & UDDANNELSE · KALUNDBORG", "hero_title": "Novo Nordisk og Kalundborg Kommune indvier nyt biotek-akademi", "hero_manchet": "Det nye uddannelsescenter skal uddanne hundredvis af procesteknologer og ingeniører til den voksende industri.", "hero_meta": "1 t. siden", "hero_img": "img-erhverv", "wire": [["08:25", "Kalundborg Havn klar til rekordstor krydstogtsæson med 40 anløb", "art-byraad"], ["07:40", "Nyt sundhedshus i Gørlev samler læger og fysioterapeuter", "art-butik"], ["06:55", "Høng Erhvervsråd hædrer årets lokale iværksætter", "art-butik"], ["22:05", "Kalundborg GB vinder lokalopgør mod Svebølle i serie 1", "art-sport"], ["19:30", "Havnsø Strandpromenade udvides med ny badebro og sauna", "art-tudeaa"]], "nabolag_text": "Kalundborg By: Bymidten og havnepromenaden bindes tættere sammen med ny grøn aktivitetsrute."}};
+    const CITIES_DATA = {"slagelse": {"navn": "SlagelseLokalt", "prefix": "Slagelse", "by": "Slagelse", "kommune": "Slagelse Kommune", "accent": "#007038", "accent_soft": "#EBF7EE", "tagline": "Lokaljournalistik, der sætter fællesskabet først", "omraader": ["Slagelse C", "Korsør", "Skælskør", "Dalmose", "Vemmelev"], "hero_kicker": "TRAFIK · STOREBÆLT", "hero_title": "Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld", "hero_manchet": "Et trafikuheld spærrer et spor på Storebæltsbroen. Bilister skal forvente længere rejsetid.", "hero_meta": "2 t. siden", "hero_img": "img-storebaelt", "wire": [["08:12", "Nyt flertal på rådhuset vil investere 45 millioner i bymidten", "art-byraad"], ["07:48", "Dagens overblik: Det besluttede Slagelse Byråd", "art-byraad"], ["06:32", "Flere sommerhuse udsat for indbrud ved Skælskør Næs", "art-sommerhuse"]], "nabolag_text": "Slagelse C: 4 nye byggeprojekter godkendt i bymidten. Håndværkere er i gang ved Nytorv."}, "naestved": {"navn": "NæstvedLokalt", "prefix": "Næstved", "by": "Næstved", "kommune": "Næstved Kommune", "accent": "#1F5663", "accent_soft": "#E8F2F4", "tagline": "Din lokale stemme i Næstved, Karrebæksminde og omegn", "omraader": ["Næstved By", "Karrebæksminde", "Fuglebjerg", "Holme-Olstrup", "Rønnebæk"], "hero_kicker": "HAVN & KLIMA · KARREBÆKSMINDE", "hero_title": "Ny havne- og klimapromenade godkendt: Forvandler Karrebæksminde", "hero_manchet": "En investering på 38 millioner kroner skal sikre havnen mod stormflod og skabe nyt maritimt samlingspunkt.", "hero_meta": "1 t. siden", "hero_img": "img-storebaelt", "wire": [["08:30", "Grønnegades Kaserne Kulturcenter melder om rekordstort forårsprogram", "art-kultur"], ["07:55", "Næstved Byråd afsætter 25 millioner til nye cykelstier i oplandet", "art-byraad"], ["06:40", "Lokale fiskere i Karrebæksminde fejrer starten på forårssæsonen", "art-butik"], ["21:45", "Næstved Boldklub henter stærk sejr foran 1.400 tilskuere", "art-sport"], ["19:20", "Susåen sikres med nyt natur- og vådområde ved Herlufsholm", "art-tudeaa"]], "nabolag_text": "Næstved By: Omfattende renovering af gågadenettet ved Axeltorv starter i næste måned."}, "holbaek": {"navn": "HolbækLokalt", "prefix": "Holbæk", "by": "Holbæk", "kommune": "Holbæk Kommune", "accent": "#4F5B1E", "accent_soft": "#F2F5E8", "tagline": "Lokaljournalistik fra Isefjorden til det åbne Vestsjælland", "omraader": ["Holbæk By", "Jyderup", "Tølløse", "Orø", "Vipperød"], "hero_kicker": "INFRASTRUKTUR · ORØ", "hero_title": "Ny grøn elfærge til Orø er sat i drift: Halverer rejsetiden over fjorden", "hero_manchet": "Den nye færgeforbindelse er officielt indviet med gratis overfart for alle øens beboere og pendlere.", "hero_meta": "3 t. siden", "hero_img": "img-storebaelt", "wire": [["08:15", "Holbæk Havneby udvides med 80 nye bæredygtige boliger", "art-byraad"], ["07:30", "Jyderup Erhvervsforening lancerer nyt lærlinge-initiativ for unge", "art-butik"], ["06:50", "Isefjordens fuglereservater oplever markant fremgang i 2026", "art-tudeaa"], ["22:00", "Holbæk B&I rykker tættere på oprykning efter flot sejr", "art-sport"], ["20:10", "Kulturkasernen i Holbæk inviterer til gratis forårskoncerter", "art-kultur"]], "nabolag_text": "Holbæk By: Omlægning af havnefronten giver plads til nye caféer og rekreativt byliv."}, "ringsted": {"navn": "RingstedLokalt", "prefix": "Ringsted", "by": "Ringsted", "kommune": "Ringsted Kommune", "accent": "#8A5A00", "accent_soft": "#FBF4E6", "tagline": "Nyheder fra hjertet af Sjælland — lokalt og tæt på dig", "omraader": ["Ringsted By", "Benløse", "Jystrup", "Kværkeby", "Vetterslev"], "hero_kicker": "ERHVERV & HANDEL · RINGSTED", "hero_title": "Ringsted Outlet og bymidten indgår unikt samarbejde med gratis busser", "hero_manchet": "Nyt fælles initiativ skal sikre, at de mange tusinde besøgende i outletbyen også finder vej til handelsgaderne.", "hero_meta": "2 t. siden", "hero_img": "img-erhverv", "wire": [["08:40", "Ringsted Festival melder om tæt på udsolgt til jubilæumskoncert", "art-kultur"], ["08:05", "Ny cykelsti langs Kværkebyvej øger trafiksikkerheden for skolebørn", "art-byraad"], ["07:15", "Erhvervspark Ringsted Syd tiltrækker to nye højteknologiske firmaer", "art-butik"], ["21:30", "TMS Ringsted leverer kæmpe overraskelse i håndboldligaen", "art-sport"], ["18:50", "Oplevelsesstien omkring Haraldsted Sø udvides med nye shelters", "art-tudeaa"]], "nabolag_text": "Ringsted By: Torvet summer af liv efter etablering af nye udendørs serveringsarealer."}, "koege": {"navn": "KøgeLokalt", "prefix": "Køge", "by": "Køge", "kommune": "Køge Kommune", "accent": "#24533A", "accent_soft": "#EAF3EE", "tagline": "Lokaljournalistik med blik for Køges vækst, havn og stærke fællesskaber", "omraader": ["Køge By", "Køge Nord", "Herfølge", "Borup", "Ejby"], "hero_kicker": "VÆKST & ERHVERV · KØGE HAVN", "hero_title": "Køge Havn indvier ny terminal og skaber 150 nye arbejdspladser", "hero_manchet": "Nordens hurtigst voksende erhvervshavn udvider faciliteterne med 120.000 kvm nyt logistikareal.", "hero_meta": "4 t. siden", "hero_img": "img-erhverv", "wire": [["08:20", "Køge Nord Station runder milepæl med over 10.000 daglige passagerer", "art-byraad"], ["07:45", "Kulturstrøget i Køge Bymidte åbner for nye kunstneriske værksteder", "art-kultur"], ["06:30", "Herfølge Idrætscenter udvider faciliteterne med ny moderne springhal", "art-sport"], ["22:10", "HB Køge tager vigtig sejr foran et feststemt hjemmepublikum", "art-sport"], ["20:40", "Køge Å-stien renoveres med nye træbroer og forbedret belysning", "art-tudeaa"]], "nabolag_text": "Køge Nord: Nye grønne boligkvarterer skyder op med fælleshaver og delebilsordninger."}, "roskilde": {"navn": "RoskildeLokalt", "prefix": "Roskilde", "by": "Roskilde", "kommune": "Roskilde Kommune", "accent": "#6A3553", "accent_soft": "#F7EDF3", "tagline": "Kultur, viden og byens puls — lokaljournalistik i Roskilde", "omraader": ["Roskilde By", "Trekroner", "Jyllinge", "Viby Sjælland", "Svogerslev"], "hero_kicker": "KULTURARV · ROSKILDE FJORD", "hero_title": "Vikingeskibsmuseets nye klimasikrede museumsbygning godkendt af byrådet", "hero_manchet": "En historisk bevilling sikrer de fem originale vikingeskibe mod fremtidige stormfloder og skaber et nyt vartegn.", "hero_meta": "2 t. siden", "hero_img": "img-storebaelt", "wire": [["08:35", "Roskilde Festival løfter sløret for 24 nye internationale kunstnere", "art-kultur"], ["07:50", "RUC i Trekroner etablerer nyt forskningscenter for grøn omstilling", "art-byraad"], ["07:10", "Stændertorvet omdannes til levende madmarked hver lørdag i foråret", "art-butik"], ["21:50", "Roskilde KFUM vinder topopgør og fastholder førstepladsen", "art-sport"], ["19:15", "Jyllinge Havn sikres med ny højvandsport og forstærket dige", "art-tudeaa"]], "nabolag_text": "Roskilde By: Historiske brolægninger omkring Domkirken og Algade restaureres med respekt for arven."}, "kalundborg": {"navn": "KalundborgLokalt", "prefix": "Kalundborg", "by": "Kalundborg", "kommune": "Kalundborg Kommune", "accent": "#0284C7", "accent_soft": "#EBF6FC", "tagline": "Biotekbyen, havnen og livet langs kysten i Kalundborg", "omraader": ["Kalundborg By", "Høng", "Gørlev", "Svebølle", "Havnsø"], "hero_kicker": "BIOTEK & UDDANNELSE · KALUNDBORG", "hero_title": "Novo Nordisk og Kalundborg Kommune indvier nyt biotek-akademi", "hero_manchet": "Det nye uddannelsescenter skal uddanne hundredvis af procesteknologer og ingeniører til den voksende industri.", "hero_meta": "1 t. siden", "hero_img": "img-erhverv", "wire": [["08:25", "Kalundborg Havn klar til rekordstor krydstogtsæson med 40 anløb", "art-byraad"], ["07:40", "Nyt sundhedshus i Gørlev samler læger og fysioterapeuter", "art-butik"], ["06:55", "Høng Erhvervsråd hædrer årets lokale iværksætter", "art-butik"], ["22:05", "Kalundborg GB vinder lokalopgør mod Svebølle i serie 1", "art-sport"], ["19:30", "Havnsø Strandpromenade udvides med ny badebro og sauna", "art-tudeaa"]], "nabolag_text": "Kalundborg By: Bymidten og havnepromenaden bindes tættere sammen med ny grøn aktivitetsrute."}};
     let currentCityKey = 'slagelse';
 
     function toggleCityDropdown() {
@@ -2492,10 +2965,40 @@
       }
     }
 
-    function submitTip() {
-      const title = document.getElementById('tip-title').value;
-      const name = document.getElementById('tip-name').value;
-      alert(`Mange tak, ${name}! Din henvendelse "${title}" er modtaget hos redaktionen.`);
+    function selectPriceProduct(mode) {
+      switchTipMode(mode);
+      const el = document.getElementById('indsend');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function switchTipMode(mode) {
+      ['tip', 'event', 'sponsor', 'citat'].forEach(m => {
+        const btn = document.getElementById(`tab-tip-${m}`);
+        const form = document.getElementById(`form-tip-${m}`);
+        if (btn) btn.classList.toggle('is-active', m === mode);
+        if (form) form.style.display = (m === mode) ? 'flex' : 'none';
+      });
+    }
+
+    function submitTipMode(mode) {
+      const c = currentCity || CITIES_DATA['slagelse'];
+      if (mode === 'tip') {
+        const name = document.getElementById('tip-user-name').value;
+        const headline = document.getElementById('tip-headline').value;
+        alert(`Tusind tak, ${name}! Dit tip "${headline}" er modtaget hos redaktionen for ${c.navn}. Kildebeskyttelse er sikret.`);
+      } else if (mode === 'event') {
+        const title = document.getElementById('event-title').value;
+        const name = document.getElementById('event-contact-name').value;
+        alert(`Mange tak, ${name}! Jeres arrangement "${title}" er modtaget og klargøres til kalenderen på ${c.navn}.`);
+      } else if (mode === 'sponsor') {
+        const comp = document.getElementById('sponsor-company').value;
+        const name = document.getElementById('sponsor-contact-name').value;
+        alert(`Mange tak, ${name}! Jeres forespørgsel om en sponsoreret artikel for ${comp} er modtaget. Vores redaktion kontakter jer hurtigst muligt.`);
+      } else if (mode === 'citat') {
+        const name = document.getElementById('citat-author').value;
+        const topic = document.getElementById('citat-topic').value;
+        alert(`Tak for dit citat, ${name}! Dit bidrag til emnet "${topic}" er overdraget til redaktionen for ${c.navn}.`);
+      }
     }
 
     // Søgemaskine

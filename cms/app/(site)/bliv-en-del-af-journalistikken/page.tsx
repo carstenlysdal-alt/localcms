@@ -353,8 +353,8 @@ export default async function BlivEnDelAfJournalistikkenPage({
                 </h2>
               </div>
               <p style={{ fontSize: "14px", color: "var(--ink-2)", margin: "0 0 14px 0", lineHeight: "1.5" }}>
-                Stærke lokale virksomheder er en vital del af livet i {site.kommune}. Vi tilbyder transparente formater,
-                hvor din virksomhed kan fortælle historier og formidle ekspertise med fuld troværdighed:
+                Lokale virksomheder og arbejdspladser er med til at forme hverdagen og udviklingen i {site.kommune}. Vi tilbyder gennemskuelige samarbejdsformater,
+                hvor din virksomhed kan fortælle om projekter, medarbejdere og faglig viden med fuld troværdighed over for læserne:
               </p>
               <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.6" }}>
                 <li>Alt partnerindhold mærkes synligt i toppen med <strong>◆ FINANSIERET AF [Virksomhedsnavn]</strong>.</li>
