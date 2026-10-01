@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { CircuitOpenError, getBreaker, isBreakerFailure } from "../resilience";
 
 /**
  * Tynd, testbar adapter til Claude (@anthropic-ai/sdk). Al AI i T11/T12 går herigennem:
@@ -39,14 +40,19 @@ export function createAnthropicTextClient(opts: { apiKey?: string; model?: strin
   const model = opts.model ?? resolveModel();
   const sdk = new Anthropic({ apiKey, maxRetries: 0 });
   return async ({ system, user, maxTokens, signal }) => {
-    const res = await sdk.messages.create(
-      {
-        model,
-        max_tokens: maxTokens,
-        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: user }],
-      },
-      { signal },
+    // Circuit breaker: efter gentagne fejl/timeouts springes kaldet over i 30 s (forsiden falder tilbage til score/seneste nyt).
+    const res = await getBreaker("anthropic").exec(
+      () =>
+        sdk.messages.create(
+          {
+            model,
+            max_tokens: maxTokens,
+            system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
+            messages: [{ role: "user", content: user }],
+          },
+          { signal },
+        ),
+      isBreakerFailure,
     );
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
     return { text, modelId: res.model };
@@ -131,6 +137,7 @@ export async function callJson<T>(client: AiTextClient | null | undefined, req: 
       const value = opts.parse(res.text);
       return { ok: true, value, modelId: res.modelId ?? resolveModel(), attempts: attempt };
     } catch (error) {
+      if (error instanceof CircuitOpenError) return { ok: false, reason: "api-fejl", detail: "AI er midlertidigt sat på pause (for mange fejl).", attempts: attempt };
       if (error instanceof TimeoutError) last = { reason: "timeout", detail: error.message };
       else if (error instanceof ParseError) last = { reason: error.reason, detail: error.message };
       else if (error instanceof SyntaxError) last = { reason: "ugyldig-json", detail: error.message };

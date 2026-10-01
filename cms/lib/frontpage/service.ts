@@ -13,6 +13,7 @@ import { parseModules, parseSnapshotItems, type ModuleInstance } from "./layout-
 import { interpretCommand, type NlCommandResult } from "./nl-commands";
 import { rankCandidates } from "./rank";
 import { defaultLayoutModules } from "./templates";
+import { purgeInstance } from "../cache/purge";
 import type { Candidate, Pin, QuotaInput, SlotAssignment, SnapshotItems, Violation } from "./types";
 
 /**
@@ -308,6 +309,7 @@ export async function approveSnapshot(user: FrontpageUser, snapshotId: string, o
       return true;
     });
     if (!ok) return fail("conflict", "Forslaget blev ændret af en anden. Genindlæs.");
+    void purgeInstance(user.instansId); // CDN-purge (no-op uden CF_API_TOKEN)
     return { ok: true, expiresAt, warnings: enforced.violations };
   } catch (error) {
     console.error("[frontpage] approveSnapshot fejlede:", error);
@@ -436,7 +438,7 @@ export async function publishLayout(user: FrontpageUser, draftId: string): Promi
     const parsed = parseModules(draft.modules);
     if (!parsed.ok) return fail("invalid", "Layoutet er ugyldigt.", { details: parsed.errors });
     const modules = JSON.parse(JSON.stringify(parsed.value));
-    return await db.$transaction(async (tx) => {
+    const published = await db.$transaction(async (tx) => {
       const live = await tx.frontpageLayout.findFirst({ where: { instansId: user.instansId, status: "live" } });
       const now = new Date();
       const row = live
@@ -445,6 +447,8 @@ export async function publishLayout(user: FrontpageUser, draftId: string): Promi
       await tx.frontpageLayoutVersion.create({ data: { layoutId: row.id, instansId: user.instansId, version: row.version, modules, note: `Publiceret fra kladde '${draft.name}'`, createdBy: user.id } });
       return { ok: true as const, layoutId: row.id, version: row.version };
     });
+    void purgeInstance(user.instansId); // CDN-purge (no-op uden CF_API_TOKEN)
+    return published;
   } catch (error) {
     console.error("[frontpage] publishLayout fejlede:", error);
     return fail("fejl", "Layoutet kunne ikke publiceres.");

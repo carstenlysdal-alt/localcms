@@ -1,21 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { db } from "../db";
+import { slugify } from "../slug";
 import { normalizeUrl } from "../validation/text";
 import type { IngestGeo, IngestItemResult } from "./schema";
 import { signalInputSchema } from "./schema";
 import type { z } from "zod";
 
 type ParsedSignal = z.output<typeof signalInputSchema>;
-
-function slugify(input: string) {
-  return input
-    .toLowerCase()
-    .replace(/æ/g, "ae")
-    .replace(/ø/g, "oe")
-    .replace(/å/g, "aa")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 /** Slå en geo-angivelse op i instansens GeoTags (slug -> navn -> postnr i slug/navn). Aldrig på tværs af instanser. */
 export async function resolveGeo(instansId: string, geo: IngestGeo | undefined): Promise<{ omraadeId: string | null; omraadeTekst: string | null }> {

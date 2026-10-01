@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { db } from "./db";
 import { calculateArticleScore, type ArticleDistributionInput } from "./distribution-engine";
 import { firstSeen, rateLimit } from "./ratelimit";
+import { isNonHumanForTracking } from "./bot/detect";
 
 /**
  * Serverlogik bag /api/ads/track og /api/metrics/track.
@@ -19,7 +20,7 @@ const BOT_PATTERN = /(bot|crawl|spider|slurp|headless|lighthouse|pagespeed|faceb
 
 export function isLikelyBot(userAgent: string | null | undefined): boolean {
   if (!userAgent || userAgent.length < 10) return true;
-  return BOT_PATTERN.test(userAgent);
+  return BOT_PATTERN.test(userAgent) || isNonHumanForTracking(userAgent); // lib/bot/detect.ts: søge-/AI-/skraber-/headless-klasser
 }
 
 /** Anonym besøgsnøgle: roterer dagligt, kan ikke føres tilbage til IP/UA, gemmes kun i hukommelse. */

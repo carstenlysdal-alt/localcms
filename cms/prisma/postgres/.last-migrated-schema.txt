@@ -1,0 +1,813 @@
+// GENERERET FIL — redigér ikke i hånden.
+// Kilde: prisma/schema.prisma (SQLite, dev). Regenerér med:  npm run prisma:pg:schema
+// Bruges af Railway/produktion: prisma generate/migrate deploy --schema prisma/postgres/schema.prisma
+// Nye migrationer:  npm run prisma:pg:migration -- <navn>
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── CMS-11: konfigurerbar instans (alt hvad der gør én instans unik = data) ─
+model Instance {
+  id             String   @id @default(cuid())
+  navn           String
+  domaene        String
+  logoUrl        String?
+  farver         Json?    // { accent, bg, text, … } — redigerbart uden kode
+  typografi      Json?    // { heading, body }
+  // Konfigurerbare lister (jf. spec 2.11) — IKKE hardkodet i kernen.
+  geografiskDækning Json  // string[] af delområder
+  kategoriTaksonomi Json  // string[] af topkategorier
+  sprog          String   @default("da")
+  markingTekster Json     // { sponsorLabel, partnerLabel, principperUrl, … }
+  kvoteloftProcent Int   @default(25)
+  sideTekster      Json?  // om-mediet, principper, kontakt (redigerbare)
+  netvaerk         Json?  // [{ navn, domaene }] søstersites
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users             User[]
+  authors           Author[]
+  categories        Category[]
+  tags              Tag[]
+  geoTags           GeoTag[]
+  articles          Article[]
+  media             Media[]
+  organizations     Organization[]
+  supportAgreements SupportAgreement[]
+  assignments        Assignment[]
+  honorRates         HonorRate[]
+  honorEntries       HonorEntry[]
+  chatMessages       ChatMessage[]
+  topics             Topic[]
+  signals            Signal[]
+  corrections        Correction[]
+  frontpagePlacements FrontpagePlacement[]
+  adCampaigns        AdCampaign[]
+  articleMetrics     ArticleMetric[]
+  submissions        Submission[]
+  newsletterSubscribers NewsletterSubscriber[]
+  sourceQAs          SourceQA[]
+  interviews         InterviewSession[]
+  sponsorBriefs      SponsorBrief[]
+  meddelere          MeddelerProfile[]
+  meddelerSager      MeddelerSag[]
+  apiKeys            ApiKey[]
+  frontpageLayouts       FrontpageLayout[]
+  frontpageLayoutVersions FrontpageLayoutVersion[]
+  frontpageSnapshots     FrontpageSnapshot[]
+  frontpageDecisions     FrontpageDecision[]
+  frontpageSlotMetrics   FrontpageSlotMetric[]
+}
+
+// ── CMS-05: konfigurerbare roller (rettigheder som data, ikke hardkodet) ────
+model Role {
+  id          String   @id @default(cuid())
+  navn        String   @unique // fx "Ansvarshavende redaktør"
+  permissions Json     // string[] — se PERMISSIONS i lib/permissions.ts
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  navn         String
+  roleId       String
+  role         Role      @relation(fields: [roleId], references: [id])
+  instansId    String
+  instans      Instance  @relation(fields: [instansId], references: [id])
+  authorId     String?   @unique // kobling til Forfatter-profil, hvis redaktionel
+  author       Author?   @relation(fields: [authorId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  articleRevisions ArticleRevision[]
+  createdAssignments Assignment[] @relation("AssignmentCreator")
+  approvedHonorEntries HonorEntry[] @relation("HonorApprover")
+}
+
+model Author {
+  id              String       @id @default(cuid())
+  navn            String
+  slug            String?
+  forfatterType   String       @default("Freelance") // Fast | Freelance
+  bio             String?
+  profilbilledeUrl String?
+  kontakt         String?
+  instansId       String
+  instans         Instance     @relation(fields: [instansId], references: [id])
+  user            User?
+  articles        Article[]
+  assignments     Assignment[]
+  honorEntries    HonorEntry[]
+  createdAt       DateTime     @default(now())
+
+  @@unique([instansId, slug])
+}
+
+// ── CMS-02: taksonomi ───────────────────────────────────────────────────────
+model Category {
+  id          String     @id @default(cuid())
+  navn        String
+  slug        String
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  sortering   Int        @default(0)
+  beskrivelse String?
+  iNavigation Boolean    @default(true)
+  instansId   String
+  instans     Instance   @relation(fields: [instansId], references: [id])
+  articles    Article[]
+  createdAt   DateTime   @default(now())
+
+  @@unique([instansId, slug])
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  navn      String
+  slug      String?
+  instansId String
+  instans   Instance  @relation(fields: [instansId], references: [id])
+  articles  Article[]
+  createdAt DateTime  @default(now())
+
+  @@unique([instansId, navn])
+}
+
+model GeoTag {
+  id        String   @id @default(cuid())
+  navn      String   // delområde
+  slug      String
+  lat       Float?
+  lng       Float?
+  instansId String
+  instans   Instance @relation(fields: [instansId], references: [id])
+  articles  Article[]
+  submissions Submission[]
+  signals   Signal[]
+  createdAt DateTime @default(now())
+
+  @@unique([instansId, slug])
+  @@unique([instansId, navn])
+}
+
+// ── CMS-01: artikel ─────────────────────────────────────────────────────────
+model Article {
+  id            String    @id @default(cuid())
+  titel         String
+  manchet       String?
+  slug          String    @unique
+  // Blokeditor: body som struktureret komponentliste (jf. spec 4.1), ikke fri HTML.
+  blocks        Json      // Block[] — se lib/blocks/schema.ts
+  // Status-workflow præcis som spec 5.2 (String + TS-union, valideres i lib/workflow.ts).
+  status        String    @default("Idé")
+  // indholdstype styrer mærkning (spec 5.2).
+  indholdstype  String    @default("Uafhængig") // Uafhængig|Partner|Sponsoreret|Brugerindsendt|PR
+  aiBrug        Json      // string[] — obligatorisk AI-brugsfelt ved publicering (spec 3.5)
+  // Mærkning for kommercielt indhold (AC-01): skal være udfyldt hvis indholdstype er kommerciel.
+  marking       Json?     // { sponsor, aftaleId?, labelTekst, … }
+  pinned        Boolean   @default(false)
+  breaking      Boolean   @default(false)
+  seoTitel      String?
+  seoBeskrivelse String?
+  sprog         String    @default("da")
+  publiceretTid DateTime?
+  opdateretTid  DateTime  @updatedAt
+  createdAt     DateTime  @default(now())
+
+  kategoriId String?
+  kategori   Category? @relation(fields: [kategoriId], references: [id])
+  forfatterId String?
+  forfatter   Author?   @relation(fields: [forfatterId], references: [id])
+  instansId   String
+  instans     Instance  @relation(fields: [instansId], references: [id])
+
+  // Mange-til-mange: tags, geotags, relaterede artikler.
+  tags       Tag[]
+  geoTags    GeoTag[]
+  supportAftaleId String?
+  supportAftale   SupportAgreement? @relation(fields: [supportAftaleId], references: [id])
+  coverMediaId String?
+  coverMedia   Media? @relation("ArticleCover", fields: [coverMediaId], references: [id])
+
+  revisions ArticleRevision[]
+  assignment Assignment?
+  honorEntry HonorEntry?
+  corrections Correction[]
+  frontpagePlacements FrontpagePlacement[]
+  metric ArticleMetric?
+  submissions Submission[]
+  sourceQAs          SourceQA[]
+  interviews         InterviewSession[]
+  sponsorBriefs      SponsorBrief[]
+  meddelerSager      MeddelerSag[]
+
+  // Agent-indtag (POST /api/ingest/articles): idempotens-nøgle + proveniens.
+  // Begge er null for manuelt skrevne artikler (flere NULL er tilladt i unique-indekset).
+  externalId    String?
+  provenance    Json?     // { ingestKeyPrefix, receivedAt, agent, kilder:[{url,dato,titel,sourceType}], signalIds }
+
+  @@unique([instansId, externalId])
+  @@index([instansId, status])
+  @@index([instansId, indholdstype])
+}
+
+model ArticleRevision {
+  id         String   @id @default(cuid())
+  articleId  String
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  snapshot   Json     // fuld artikel-snapshot ved publicering/væsentlig rettelse
+  note       String?  // fx "Faktuel rettelse: …" (presseetisk, spec 2.1)
+  createdAt  DateTime @default(now())
+
+  @@index([articleId])
+}
+
+// ── CMS-03 (basalt): medie ──────────────────────────────────────────────────
+model Media {
+  id            String   @id @default(cuid())
+  filtype       String   // billede | video | lyd | dokument
+  url           String
+  filnavn       String?
+  mimeType      String?
+  stoerrelse    Int?
+  bredde        Int?
+  hoejde        Int?
+  altTekst      String?  // kan AI-udkastes, kræver godkendelse (spec 2.3)
+  billedtekst   String?
+  ophavsperson  String?  // fotograf/ophavsret
+  rettighedsstatus String? // kobler til CMS-08 (roadmap)
+  licensType    String?
+  rettighedsUdlob DateTime?
+  kildeType     String   @default("Ekstern") // Lokal | Ekstern
+  instansId     String
+  instans       Instance @relation(fields: [instansId], references: [id])
+  coverForArticles Article[] @relation("ArticleCover")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([instansId, filtype])
+}
+
+// ── CMS-04: støtteaftaler (kvote-træk + dashboard er roadmap; datamodel nu) ─
+model SupportAgreement {
+  id             String    @id @default(cuid())
+  organisationNavn String
+  pakkeNiveau    String    // Pakke 1 | Pakke 2 | Pakke 3
+  startDato      DateTime
+  slutDato       DateTime?
+  arligKvote     Int       @default(0)
+  forbrugtKvote  Int       @default(0) // afledt — opdateres ved publicering
+  kontaktperson  String?
+  pris           Int       @default(0)
+  instansId      String
+  instans        Instance  @relation(fields: [instansId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  articles       Article[]
+  assignments    Assignment[]
+  createdAt      DateTime  @default(now())
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  navn      String
+  branche   String?
+  kontakt   String?
+  instansId String
+  instans   Instance  @relation(fields: [instansId], references: [id])
+  supportAgreements SupportAgreement[]
+  createdAt DateTime  @default(now())
+}
+
+// ── CMS-06: opgaver, prisliste og honorarer ───────────────────────────────
+model Assignment {
+  id                  String   @id @default(cuid())
+  titel               String
+  beskrivelse         String
+  leverancetype       String
+  status              String   @default("Åben") // Åben|Tildelt|I gang|Afleveret|Godkendt|Annulleret
+  iPulje              Boolean  @default(false)
+  researchDeadline    DateTime?
+  afleveringsDeadline DateTime
+  estimeretHonorar    Int
+  interessekonflikt   String?
+  konfliktGennemgaaet Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  instansId String
+  instans   Instance @relation(fields: [instansId], references: [id])
+  assignedAuthorId String?
+  assignedAuthor   Author? @relation(fields: [assignedAuthorId], references: [id])
+  articleId String? @unique
+  article   Article? @relation(fields: [articleId], references: [id])
+  supportAgreementId String?
+  supportAgreement   SupportAgreement? @relation(fields: [supportAgreementId], references: [id])
+  createdById String
+  createdBy   User @relation("AssignmentCreator", fields: [createdById], references: [id])
+  honorEntry HonorEntry?
+
+  @@index([instansId, status])
+  @@index([assignedAuthorId, afleveringsDeadline])
+}
+
+model HonorRate {
+  id            String   @id @default(cuid())
+  leverancetype String
+  minimum       Int
+  maksimum      Int
+  standard      Int
+  aktiv         Boolean  @default(true)
+  instansId     String
+  instans       Instance @relation(fields: [instansId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([instansId, leverancetype])
+}
+
+model HonorEntry {
+  id           String   @id @default(cuid())
+  beloeb       Int
+  status       String   @default("Afventer") // Afventer|Godkendt|Eksporteret
+  generatedAt  DateTime @default(now())
+  approvedAt   DateTime?
+  exportedAt   DateTime?
+  instansId    String
+  instans      Instance @relation(fields: [instansId], references: [id])
+  assignmentId String   @unique
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  authorId     String
+  author       Author @relation(fields: [authorId], references: [id])
+  articleId    String   @unique
+  article      Article @relation(fields: [articleId], references: [id])
+  approvedById String?
+  approvedBy   User? @relation("HonorApprover", fields: [approvedById], references: [id])
+
+  @@index([instansId, status])
+  @@index([authorId, generatedAt])
+}
+
+// ── AI Chat ──────────────────────────────────────────────────────────────────
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String   // grupperer beskeder i én samtale
+  role      String   // user | assistant
+  content   String
+  instansId String
+  instans   Instance @relation(fields: [instansId], references: [id])
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([instansId, createdAt])
+}
+
+// ── Emner (Topics) ────────────────────────────────────────────────────────────
+model Topic {
+  id          String   @id @default(cuid())
+  titel       String
+  beskrivelse String?
+  coverUrl    String?
+  kategorier  Json     @default("[]") // string[]
+  notable     Boolean  @default(false)
+  kildeAntal  Int      @default(0)
+  instansId   String
+  instans     Instance @relation(fields: [instansId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([instansId])
+}
+
+// ── Signaler ──────────────────────────────────────────────────────────────────
+model Signal {
+  id         String   @id @default(cuid())
+  overskrift String
+  brødtekst  String?
+  kilde      String   @default("Intern") // Ritzau | Reuters | AP | Intern | ...
+  kildeUrl   String?
+  notable    Boolean  @default(false)
+  breaking   Boolean  @default(false)
+  laest      Boolean  @default(false)
+  version    Int      @default(1)
+  instansId  String
+  instans    Instance @relation(fields: [instansId], references: [id])
+  createdAt  DateTime @default(now())
+
+  // Agent-indtag (POST /api/ingest/signals) — alle felter er valgfrie/additive.
+  externalId      String?   // leverandørens stabile id -> idempotent upsert
+  kildeUrlNorm    String?   // normaliseret kildeUrl -> dedupe på tværs af externalIds
+  sourceType      String?   // kommune_dagsorden | politi | beredskab_112 | ... (valideres i lib/ingest/schema.ts)
+  omraadeId       String?
+  omraade         GeoTag?   @relation(fields: [omraadeId], references: [id])
+  omraadeTekst    String?   // rå geografi-hint hvis ikke matchet til et GeoTag
+  kildeTidspunkt  DateTime? // hvornår kilden blev udgivet (publishedAt)
+  maskinindsamlet Boolean   @default(false) // vises som "Maskinindsamlet – ikke redaktionelt vurderet"
+  ingestKeyId     String?   // hvilken ApiKey leverede signalet
+
+  @@unique([instansId, externalId])
+  @@unique([instansId, kildeUrlNorm])
+  @@index([instansId, laest])
+  @@index([instansId, createdAt])
+}
+
+// ── Rettelser (CMS-01, P-13, A-05) ───────────────────────────────────────────
+model Correction {
+  id         String   @id @default(cuid())
+  tekst      String
+  dato       DateTime @default(now())
+  articleId  String
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  instansId  String
+  instans    Instance @relation(fields: [instansId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([instansId])
+  @@index([articleId])
+}
+
+// ── Forsidestyring & placeringer (A-03, Del 4 §4) ─────────────────────────────
+model FrontpagePlacement {
+  id         String    @id @default(cuid())
+  zone       String    // "top-hoved" | "top-sekundaer" | "omraade" | "sektion"
+  position   Int       @default(0)
+  udloebTid  DateTime? // automatisk udløb, standard 48 timer
+  articleId  String
+  article    Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  instansId  String
+  instans    Instance  @relation(fields: [instansId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([instansId, zone])
+  @@index([articleId])
+}
+
+// ── Kommerciel Annoncering & Kampagner (Ad Engine) ──────────────────────────
+model AdCampaign {
+  id              String      @id @default(cuid())
+  titel           String
+  annoncoer       String
+  format          String      // NATIVE_PREMIUM | NATIVE_SEKTION | IN_FEED_BANNER | EVENT_POST | GUIDE_PROFILE
+  status          String      @default("Kladde") // Kladde | Aktiv | Pause | Udløbet
+  startDato       DateTime
+  slutDato        DateTime
+  pris            Int         @default(0)
+  placeringZone   String      @default("feed") // top | feed | artikel | kalender
+  kreativData     Json        // { overskrift, manchet, billedeUrl, ctaTekst, linkUrl, badgeTekst, farve, osv. }
+  visninger       Int         @default(0)
+  klik            Int         @default(0)
+  maksVisninger   Int?
+  instansId       String
+  instans         Instance    @relation(fields: [instansId], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([instansId, status])
+  @@index([instansId, placeringZone])
+}
+
+// ── First-Party Metrikker & Læseradfærd (Metric Engine) ────────────────────
+model ArticleMetric {
+  id               String   @id @default(cuid())
+  articleId        String   @unique
+  article          Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  instansId        String
+  instans          Instance @relation(fields: [instansId], references: [id])
+  visninger        Int      @default(0)
+  laesninger       Int      @default(0) // Scroll > 70% eller læsetid > 30s
+  totalLaesetidSek Int      @default(0)
+  score            Float    @default(0.0) // Dynamisk beregnet fordelingsscore
+  hourlyViews      Json?    // Seneste timer [h0, h1, ...]
+  createdAt        DateTime @default(now())
+  opdateretTid     DateTime @updatedAt
+
+  @@index([instansId, score])
+}
+
+// ── Indsendt materiale (CMS-07, P-15, A-07) ──────────────────────────────────
+model Submission {
+  id                    String    @id @default(cuid())
+  navn                  String
+  kontakt               String    // e-mail eller telefonnummer
+  emne                  String
+  tekst                 String
+  omraadeId             String?
+  omraade               GeoTag?   @relation(fields: [omraadeId], references: [id])
+  billederUrl           Json?     // string[] af billeder/filer
+  rettighederAccepteret Boolean   @default(true)
+  samtykkeAccepteret    Boolean   @default(true)
+  status                String    @default("Ny") // "Ny" | "Behandles" | "Afvist" | "ArtikelOprettet"
+  noter                 String?   // Interne redaktionsnoter
+  articleId             String?
+  article               Article?  @relation(fields: [articleId], references: [id])
+  instansId             String
+  instans               Instance  @relation(fields: [instansId], references: [id])
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([instansId, status])
+  @@index([instansId, createdAt])
+}
+
+// ── Nyhedsbrevsabonnenter (P-16, A-08) ────────────────────────────────────────
+model NewsletterSubscriber {
+  id              String    @id @default(cuid())
+  email           String
+  navn            String?
+  sektionSlug     String?
+  omraadeSlug     String?
+  aktiv           Boolean   @default(true)
+  bekraeftetTid   DateTime?
+  afmeldtTid      DateTime?
+  afmeldingsToken String?   @default(cuid())
+  instansId       String
+  instans         Instance  @relation(fields: [instansId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([instansId, email])
+  @@index([instansId, aktiv])
+}
+
+// ── AI Library: Kilde-Q&A (SourceQA) ─────────────────────────────────────────
+model SourceQA {
+  id             String    @id @default(cuid())
+  token          String    @unique @default(cuid())
+  titel          String
+  emne           String
+  baggrund       String?
+  deadline       DateTime?
+  kildeNavn      String
+  kildeKontakt   String
+  kildeRolle     String?
+  status         String    @default("Sendt") // "Sendt" | "Besvaret" | "DelvistBesvaret" | "ArtikelOprettet"
+  spoergsmaal    Json      // Array af { id, text, type, order }
+  svar           Json?     // Array af { questionId, text, audioUrl, answeredAt }
+  citater        Json?     // Ekstraherede citater
+  aiOpsummering  String?
+  noter          String?
+  instansId      String
+  instans        Instance  @relation(fields: [instansId], references: [id])
+  articleId      String?
+  article        Article?  @relation(fields: [articleId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([instansId, status])
+}
+
+// ── AI Library: Kildeinterview (InterviewSession) ────────────────────────────
+model InterviewSession {
+  id                  String    @id @default(cuid())
+  token               String    @unique @default(cuid())
+  titel               String    @default("Interview")
+  arbejdstitel        String?
+  emne                String
+  formaal             String?
+  baggrund            String?
+  journalistNavn      String?
+  kildeNavn           String
+  kildeTitel          String?
+  kildeRolle          String?
+  kildeKontakt        String
+  forventetPublicering String?
+  status              String    @default("Oprettet") // "Oprettet" | "Sendt" | "Igang" | "Besvaret" | "ArtikelOprettet"
+  spoergsmaal         Json      // Array af { id, text, questionType, priority }
+  svar                Json?     // Array af { questionId, text, audioUrl, transcript }
+  citater             Json?     // Array af verificerede citater
+  transskription      String?
+  aiOpsummering       String?
+  noter               String?
+  instansId           String
+  instans             Instance  @relation(fields: [instansId], references: [id])
+  articleId           String?
+  article             Article?  @relation(fields: [articleId], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([instansId, status])
+}
+
+// ── AI Library: Partner- og Sponsorindhold (SponsorBrief) ───────────────────
+model SponsorBrief {
+  id                  String    @id @default(cuid())
+  token               String    @unique @default(cuid())
+  partnerNavn         String
+  kontaktNavn         String
+  kontaktEmail        String
+  kontaktTelefon      String?
+  format              String    @default("native_artikel") // "native_artikel" | "fokus_interview" | "virksomhedsportraet"
+  status              String    @default("Booket") // "Booket" | "BriefIndsendt" | "UdkastKlar" | "Faktatjek" | "Godkendt" | "Publiceret"
+  pakkeNavn           String?
+  kampagnePeriode     String?
+  hovedbudskab        String?
+  baggrundstekst      String?
+  briefData           Json?
+  citater             Json?     // Array af { quote, speaker, title }
+  noegletal           Json?     // Array af { label, value, context }
+  materialerUrl       Json?
+  logoUrl             String?
+  billederUrl         Json?
+  reviewItems         Json?     // Faktatjek-punkter sendt til partner
+  noter               String?
+  instansId           String
+  instans             Instance  @relation(fields: [instansId], references: [id])
+  articleId           String?
+  article             Article?  @relation(fields: [articleId], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([instansId, status])
+}
+
+// ── AI Library: Meddeler-netværk (MeddelerProfile) ──────────────────────────
+model MeddelerProfile {
+  id             String        @id @default(cuid())
+  token          String        @unique @default(cuid())
+  navn           String
+  kontakt        String        // e-mail
+  telefon        String?
+  phone          String?
+  organisation   String?       // forening, klub eller institution
+  kategori       String        @default("tip") // "tip" | "sport" | "arrangement" | "haendelse" | "andet"
+  omraader       String?       // e.g. "Slagelse By, Boeslunde"
+  aktiv          Boolean       @default(true)
+  noter          String?
+  instansId      String
+  instans        Instance      @relation(fields: [instansId], references: [id])
+  sager          MeddelerSag[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([instansId, aktiv])
+}
+
+// ── AI Library: Meddeler Sag / Tip (MeddelerSag) ────────────────────────────
+model MeddelerSag {
+  id             String          @id @default(cuid())
+  meddelerId     String
+  meddeler       MeddelerProfile @relation(fields: [meddelerId], references: [id], onDelete: Cascade)
+  titel          String
+  kategori       String          @default("tip")
+  status         String          @default("Ny") // "Ny" | "UnderBehandling" | "BrugtIArtikel" | "Afvist"
+  tekst          String
+  billederUrl    Json?
+  audioUrl       String?
+  aiStruktureret Json?           // { who, what, where, when, facts, quotes, missing }
+  struktureret   Json?
+  opfoelgendeSpm Json?           // Array af opfølgende spørgsmål til meddeleren
+  opfoelgning    Json?
+  interneNoter   String?
+  instansId      String
+  instans        Instance        @relation(fields: [instansId], references: [id])
+  articleId      String?
+  article        Article?        @relation(fields: [articleId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([instansId, status])
+  @@index([meddelerId])
+}
+
+
+
+// ── Agent-indtag: API-nøgler (kun SHA-256-hash gemmes; klartekst vises én gang) ─
+model ApiKey {
+  id          String    @id @default(cuid())
+  instansId   String
+  instans     Instance  @relation(fields: [instansId], references: [id])
+  name        String    // fx "aI-library / Graver"
+  hashedKey   String    @unique // sha256(hex) af hele nøglen
+  prefix      String    // de første tegn (ikke hemmelige) til visning/log, fx "lk_live_ab12cd34"
+  scopes      Json      // string[] — "signals:write" | "articles:draft" | "health:read"
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  expiresAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  @@index([instansId])
+}
+
+// ── T11/T12: modulær forside, layout, AI-forslag (additivt) ──────────────────
+// Spec: docs/review/T11-T12-spec.md. Kode: lib/frontpage/**.
+// Status-strenge valideres i lib/frontpage/layout-schema.ts (cross-provider: ingen enums).
+
+/** Layout = rækkefølge af modul-instanser (JSON). Pr. instans: højst ÉN række med status "live" + valgfrit mange "kladde". */
+model FrontpageLayout {
+  id            String   @id @default(cuid())
+  instansId     String
+  instans       Instance @relation(fields: [instansId], references: [id])
+  name          String
+  status        String   @default("kladde") // kladde | live
+  version       Int      @default(1)        // stiger ved hver gem (kladde) / publicering og rollback (live)
+  schemaVersion Int      @default(1)
+  modules       Json     // FrontpageLayout.modules (lib/frontpage/layout-schema.ts)
+  scope         Json?    // fremtid: { dagsdel?, fra?, til? }
+  createdBy     String?
+  publishedBy   String?
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  versions  FrontpageLayoutVersion[]
+  snapshots FrontpageSnapshot[]
+
+  @@index([instansId, status])
+}
+
+/** Historik/rollback: én række pr. version af en layout-række. */
+model FrontpageLayoutVersion {
+  id         String          @id @default(cuid())
+  layoutId   String
+  layout     FrontpageLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  instansId  String
+  instans    Instance        @relation(fields: [instansId], references: [id])
+  version    Int
+  modules    Json
+  note       String?         // fx "publiceret fra kladde X", "rollback til v3"
+  createdBy  String?
+  createdAt  DateTime        @default(now())
+
+  @@unique([layoutId, version])
+  @@index([instansId, createdAt])
+}
+
+/** Resultat af en ranking-kørsel: forslag -> (godkendt | afvist | udløbet). Det sidst godkendte vises på forsiden. */
+model FrontpageSnapshot {
+  id          String           @id @default(cuid())
+  instansId   String
+  instans     Instance         @relation(fields: [instansId], references: [id])
+  layoutId    String?
+  layout      FrontpageLayout? @relation(fields: [layoutId], references: [id], onDelete: SetNull)
+  status      String           @default("forslag") // forslag | godkendt | afvist | udløbet
+  items       Json             // SnapshotItems (lib/frontpage/layout-schema.ts): assignments + warnings + layoutVersion
+  mode        String           @default("forslag") // forslag | auto (auto = fremtid, pr. modul)
+  generatedBy String           @default("deterministic") // deterministic | ai
+  modelId     String?
+  inputHash   String?
+  godkendtAf  String?
+  godkendtTid DateTime?
+  afvistAf    String?
+  afvistTid   DateTime?
+  afvistGrund String?
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  decisions FrontpageDecision[]
+
+  @@index([instansId, status, createdAt])
+  @@index([instansId, inputHash])
+}
+
+/** Gennemsigtighedslog: hvem/hvad placerede hvilken artikel i hvilket slot og hvorfor. */
+model FrontpageDecision {
+  id          String            @id @default(cuid())
+  snapshotId  String?           // null = handling uden snapshot (fx naturligt-sprog-kommando i editoren)
+  snapshot    FrontpageSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  instansId   String
+  instans     Instance          @relation(fields: [instansId], references: [id])
+  articleId   String?
+  slot        String            // "<moduleId>:<index>"
+  handling    String            // placeret | afvist | fjernet | godkendt | afvist-forslag | redigeret | nl-kommando | foreslaa-layout
+  kilde       String            // ai | redaktør | regel
+  begrundelse String?
+  konfidens   Float?
+  createdAt   DateTime          @default(now())
+
+  @@index([snapshotId])
+  @@index([instansId, createdAt])
+}
+
+/** Impressions/klik pr. slot og dag (CTR pr. slot). */
+model FrontpageSlotMetric {
+  id          String   @id @default(cuid())
+  instansId   String
+  instans     Instance @relation(fields: [instansId], references: [id])
+  moduleId    String
+  slotKey     String
+  articleId   String
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  day         String   // YYYY-MM-DD (UTC)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([instansId, moduleId, slotKey, articleId, day])
+  @@index([instansId, day])
+}

@@ -1,14 +1,18 @@
 /**
  * Simpel rate limiter + "seen"-dedupe til offentlige endpoints og server actions.
  *
- * VIGTIGT (drift): standard-store er proces-lokal hukommelse. Det er nok til
- * dev og én Node-proces, men IKKE til produktion på flere instanser/serverless:
- *   - hver instans har sin egen tæller (grænsen multipliceres med antal instanser)
- *   - tællere nulstilles ved genstart/deploy
- * I produktion skal der indsættes en delt store (Redis/Upstash eller en
- * Postgres-tabel med `INSERT … ON CONFLICT DO UPDATE`) via `setRateLimitStore()`.
- * Interfacet `RateLimitStore` er bevidst minimalt (en atomisk `hit`).
+ * Standard-store er proces-lokal hukommelse (dev/én proces). Er REDIS_URL sat, oprettes automatisk en
+ * delt Redis-store (lib/ratelimit/redis-store.ts) ved første brug; den falder tilbage til hukommelse
+ * i 30 s efter gentagne Redis-fejl (circuit breaker). `setRateLimitStore()` overstyrer alt (tests, andre stores).
+ *
+ * Fejltilstand pr. kald (`failMode`):
+ *   - "open" (standard, offentlige læsninger): Redis nede -> proces-lokal tæller, trafikken går igennem.
+ *   - "closed" (login, indtag, token-actions): Redis nede -> afvis (retry-after 30 s). RATELIMIT_FAIL_CLOSED=0
+ *     nedgraderer til proces-lokal håndhævelse.
+ * Interfacet `RateLimitStore` er bevidst minimalt (atomisk `hit`, `peek`, `reset` + valgfri `firstSeen`).
  */
+
+import { getClientIp as trustedGetClientIp } from "../client-ip";
 
 export type RateLimitResult = {
   ok: boolean;
@@ -16,15 +20,33 @@ export type RateLimitResult = {
   remaining: number;
   /** Sekunder til vinduet nulstilles (til Retry-After). */
   retryAfterSec: number;
+  /** True hvis afvisningen skyldes at den delte store var nede (fail-closed), ikke at grænsen er nået. */
+  degraded?: boolean;
 };
+
+/** Hvor længe en fail-closed-afvisning beder klienten vente. */
+export const FAIL_CLOSED_RETRY_SEC = 30;
+
+export type StoreHit = {
+  count: number;
+  resetAt: number;
+  /** Sat af stores med fallback: tælleren kom fra reserve-hukommelsen fordi den delte store ikke svarede. */
+  degraded?: boolean;
+};
+
+export type FailMode = "open" | "closed";
 
 export interface RateLimitStore {
   /** Tæl ét hit i nøglens vindue og returnér ny tæller + vinduets udløb (epoch ms). */
-  hit(key: string, windowMs: number, now: number): { count: number; resetAt: number } | Promise<{ count: number; resetAt: number }>;
+  hit(key: string, windowMs: number, now: number): StoreHit | Promise<StoreHit>;
   /** Ryd (bruges af tests og lockout-reset). */
   reset(key: string): void | Promise<void>;
   /** Læs uden at tælle. */
   peek(key: string, now: number): { count: number; resetAt: number } | null | Promise<{ count: number; resetAt: number } | null>;
+  /** Valgfri atomisk dedupe (Redis: SET NX PX). Returnerer true første gang nøglen ses i vinduet. */
+  firstSeen?(key: string, windowMs: number, now: number): boolean | Promise<boolean>;
+  /** Valgfri: true mens storen kører på fallback (circuit breaker åben). */
+  isDegraded?(): boolean;
 }
 
 const MAX_KEYS = 50_000;
@@ -77,15 +99,55 @@ export class MemoryRateLimitStore implements RateLimitStore {
   }
 }
 
-const globalForRl = globalThis as unknown as { __rateLimitStore?: RateLimitStore };
-let store: RateLimitStore = globalForRl.__rateLimitStore ?? (globalForRl.__rateLimitStore = new MemoryRateLimitStore());
+// Tilstanden ligger på globalThis, så proxy.ts, route handlers og server actions (separate bundles) deler den.
+const globalForRl = globalThis as unknown as {
+  __rateLimitStore?: RateLimitStore;
+  __rateLimitStoreExplicit?: boolean;
+  __rateLimitStoreInit?: Promise<void>;
+};
+globalForRl.__rateLimitStore ??= new MemoryRateLimitStore();
 
 export function setRateLimitStore(next: RateLimitStore) {
-  store = next;
+  globalForRl.__rateLimitStore = next;
+  globalForRl.__rateLimitStoreExplicit = true;
 }
 
-export function getRateLimitStore() {
-  return store;
+export function getRateLimitStore(): RateLimitStore {
+  return globalForRl.__rateLimitStore as RateLimitStore;
+}
+
+/**
+ * Sikrer at den rigtige store er valgt: har nogen kaldt setRateLimitStore() bruges den; ellers oprettes en
+ * Redis-store én gang når REDIS_URL er sat (og RATELIMIT_STORE ikke er "memory"). Aldrig fejl: ved problemer bliver
+ * hukommelses-storen stående.
+ */
+export async function resolveRateLimitStore(): Promise<RateLimitStore> {
+  if (!globalForRl.__rateLimitStoreExplicit) {
+    globalForRl.__rateLimitStoreInit ??= (async () => {
+      const url = process.env.REDIS_URL;
+      if (!url || process.env.RATELIMIT_STORE === "memory") return;
+      try {
+        const { createRedisStoreFromEnv } = await import("./redis-init");
+        const redisStore = await createRedisStoreFromEnv(url);
+        if (redisStore && !globalForRl.__rateLimitStoreExplicit) globalForRl.__rateLimitStore = redisStore;
+      } catch (error) {
+        console.error("[ratelimit] Redis kunne ikke initialiseres – bruger hukommelse:", error instanceof Error ? error.message : error);
+      }
+    })();
+    await globalForRl.__rateLimitStoreInit;
+  }
+  return getRateLimitStore();
+}
+
+function failClosedEnabled(): boolean {
+  return process.env.RATELIMIT_FAIL_CLOSED !== "0";
+}
+
+/** Kaldes af tests: glem lazy-init-tilstand og vælg hukommelse igen. */
+export function resetRateLimitStoreForTests() {
+  globalForRl.__rateLimitStore = new MemoryRateLimitStore();
+  globalForRl.__rateLimitStoreExplicit = false;
+  globalForRl.__rateLimitStoreInit = undefined;
 }
 
 export type RateLimitOptions = {
@@ -95,42 +157,56 @@ export type RateLimitOptions = {
   key: string;
   limit: number;
   windowMs: number;
+  /** "open" (standard): tæl lokalt når den delte store er nede. "closed": afvis (login/indtag/token-actions). */
+  failMode?: FailMode;
   /** Test-hook. */
   now?: number;
 };
 
 export async function rateLimit(options: RateLimitOptions): Promise<RateLimitResult> {
   const now = options.now ?? Date.now();
-  const { count, resetAt } = await store.hit(`${options.bucket}:${options.key}`, options.windowMs, now);
-  const ok = count <= options.limit;
+  const store = await resolveRateLimitStore();
+  let hit: StoreHit;
+  try {
+    hit = await store.hit(`${options.bucket}:${options.key}`, options.windowMs, now);
+  } catch {
+    // En custom store må ikke vælte kaldet: behandl som nedbrud.
+    hit = { count: 1, resetAt: now + options.windowMs, degraded: true };
+  }
+  if (hit.degraded && options.failMode === "closed" && failClosedEnabled()) {
+    return { ok: false, limit: options.limit, remaining: 0, retryAfterSec: FAIL_CLOSED_RETRY_SEC, degraded: true };
+  }
+  const ok = hit.count <= options.limit;
   return {
     ok,
     limit: options.limit,
-    remaining: Math.max(0, options.limit - count),
-    retryAfterSec: Math.max(1, Math.ceil((resetAt - now) / 1000)),
+    remaining: Math.max(0, options.limit - hit.count),
+    retryAfterSec: Math.max(1, Math.ceil((hit.resetAt - now) / 1000)),
   };
 }
 
 /**
  * Dedupe: returnerer true første gang nøglen ses i vinduet, ellers false.
  * Bruges til "tæl kun én visning pr. besøgende pr. artikel pr. 30 min".
+ * Fejler åbent: hvis storen er nede tælles pr. instans.
  */
 export async function firstSeen(bucket: string, key: string, windowMs: number, now = Date.now()): Promise<boolean> {
-  const { count } = await store.hit(`seen:${bucket}:${key}`, windowMs, now);
-  return count === 1;
+  const store = await resolveRateLimitStore();
+  const full = `seen:${bucket}:${key}`;
+  try {
+    if (store.firstSeen) return await store.firstSeen(full, windowMs, now);
+    const { count } = await store.hit(full, windowMs, now);
+    return count === 1;
+  } catch {
+    return true;
+  }
 }
 
-/** Hent klient-IP fra proxy-headere. Kun pålidelig bag en betroet reverse proxy (Vercel/Cloudflare/nginx). */
-export function getClientIp(headers: Pick<Headers, "get">): string {
-  const forwarded = headers.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first.slice(0, 64);
-  }
-  const real = headers.get("x-real-ip") ?? headers.get("cf-connecting-ip");
-  if (real) return real.trim().slice(0, 64);
-  return "unknown";
-}
+/**
+ * Klient-IP fra betroede kilder (se lib/client-ip.ts: TRUST_CLOUDFLARE / TRUSTED_PROXY_HOPS). IPv6 reduceres til /64.
+ * Re-eksporteret her, så alle eksisterende kaldere automatisk får den sikre udledning.
+ */
+export const getClientIp = trustedGetClientIp;
 
 export function rateLimitHeaders(result: RateLimitResult): Record<string, string> {
   return {
@@ -146,6 +222,9 @@ export const LOGIN_MAX_FAILURES = 5;
 export const LOGIN_WINDOW_MS = 15 * 60_000;
 
 export async function isLoginLocked(email: string, ip: string, now = Date.now()) {
+  const store = await resolveRateLimitStore();
+  // Fail-closed: kan vi ikke tælle forsøg pålideligt (delt store nede), nægter vi loginforsøg frem for at åbne for brute force.
+  if (store.isDegraded?.() && failClosedEnabled()) return true;
   const byEmail = await store.peek(`login-fail:email:${email}`, now);
   const byIp = await store.peek(`login-fail:ip:${ip}`, now);
   // IP-grænsen er højere, så et kontor-NAT ikke låser alle ude.
@@ -153,10 +232,12 @@ export async function isLoginLocked(email: string, ip: string, now = Date.now())
 }
 
 export async function recordLoginFailure(email: string, ip: string, now = Date.now()) {
+  const store = await resolveRateLimitStore();
   await store.hit(`login-fail:email:${email}`, LOGIN_WINDOW_MS, now);
   await store.hit(`login-fail:ip:${ip}`, LOGIN_WINDOW_MS, now);
 }
 
 export async function clearLoginFailures(email: string) {
+  const store = await resolveRateLimitStore();
   await store.reset(`login-fail:email:${email}`);
 }

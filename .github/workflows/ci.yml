@@ -1,0 +1,202 @@
+# CI for CMS'et (cms/). Se docs/ops/CI.md for hvordan fejl læses og køres lokalt.
+# Actions er pinnet til commit-SHA (kommentar = version); Dependabot (github-actions) opdaterer dem.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths: ["cms/**", ".github/workflows/ci.yml", ".github/dependabot.yml"]
+  pull_request:
+    paths: ["cms/**", ".github/workflows/ci.yml", ".github/dependabot.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Mindste rettigheder: kun læse repoet. Jobs der kræver mere får det eksplicit (se codeql.yml).
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: cms
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+  NODE_VERSION: "22"
+  # Dummy-miljø til build/smoke. INGEN rigtige hemmeligheder: værdierne findes kun i denne kørsel.
+  # Påkrævet af lib/env.ts i produktion: DATABASE_URL, AUTH_SECRET (>= 32 tegn), NEXT_PUBLIC_APP_URL, CRON_SECRET (>= 16 tegn).
+  # DEFAULT_SITE_DOMAIN: standardby når host ikke matcher (bruges af health/ready og af bar 127.0.0.1).
+  # PAGE_RATE_LIMIT_PER_MIN: smoke/e2e kører fra én IP og ville ellers ramme botforsvarets sidegrænse (300/min).
+  BUILD_AUTH_SECRET: ci-dummy-auth-secret-0123456789abcdef0123456789
+  BUILD_CRON_SECRET: ci-dummy-cron-secret-0123456789
+
+jobs:
+  verify:
+    name: Typecheck, lint, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: cms/package-lock.json
+      - name: Install (npm ci)
+        run: npm ci
+      - name: Prisma generate
+        run: npx prisma generate
+      - name: Hemmelighedsscan (regex over filer)
+        run: npm run secrets
+      - name: TypeScript (tsc --noEmit)
+        run: npx tsc --noEmit
+      - name: ESLint (fejl = rød; advarsler under budget i cms/.lint-budget)
+        # Ratchet: budgettet sænkes når advarsler ryddes (npm run lint:budget -- --update). Se docs/ops/LINT-BACKLOG.md.
+        run: npm run lint:budget
+      - name: Tests (isolerede throwaway SQLite-filer, ikke prisma/dev.db)
+        run: npm test
+      - name: Kodehygiejne-rapport (informativ)
+        run: npm run hygiene -- --json
+        continue-on-error: true
+
+  build:
+    name: next build + smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: cms/package-lock.json
+      - name: Install (npm ci)
+        run: npm ci
+      - name: Cache Next.js build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: cms/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('cms/package-lock.json') }}-${{ hashFiles('cms/**/*.ts', 'cms/**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('cms/package-lock.json') }}-
+      - name: next build (dummy-miljø, tom SQLite-fil)
+        env:
+          DATABASE_URL: file:/tmp/ci-build.db
+          AUTH_SECRET: ${{ env.BUILD_AUTH_SECRET }}
+          CRON_SECRET: ${{ env.BUILD_CRON_SECRET }}
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
+          DEFAULT_SITE_DOMAIN: slagelselokalt.dk
+        run: |
+          npx prisma db push --skip-generate --accept-data-loss
+          npx next build
+      - name: Seed demo-data til smoke (engangsadgangskode, kun i denne kørsel)
+        env:
+          DATABASE_URL: file:/tmp/ci-build.db
+        run: |
+          SEED_DEMO_PASSWORD="$(openssl rand -base64 24)" npx tsx prisma/seed.ts > /tmp/seed.log 2>&1 || { tail -30 /tmp/seed.log; exit 1; }
+      - name: Start next start (port 3100)
+        env:
+          DATABASE_URL: file:/tmp/ci-build.db
+          AUTH_SECRET: ${{ env.BUILD_AUTH_SECRET }}
+          CRON_SECRET: ${{ env.BUILD_CRON_SECRET }}
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
+          DEFAULT_SITE_DOMAIN: slagelselokalt.dk
+          PAGE_RATE_LIMIT_PER_MIN: "100000"
+        run: |
+          nohup npx next start -p 3100 > /tmp/next-start.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3100/api/health > /dev/null; then echo "server oppe efter ${i}s"; exit 0; fi
+            sleep 1
+          done
+          echo "Serveren startede ikke:"; cat /tmp/next-start.log; exit 1
+      - name: Smoke (alle byer, fetch-baseret)
+        run: npm run smoke -- http://127.0.0.1:3100 --delay 0
+      - name: "Playwright e2e (valgfri - sæt repo-variablen CI_E2E til true)"
+        if: ${{ vars.CI_E2E == 'true' }}
+        env:
+          E2E_PORT: "3100"
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - name: Serverlog ved fejl
+        if: ${{ failure() }}
+        run: tail -100 /tmp/next-start.log || true
+
+  audit:
+    name: npm audit (ikke-blokerende)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Rapporterer høj/kritisk i produktionsafhængigheder. Starter ikke-blokerende; fjern continue-on-error for at håndhæve.
+    # Allowlist for kendte Next/PostCSS/Sharp-fund ligger i cms/scripts/check-audit.ts (jf. cms/HANDOFF.md).
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: cms/package-lock.json
+      - run: npm ci --ignore-scripts
+      - name: npm audit --omit=dev --audit-level=high (rå, til loggen)
+        run: npm audit --omit=dev --audit-level=high || true
+      - name: Audit med allowlist
+        run: npm run audit:prod
+
+  gitleaks:
+    name: Gitleaks (hemmeligheder i historik)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: .
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          # Kun påkrævet hvis repoet ligger i en GitHub-organisation (gratis nøgle fra gitleaks.io). Valgfri ellers.
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  pg-schema-sync:
+    name: Postgres-skema i sync (hvis scripts findes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Findes gen-pg-schema?
+        id: probe
+        run: |
+          if [ -f scripts/gen-pg-schema.ts ] && grep -q '"prisma:pg:check"' package.json; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "scripts/gen-pg-schema.ts eller prisma:pg:check findes ikke - springer over."
+          fi
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.probe.outputs.present == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: cms/package-lock.json
+      - name: Install og kontrollér at prisma/postgres/ er genereret fra prisma/schema.prisma
+        if: steps.probe.outputs.present == 'true'
+        run: |
+          npm ci
+          npm run prisma:pg:check

@@ -2,15 +2,13 @@
 
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { mediaMetadataSchema, parseRightsExpiry, validateRequiredImageMetadata } from "@/lib/media";
-import { optimizeImage } from "@/lib/media-storage";
+import { optimizeImage, saveUpload } from "@/lib/media-storage";
 import { PERMISSIONS } from "@/lib/permissions";
 import { validateUploadBuffer } from "@/lib/upload";
 import { isHttpUrl, safeFilename } from "@/lib/validation/text";
@@ -68,14 +66,11 @@ export async function createMedia(_: MediaFormState, formData: FormData): Promis
     if (earlyImageError) return { error: earlyImageError };
     // Filnavnet på disk er altid et uuid + fast endelse — brugerens filnavn bruges aldrig i stien.
     const id = randomUUID();
-    const uploadRoot = path.resolve(process.cwd(), "public", "uploads");
-    await mkdir(uploadRoot, { recursive: true });
     if (allowed.type === "billede") {
       try {
         // Genkodning til WebP fjerner EXIF/GPS og eventuelt skjult indhold (polyglot-filer).
         const optimized = await optimizeImage(input);
-        await writeFile(path.join(uploadRoot, `${id}.webp`), optimized.data, { flag: "wx" });
-        url = `/uploads/${id}.webp`;
+        url = (await saveUpload(`${id}.webp`, optimized.data)).url;
         mimeType = optimized.mimeType;
         stoerrelse = optimized.size;
         bredde = optimized.width;
@@ -85,8 +80,7 @@ export async function createMedia(_: MediaFormState, formData: FormData): Promis
       }
     } else {
       const storedName = `${id}.${allowed.extension}`;
-      await writeFile(path.join(uploadRoot, storedName), input, { flag: "wx" });
-      url = `/uploads/${storedName}`;
+      url = (await saveUpload(storedName, input)).url;
       mimeType = allowed.mime;
       stoerrelse = input.length;
     }

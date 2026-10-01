@@ -73,6 +73,7 @@ export async function subscribeToNewsletterCore(args: {
     key: ip,
     limit: NEWSLETTER_RATE_LIMIT.limit,
     windowMs: NEWSLETTER_RATE_LIMIT.windowMs,
+    failMode: "closed",
   });
   if (!limited.ok) {
     return { success: false, error: "For mange forsøg. Vent et par minutter og prøv igen." };

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentSite } from "@/lib/site";
 import { getClientIp } from "@/lib/ratelimit";
+import { rejectOversize } from "@/lib/http";
+import { TURNSTILE_FIELD, verifyTurnstile } from "@/lib/turnstile";
 import {
   newsletterInputFromFormData,
   subscribeToNewsletterCore,
@@ -15,12 +17,16 @@ import {
  * By (instansId) bestemmes ALTID ud fra værten, aldrig fra klienten.
  */
 export async function POST(request: NextRequest) {
+  const tooBig = rejectOversize(request, 16 * 1024);
+  if (tooBig) return tooBig;
   const isJson = (request.headers.get("content-type") ?? "").includes("application/json");
 
   let input: NewsletterInput;
+  let captcha: unknown;
   try {
     if (isJson) {
       const body = (await request.json()) as Record<string, unknown>;
+      captcha = body[TURNSTILE_FIELD];
       input = {
         email: String(body.email ?? ""),
         navn: body.navn ? String(body.navn) : null,
@@ -30,11 +36,17 @@ export async function POST(request: NextRequest) {
         website: body.website ? String(body.website) : null,
       };
     } else {
-      input = newsletterInputFromFormData(await request.formData());
+      const fd = await request.formData();
+      captcha = fd.get(TURNSTILE_FIELD);
+      input = newsletterInputFromFormData(fd);
     }
   } catch {
     return respond(isJson, request, false, "Ugyldig forespørgsel.", 400);
   }
+
+  // Turnstile (no-op uden TURNSTILE_SECRET_KEY)
+  const human = await verifyTurnstile(captcha, getClientIp(request.headers));
+  if (!human.ok) return respond(isJson, request, false, "Vi kunne ikke bekræfte at du er et menneske. Genindlæs siden og prøv igen.", 400);
 
   const site = await getCurrentSite();
   const result = await subscribeToNewsletterCore({

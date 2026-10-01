@@ -123,7 +123,8 @@ test("rate limiter: vindue, grænse, Retry-After og nulstilling", async () => {
     assert.equal(await firstSeen("view", "v1", 1000, now + 10), false);
     assert.equal(await firstSeen("view", "v1", 1000, now + 2000), true);
 
-    assert.equal(getClientIp(new Headers({ "x-forwarded-for": "203.0.113.5, 10.0.0.1" })), "203.0.113.5");
+    // Betroet proxy (standard: 1 hop) tilføjer klientens IP til højre; klient-leverede værdier til venstre ignoreres (se tests/client-ip.test.ts).
+    assert.equal(getClientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 203.0.113.5" })), "203.0.113.5");
     assert.equal(getClientIp(new Headers()), "unknown");
   } finally {
     setRateLimitStore(previous);

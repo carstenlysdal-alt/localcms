@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { OG_FORMATS, type OgFormat } from "./jsonld";
+import { fetchWithTimeout } from "../http";
 
 export const OG_CACHE = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
@@ -115,18 +116,14 @@ export async function loadCoverBuffer(url: string | null | undefined): Promise<B
       if (!allowed.includes(u.hostname.toLowerCase())) return null; // SSRF-værn: kun eksplicit tilladte værter
       const ext = path.extname(u.pathname).toLowerCase();
       if (ext && !RASTER_EXT.has(ext)) return null;
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
-      try {
-        const r = await fetch(u, { signal: ctrl.signal, redirect: "error" });
+      {
+        const r = await fetchWithTimeout(u, { timeoutMs: 4000, redirect: "error" });
         if (!r.ok) return null;
         const len = Number(r.headers.get("content-length") ?? 0);
         if (len > 15 * 1024 * 1024) return null;
         const type = r.headers.get("content-type") ?? "";
         if (!/^image\/(jpeg|png|webp|avif|gif)/i.test(type)) return null;
         return Buffer.from(await r.arrayBuffer());
-      } finally {
-        clearTimeout(t);
       }
     }
   } catch {
@@ -148,11 +145,11 @@ export async function coverToJpeg(buf: Buffer, format: OgFormat): Promise<Buffer
   }
 }
 
-export function jpegResponse(data: Buffer): Response {
+export function jpegResponse(data: Buffer, cacheControl: string = OG_CACHE): Response {
   return new Response(new Uint8Array(data), {
     headers: {
       "Content-Type": "image/jpeg",
-      "Cache-Control": OG_CACHE,
+      "Cache-Control": cacheControl,
       "X-Content-Type-Options": "nosniff",
     },
   });

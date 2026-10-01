@@ -26,7 +26,7 @@ export async function createSponsorBrief(formData: {
   website?: string;
 }) {
   try {
-    const guard = await guardPublicAction({ action: "sponsor-brief", limit: 5, windowMs: 30 * 60_000, honeypot: formData?.website });
+    const guard = await guardPublicAction({ action: "sponsor-brief", limit: 5, windowMs: 30 * 60_000, honeypot: formData?.website, captcha: formData });
     if (!guard.ok) return { success: false, error: guard.error };
 
     const parsed = sponsorBriefInput.safeParse(formData);

@@ -22,7 +22,7 @@ export default async function SearchPage({
   const site = await getCurrentSite();
   const query = await searchParams;
 
-  const q = typeof query.q === "string" ? query.q.trim() : "";
+  const q = typeof query.q === "string" ? query.q.trim().slice(0, 100) : ""; // længdeloft (proxy.ts afviser >100 før render)
   const sektion = typeof query.sektion === "string" ? query.sektion : undefined;
   const omraade = typeof query.omraade === "string" ? query.omraade : undefined;
   const page = typeof query.side === "string" ? parseInt(query.side, 10) || 1 : 1;

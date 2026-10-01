@@ -19,7 +19,7 @@ export async function registerMeddeler(formData: {
   website?: string;
 }) {
   try {
-    const guard = await guardPublicAction({ action: "meddeler-register", limit: 5, windowMs: 30 * 60_000, honeypot: formData?.website });
+    const guard = await guardPublicAction({ action: "meddeler-register", limit: 5, windowMs: 30 * 60_000, honeypot: formData?.website, captcha: formData });
     if (!guard.ok) return { success: false, error: guard.error };
 
     const parsed = meddelerRegisterInput.safeParse(formData);
@@ -135,7 +135,7 @@ export async function submitMeddelerTip(data: {
   website?: string;
 }) {
   try {
-    const guard = await guardPublicAction({ action: "meddeler-tip", limit: 8, windowMs: 30 * 60_000, honeypot: data?.website });
+    const guard = await guardPublicAction({ action: "meddeler-tip", limit: 8, windowMs: 30 * 60_000, honeypot: data?.website, captcha: data });
     if (!guard.ok) return { success: false, error: guard.error };
 
     const parsed = meddelerTipInput.safeParse(data);

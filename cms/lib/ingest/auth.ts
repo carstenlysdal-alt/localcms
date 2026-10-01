@@ -71,7 +71,7 @@ export async function authenticateIngest(request: Request, requiredScope: Ingest
   const token = extractBearer(request.headers.get("authorization"));
 
   if (!token || !token.startsWith(KEY_PREFIX)) {
-    const limited = await rateLimit({ bucket: "ingest-authfail", key: ip, limit: 30, windowMs: 60_000 });
+    const limited = await rateLimit({ bucket: "ingest-authfail", key: ip, limit: 30, windowMs: 60_000, failMode: "closed" });
     if (!limited.ok) return fail(429, "For mange mislykkede forsøg.", rateLimitHeaders(limited));
     return fail(401, "Manglende eller ugyldig API-nøgle.");
   }
@@ -80,7 +80,7 @@ export async function authenticateIngest(request: Request, requiredScope: Ingest
   const record = await db.apiKey.findUnique({ where: { hashedKey: hashed } });
   // Konstant-tids sammenligning af hashes (opslaget er allerede på unikt hash; dette forhindrer timing-forskelle ved delvist match).
   if (!record || !safeEqual(record.hashedKey, hashed) || record.revokedAt || (record.expiresAt && record.expiresAt.getTime() < Date.now())) {
-    const limited = await rateLimit({ bucket: "ingest-authfail", key: ip, limit: 30, windowMs: 60_000 });
+    const limited = await rateLimit({ bucket: "ingest-authfail", key: ip, limit: 30, windowMs: 60_000, failMode: "closed" });
     if (!limited.ok) return fail(429, "For mange mislykkede forsøg.", rateLimitHeaders(limited));
     return fail(401, "Manglende eller ugyldig API-nøgle.");
   }
@@ -88,7 +88,7 @@ export async function authenticateIngest(request: Request, requiredScope: Ingest
   const scopes = Array.isArray(record.scopes) ? (record.scopes as string[]) : [];
   if (!scopes.includes(requiredScope)) return fail(403, `Nøglen mangler scope '${requiredScope}'.`);
 
-  const perKey = await rateLimit({ bucket: "ingest-key", key: record.id, limit: 120, windowMs: 60_000 });
+  const perKey = await rateLimit({ bucket: "ingest-key", key: record.id, limit: 120, windowMs: 60_000, failMode: "closed" });
   if (!perKey.ok) return fail(429, "Rate limit overskredet for denne nøgle.", rateLimitHeaders(perKey));
 
   if (!record.lastUsedAt || Date.now() - record.lastUsedAt.getTime() > 60_000) {

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "proxy.ts",
+    "instrumentation.ts",
+    "prisma/*.ts",
+    "scripts/*.ts",
+    "tests/**/*.{ts,mjs}",
+    "e2e/**/*.ts",
+    "lint-staged.config.mjs"
+  ],
+  "project": ["**/*.{ts,tsx,mjs}"],
+  "ignore": [".next*/**", "node_modules/**", "public/**", "types/**"],
+  "ignoreDependencies": ["@tailwindcss/postcss", "tailwindcss", "postcss", "eslint-config-next", "@types/*"],
+  "ignoreBinaries": ["prisma"]
+}

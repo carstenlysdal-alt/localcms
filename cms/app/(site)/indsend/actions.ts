@@ -38,6 +38,7 @@ export async function submitCitizenProposal(
       limit: 5,
       windowMs: 30 * 60_000,
       honeypot: formData.get("_hp_website")?.toString(),
+      captcha: formData,
     });
     if (!guard.ok) return { success: false, error: guard.error };
 

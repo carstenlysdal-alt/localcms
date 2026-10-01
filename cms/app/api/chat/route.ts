@@ -4,6 +4,7 @@ import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit, rateLimitHeaders } from "@/lib/ratelimit";
 import { readJsonBody } from "@/lib/http";
+import { getBreaker, isBreakerFailure } from "@/lib/resilience";
 import { cleanText } from "@/lib/validation/text";
 import { normalizeHistory, type ChatTurn } from "@/lib/chat";
 
@@ -67,7 +68,10 @@ export async function POST(req: Request) {
 
   const messages = normalizeHistory([...history, { role: "user", content: message }]);
 
-  const client = new Anthropic();
+  // Circuit breaker + korte grænser: er Anthropic nede, svarer vi hurtigt 503 frem for at hænge forbindelser.
+  const breaker = getBreaker("anthropic");
+  if (!breaker.tryAcquire()) return json({ error: "AI-tjenesten er midlertidigt utilgængelig. Prøv igen om lidt." }, 503, { "Retry-After": "30" });
+  const client = new Anthropic({ timeout: 60_000, maxRetries: 1 });
   let stream: ReturnType<typeof client.messages.stream>;
   try {
     stream = client.messages.stream({
@@ -77,6 +81,7 @@ export async function POST(req: Request) {
       messages,
     });
   } catch (error) {
+    if (isBreakerFailure(error)) breaker.recordFailure(error); else breaker.recordSuccess();
     console.error("Chat: kunne ikke starte stream", error);
     return json({ error: "AI-tjenesten er midlertidigt utilgængelig." }, 502);
   }
@@ -84,6 +89,7 @@ export async function POST(req: Request) {
 
   const encoder = new TextEncoder();
   let fullContent = "";
+  let breakerSettled = false;
 
   const readable = new ReadableStream({
     async start(controller) {
@@ -94,10 +100,15 @@ export async function POST(req: Request) {
             controller.enqueue(encoder.encode(chunk.delta.text));
           }
         }
+        breaker.recordSuccess();
+        breakerSettled = true;
       } catch (error) {
+        if (!req.signal.aborted && isBreakerFailure(error)) breaker.recordFailure(error); else breaker.recordSuccess();
+        breakerSettled = true;
         console.error("Chat: stream-fejl", error);
         if (!req.signal.aborted) controller.enqueue(encoder.encode("\n\n[Svaret blev afbrudt af en fejl. Prøv igen.]"));
       } finally {
+        if (!breakerSettled) breaker.recordSuccess(); // fx klient-afbrydelse: frigiv et eventuelt prøvekald
         if (fullContent.trim()) {
           try {
             await db.chatMessage.create({

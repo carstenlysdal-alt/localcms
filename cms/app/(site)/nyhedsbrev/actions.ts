@@ -7,6 +7,7 @@ import { generateToken } from "@/lib/validation/tokens";
 import { cleanText } from "@/lib/validation/text";
 import { getCurrentSite } from "@/lib/site";
 import { getClientIp } from "@/lib/ratelimit";
+import { turnstileTokenFrom, verifyTurnstile } from "@/lib/turnstile";
 import {
   newsletterInputFromFormData,
   subscribeToNewsletterCore,
@@ -21,6 +22,9 @@ export async function subscribeToNewsletter(
 ): Promise<SubscribeActionResult> {
   try {
     const [site, h] = await Promise.all([getCurrentSite(), headers()]);
+    // Turnstile (no-op uden TURNSTILE_SECRET_KEY)
+    const human = await verifyTurnstile(turnstileTokenFrom(formData), getClientIp(h));
+    if (!human.ok) return { success: false, error: "Vi kunne ikke bekræfte at du er et menneske. Genindlæs siden og prøv igen." };
     const result = await subscribeToNewsletterCore({
       input: newsletterInputFromFormData(formData),
       instansId: site.id,

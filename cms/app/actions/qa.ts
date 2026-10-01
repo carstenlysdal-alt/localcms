@@ -66,7 +66,7 @@ export async function createPublicQaInquiry(formData: {
   website?: string;
 }) {
   try {
-    const guard = await guardPublicAction({ action: "qa-inquiry", limit: 5, windowMs: 30 * 60_000, honeypot: formData?.website });
+    const guard = await guardPublicAction({ action: "qa-inquiry", limit: 5, windowMs: 30 * 60_000, honeypot: formData?.website, captcha: formData });
     if (!guard.ok) return { success: false, error: guard.error };
 
     const parsed = publicQaInquiryInput.safeParse(formData);

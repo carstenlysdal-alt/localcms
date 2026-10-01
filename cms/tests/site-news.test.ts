@@ -1,8 +1,11 @@
-import test from "node:test";
+import test, { mock } from "node:test";
 import assert from "node:assert/strict";
 import { formatRelativeTime, formatDateDivider, formatFullDate } from "../lib/site-queries";
 
-test("formatRelativeTime formaterer korrekte relative tidsangivelser", () => {
+test("formatRelativeTime formaterer korrekte relative tidsangivelser", (t) => {
+  // Fast klokke kl. 12:00 lokal tid: uden den fejlede "3 t." mellem 00:00 og 03:00, fordi tre timer siden så var "i går".
+  mock.timers.enable({ apis: ["Date"], now: new Date(2026, 5, 15, 12, 0, 0) });
+  t.after(() => mock.timers.reset());
   const now = new Date();
 
   // Lige nu (få sekunder siden)

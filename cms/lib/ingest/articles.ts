@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "../db";
 import { blocksSchema } from "../blocks/schema";
 import { isAiRestrictedCategory } from "../marking";
+import { slugify } from "../slug";
 import { ARTICLE_STATUSES } from "../workflow";
 import { textToParagraphHtml } from "../validation/text";
 import { AI_RESTRICTED_SOURCE_TYPES, type IngestItemResult, articleInputSchema } from "./schema";
@@ -35,16 +36,7 @@ export function assertNoStatusOverride(raw: unknown) {
 }
 
 function slugBase(titel: string) {
-  return (
-    titel
-      .toLowerCase()
-      .replace(/æ/g, "ae")
-      .replace(/ø/g, "oe")
-      .replace(/å/g, "aa")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "agent-udkast"
-  );
+  return slugify(titel, 60) || "agent-udkast";
 }
 
 export function buildBlocks(input: Pick<ParsedArticle, "tekst" | "blocks">) {

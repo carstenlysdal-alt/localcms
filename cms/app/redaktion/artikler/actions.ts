@@ -11,6 +11,7 @@ import { assertPublishableMarking, CONTENT_TYPES, isAiRestrictedCategory } from 
 import { can, canEditArticle, PERMISSIONS } from "@/lib/permissions";
 import { canTransition, isArticleStatus } from "@/lib/workflow";
 import { honorAmountForAssignment } from "@/lib/assignments";
+import { purgeInstance } from "@/lib/cache/purge";
 
 export type ArticleFormState = { error?: string; success?: string; fieldErrors?: Record<string, string[]> };
 
@@ -175,6 +176,7 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
     revalidatePath("/redaktion/artikler");
     revalidatePath(`/redaktion/artikler/${article.id}`);
     revalidatePath("/");
+    if (nextStatus === "Publiceret" || current?.status === "Publiceret") void purgeInstance(session.user.instansId, [`/${article.slug}`]); // CDN-purge (no-op uden CF_API_TOKEN)
     if (!current) redirect(`/redaktion/artikler/${article.id}?created=1`);
     return { success: nextStatus === "Publiceret" ? "Artiklen er publiceret." : "Ændringerne er gemt." };
   } catch (error) {
@@ -191,6 +193,7 @@ export async function toggleArticleFlag(articleId: string, flag: "pinned" | "bre
   await db.article.update({ where: { id: articleId }, data: { [flag]: !article[flag] } });
   revalidatePath("/redaktion/artikler");
   revalidatePath("/");
+  void purgeInstance(session.user.instansId);
 }
 
 export type CorrectionActionState = {

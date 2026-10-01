@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentSite } from "@/lib/site";
 import { getClientIp, rateLimit, rateLimitHeaders, firstSeen } from "@/lib/ratelimit";
 import { isLikelyBot, visitorKey } from "@/lib/tracking";
+import { classifyUserAgent, tightenLimit } from "@/lib/bot/detect";
 import { isSameOrigin, parseJson } from "@/lib/http";
 import { recordSlotEvent } from "@/lib/frontpage/service";
 
@@ -21,7 +22,7 @@ const schema = z.object({
 export async function POST(req: Request) {
   if (!isSameOrigin(req)) return NextResponse.json({ error: "Forbudt." }, { status: 403 });
   const ip = getClientIp(req.headers);
-  const limited = await rateLimit({ bucket: "frontpage-track", key: ip, limit: 240, windowMs: 60_000 });
+  const limited = await rateLimit({ bucket: "frontpage-track", key: ip, limit: tightenLimit(240, classifyUserAgent(req.headers.get("user-agent")).kind), windowMs: 60_000 });
   if (!limited.ok) return NextResponse.json({ error: "For mange forespørgsler." }, { status: 429, headers: rateLimitHeaders(limited) });
 
   const body = await parseJson(req, schema, 1024);

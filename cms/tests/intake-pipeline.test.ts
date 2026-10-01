@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { db } from "../lib/db";
 import { isReservedSlug } from "../lib/taxonomy";
-import {
-  convertQaToArticle,
-  convertInterviewToArticle,
-  convertSponsorBriefToArticle,
-  convertMeddelerSagToArticle,
-} from "../app/redaktion/indbakke/actions";
+import * as inboxActions from "../app/redaktion/indbakke/actions";
+
+test("Indbakke-actions eksporterer de fire konverteringer", () => {
+  for (const name of ["convertQaToArticle", "convertInterviewToArticle", "convertSponsorBriefToArticle", "convertMeddelerSagToArticle"]) {
+    assert.equal(typeof (inboxActions as Record<string, unknown>)[name], "function", name);
+  }
+});
 
 test("Reserverede ruter indeholder alle 5 AI Library værktøjer", () => {
   assert.equal(isReservedSlug("qa"), true);
