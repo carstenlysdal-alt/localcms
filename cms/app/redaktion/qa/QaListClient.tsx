@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Inbox, Copy, Check, FilePlus, ExternalLink } from "lucide-react";
 import { convertQaToArticle } from "@/app/redaktion/indbakke/actions";
+import { isAnswered, normalizeStatus } from "@/lib/validation/status";
 
 interface QAItem {
   id: string;
@@ -78,11 +79,11 @@ export function QaListClient({ qas }: { qas: QAItem[] }) {
                     fontWeight: "700",
                     padding: "2px 8px",
                     borderRadius: "9999px",
-                    background: qa.status === "BESVARET" ? "#dcfce7" : qa.status === "ArtikelOprettet" ? "#e0e7ff" : "#fef3c7",
-                    color: qa.status === "BESVARET" ? "#166534" : qa.status === "ArtikelOprettet" ? "#3730a3" : "#92400e",
+                    background: isAnswered("qa", qa.status) ? "#dcfce7" : normalizeStatus("qa", qa.status) === "ArtikelOprettet" ? "#e0e7ff" : "#fef3c7",
+                    color: isAnswered("qa", qa.status) ? "#166534" : normalizeStatus("qa", qa.status) === "ArtikelOprettet" ? "#3730a3" : "#92400e",
                   }}
                 >
-                  {qa.status === "ArtikelOprettet" ? "Artikel oprettet" : qa.status}
+                  {normalizeStatus("qa", qa.status) === "ArtikelOprettet" ? "Artikel oprettet" : qa.status}
                 </span>
                 <span style={{ fontSize: "12px", color: "#94a3b8" }}>
                   {new Date(qa.createdAt).toLocaleDateString("da-DK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}

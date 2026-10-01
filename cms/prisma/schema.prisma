@@ -59,6 +59,12 @@ model Instance {
   sponsorBriefs      SponsorBrief[]
   meddelere          MeddelerProfile[]
   meddelerSager      MeddelerSag[]
+  apiKeys            ApiKey[]
+  frontpageLayouts       FrontpageLayout[]
+  frontpageLayoutVersions FrontpageLayoutVersion[]
+  frontpageSnapshots     FrontpageSnapshot[]
+  frontpageDecisions     FrontpageDecision[]
+  frontpageSlotMetrics   FrontpageSlotMetric[]
 }
 
 // ── CMS-05: konfigurerbare roller (rettigheder som data, ikke hardkodet) ────
@@ -150,6 +156,7 @@ model GeoTag {
   instans   Instance @relation(fields: [instansId], references: [id])
   articles  Article[]
   submissions Submission[]
+  signals   Signal[]
   createdAt DateTime @default(now())
 
   @@unique([instansId, slug])
@@ -207,6 +214,12 @@ model Article {
   sponsorBriefs      SponsorBrief[]
   meddelerSager      MeddelerSag[]
 
+  // Agent-indtag (POST /api/ingest/articles): idempotens-nøgle + proveniens.
+  // Begge er null for manuelt skrevne artikler (flere NULL er tilladt i unique-indekset).
+  externalId    String?
+  provenance    Json?     // { ingestKeyPrefix, receivedAt, agent, kilder:[{url,dato,titel,sourceType}], signalIds }
+
+  @@unique([instansId, externalId])
   @@index([instansId, status])
   @@index([instansId, indholdstype])
 }
@@ -397,6 +410,19 @@ model Signal {
   instans    Instance @relation(fields: [instansId], references: [id])
   createdAt  DateTime @default(now())
 
+  // Agent-indtag (POST /api/ingest/signals) — alle felter er valgfrie/additive.
+  externalId      String?   // leverandørens stabile id -> idempotent upsert
+  kildeUrlNorm    String?   // normaliseret kildeUrl -> dedupe på tværs af externalIds
+  sourceType      String?   // kommune_dagsorden | politi | beredskab_112 | ... (valideres i lib/ingest/schema.ts)
+  omraadeId       String?
+  omraade         GeoTag?   @relation(fields: [omraadeId], references: [id])
+  omraadeTekst    String?   // rå geografi-hint hvis ikke matchet til et GeoTag
+  kildeTidspunkt  DateTime? // hvornår kilden blev udgivet (publishedAt)
+  maskinindsamlet Boolean   @default(false) // vises som "Maskinindsamlet – ikke redaktionelt vurderet"
+  ingestKeyId     String?   // hvilken ApiKey leverede signalet
+
+  @@unique([instansId, externalId])
+  @@unique([instansId, kildeUrlNorm])
   @@index([instansId, laest])
   @@index([instansId, createdAt])
 }
@@ -661,3 +687,129 @@ model MeddelerSag {
 }
 
 
+
+// ── Agent-indtag: API-nøgler (kun SHA-256-hash gemmes; klartekst vises én gang) ─
+model ApiKey {
+  id          String    @id @default(cuid())
+  instansId   String
+  instans     Instance  @relation(fields: [instansId], references: [id])
+  name        String    // fx "aI-library / Graver"
+  hashedKey   String    @unique // sha256(hex) af hele nøglen
+  prefix      String    // de første tegn (ikke hemmelige) til visning/log, fx "lk_live_ab12cd34"
+  scopes      Json      // string[] — "signals:write" | "articles:draft" | "health:read"
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  expiresAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  @@index([instansId])
+}
+
+// ── T11/T12: modulær forside, layout, AI-forslag (additivt) ──────────────────
+// Spec: docs/review/T11-T12-spec.md. Kode: lib/frontpage/**.
+// Status-strenge valideres i lib/frontpage/layout-schema.ts (cross-provider: ingen enums).
+
+/** Layout = rækkefølge af modul-instanser (JSON). Pr. instans: højst ÉN række med status "live" + valgfrit mange "kladde". */
+model FrontpageLayout {
+  id            String   @id @default(cuid())
+  instansId     String
+  instans       Instance @relation(fields: [instansId], references: [id])
+  name          String
+  status        String   @default("kladde") // kladde | live
+  version       Int      @default(1)        // stiger ved hver gem (kladde) / publicering og rollback (live)
+  schemaVersion Int      @default(1)
+  modules       Json     // FrontpageLayout.modules (lib/frontpage/layout-schema.ts)
+  scope         Json?    // fremtid: { dagsdel?, fra?, til? }
+  createdBy     String?
+  publishedBy   String?
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  versions  FrontpageLayoutVersion[]
+  snapshots FrontpageSnapshot[]
+
+  @@index([instansId, status])
+}
+
+/** Historik/rollback: én række pr. version af en layout-række. */
+model FrontpageLayoutVersion {
+  id         String          @id @default(cuid())
+  layoutId   String
+  layout     FrontpageLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  instansId  String
+  instans    Instance        @relation(fields: [instansId], references: [id])
+  version    Int
+  modules    Json
+  note       String?         // fx "publiceret fra kladde X", "rollback til v3"
+  createdBy  String?
+  createdAt  DateTime        @default(now())
+
+  @@unique([layoutId, version])
+  @@index([instansId, createdAt])
+}
+
+/** Resultat af en ranking-kørsel: forslag -> (godkendt | afvist | udløbet). Det sidst godkendte vises på forsiden. */
+model FrontpageSnapshot {
+  id          String           @id @default(cuid())
+  instansId   String
+  instans     Instance         @relation(fields: [instansId], references: [id])
+  layoutId    String?
+  layout      FrontpageLayout? @relation(fields: [layoutId], references: [id], onDelete: SetNull)
+  status      String           @default("forslag") // forslag | godkendt | afvist | udløbet
+  items       Json             // SnapshotItems (lib/frontpage/layout-schema.ts): assignments + warnings + layoutVersion
+  mode        String           @default("forslag") // forslag | auto (auto = fremtid, pr. modul)
+  generatedBy String           @default("deterministic") // deterministic | ai
+  modelId     String?
+  inputHash   String?
+  godkendtAf  String?
+  godkendtTid DateTime?
+  afvistAf    String?
+  afvistTid   DateTime?
+  afvistGrund String?
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  decisions FrontpageDecision[]
+
+  @@index([instansId, status, createdAt])
+  @@index([instansId, inputHash])
+}
+
+/** Gennemsigtighedslog: hvem/hvad placerede hvilken artikel i hvilket slot og hvorfor. */
+model FrontpageDecision {
+  id          String            @id @default(cuid())
+  snapshotId  String?           // null = handling uden snapshot (fx naturligt-sprog-kommando i editoren)
+  snapshot    FrontpageSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  instansId   String
+  instans     Instance          @relation(fields: [instansId], references: [id])
+  articleId   String?
+  slot        String            // "<moduleId>:<index>"
+  handling    String            // placeret | afvist | fjernet | godkendt | afvist-forslag | redigeret | nl-kommando | foreslaa-layout
+  kilde       String            // ai | redaktør | regel
+  begrundelse String?
+  konfidens   Float?
+  createdAt   DateTime          @default(now())
+
+  @@index([snapshotId])
+  @@index([instansId, createdAt])
+}
+
+/** Impressions/klik pr. slot og dag (CTR pr. slot). */
+model FrontpageSlotMetric {
+  id          String   @id @default(cuid())
+  instansId   String
+  instans     Instance @relation(fields: [instansId], references: [id])
+  moduleId    String
+  slotKey     String
+  articleId   String
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  day         String   // YYYY-MM-DD (UTC)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([instansId, moduleId, slotKey, articleId, day])
+  @@index([instansId, day])
+}

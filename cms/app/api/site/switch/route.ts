@@ -1,36 +1,36 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { db } from "@/lib/db";
+import { ALL_NETWORK_SITES, siteOrigin, resolveSwitchPath } from "@/lib/network-sites";
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const targetSite = searchParams.get("site");
-  const redirectPath = searchParams.get("redirect") || "/";
+/**
+ * Bagudkompatibel byskifte-rute. Selve byskifteren bruger nu almindelige links til
+ * målbyens domæne; denne rute findes kun, så gamle links/bogmærker ikke giver 404.
+ *
+ * Sikkerhed: målet kan KUN være en by fra ALL_NETWORK_SITES (hvidliste), stien skal være
+ * en relativ sti på samme site ("/…", aldrig "//" eller "http…"), og der sættes ingen cookie.
+ */
+export function GET(request: NextRequest) {
+  const { searchParams } = request.nextUrl;
+  const requested = (searchParams.get("site") ?? "").toLowerCase().trim();
+  const target = ALL_NETWORK_SITES.find(
+    (s) => s.domaene === requested || s.navn.toLowerCase() === requested || localName(s.domaene) === requested,
+  );
 
-  if (!targetSite) {
-    return NextResponse.redirect(new URL("/", request.url));
+  if (!target) {
+    return new NextResponse(null, { status: 307, headers: { Location: "/" } });
   }
 
-  const siteClean = targetSite.toLowerCase().trim();
-  const instance = await db.instance.findFirst({
-    where: {
-      OR: [
-        { domaene: siteClean },
-        { id: siteClean },
-        { navn: { equals: siteClean } },
-      ],
-    },
-  });
+  const rawPath = searchParams.get("redirect") ?? "/";
+  const safePath = isSafeRelativePath(rawPath) ? resolveSwitchPath(rawPath.split("?")[0].split("#")[0]) : "/";
 
-  const redirectUrl = new URL(redirectPath, request.url);
-  const response = NextResponse.redirect(redirectUrl);
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const origin = siteOrigin(target.domaene, host, request.headers.get("x-forwarded-proto"));
+  return NextResponse.redirect(`${origin}${safePath}`, 307);
+}
 
-  if (instance) {
-    response.cookies.set("site", instance.domaene, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 dage
-      sameSite: "lax",
-    });
-  }
+function localName(domaene: string) {
+  return domaene.replace(/\.dk$/i, "");
+}
 
-  return response;
+function isSafeRelativePath(path: string): boolean {
+  return path.startsWith("/") && !path.startsWith("//") && !path.includes("\\") && !/[\r\n]/.test(path);
 }

@@ -520,9 +520,9 @@ export const NETWORK_SITES: NetworkSiteConfig[] = [
     kommune: "Ringsted",
     tagline: "Nyheder fra hjertet af Sjælland — lokalt, uafhængigt og tæt på dig",
     colors: {
-      accent: "#8A5A00", // Okker
-      accentStrong: "#664200",
-      accentSoft: "#F5ECCF",
+      accent: "#24533A", // Skov
+      accentStrong: "#183B29",
+      accentSoft: "#D5E7DD",
       onAccent: "#FFFFFF",
     },
     sideTekster: {
@@ -735,9 +735,9 @@ export const NETWORK_SITES: NetworkSiteConfig[] = [
     kommune: "Køge",
     tagline: "Lokaljournalistik med blik for Køges vækst, havn og stærke fællesskaber",
     colors: {
-      accent: "#24533A", // Skov
-      accentStrong: "#183B29",
-      accentSoft: "#D5E7DD",
+      accent: "#8A5A00", // Okker (Køge: adskilles tydeligt fra Holbæks Mos)
+      accentStrong: "#664200",
+      accentSoft: "#F5ECCF",
       onAccent: "#FFFFFF",
     },
     sideTekster: {

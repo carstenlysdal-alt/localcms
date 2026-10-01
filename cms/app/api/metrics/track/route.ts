@@ -1,94 +1,48 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { calculateArticleScore, ArticleDistributionInput } from "@/lib/distribution-engine";
+import { z } from "zod";
+import { getCurrentSite } from "@/lib/site";
+import { getClientIp, rateLimit, rateLimitHeaders } from "@/lib/ratelimit";
+import { isLikelyBot, recordMetricEvent, visitorKey } from "@/lib/tracking";
+import { isSameOrigin, parseJson } from "@/lib/http";
+
+/**
+ * POST /api/metrics/track  { articleId, isNewView?, secondsSpent?, reached75? }
+ * Anonym first-party-måling. sendBeacon sender body som text/plain eller application/json — begge accepteres.
+ * Tenant-binding: artiklen skal være Publiceret og tilhøre den aktuelle sites instans.
+ * Tælling er dedupet pr. besøgende og kappet (se lib/tracking.ts); atomiske increments i databasen.
+ */
+const schema = z.object({
+  articleId: z.string().min(8).max(64).regex(/^[A-Za-z0-9_-]+$/),
+  isNewView: z.boolean().optional().default(false),
+  secondsSpent: z.number().finite().min(0).max(3600).optional().default(0),
+  reached75: z.boolean().optional().default(false),
+});
 
 export async function POST(req: Request) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: "Forbudt." }, { status: 403 });
+
+  const ip = getClientIp(req.headers);
+  const limited = await rateLimit({ bucket: "metrics-track", key: ip, limit: 180, windowMs: 60_000 });
+  if (!limited.ok) return NextResponse.json({ error: "For mange forespørgsler." }, { status: 429, headers: rateLimitHeaders(limited) });
+
+  const body = await parseJson(req, schema, 1024);
+  if (!body.ok) return body.response;
+
+  const userAgent = req.headers.get("user-agent") ?? "";
+  if (isLikelyBot(userAgent)) return NextResponse.json({ success: true, counted: false });
+
   try {
-    let body: {
-      articleId?: string;
-      isNewView?: boolean;
-      secondsSpent?: number;
-      reached75?: boolean;
-    };
-
-    // sendBeacon kan sende som text eller json
-    const contentType = req.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      body = await req.json();
-    } else {
-      const text = await req.text();
-      body = JSON.parse(text);
-    }
-
-    const { articleId, isNewView, secondsSpent = 0, reached75 = false } = body;
-
-    if (!articleId || typeof articleId !== "string") {
-      return NextResponse.json({ error: "Mangler articleId" }, { status: 400 });
-    }
-
-    // Slå artikel op
-    const article = await db.article.findUnique({
-      where: { id: articleId },
-      include: {
-        kategori: { include: { parent: true } },
-        geoTags: true,
-      },
+    const site = await getCurrentSite();
+    const result = await recordMetricEvent({
+      siteId: site.id,
+      articleId: body.data.articleId,
+      isNewView: body.data.isNewView,
+      secondsSpent: body.data.secondsSpent,
+      reached75: body.data.reached75,
+      visitor: visitorKey(ip, userAgent),
     });
-
-    if (!article) {
-      return NextResponse.json({ error: "Artikel ikke fundet" }, { status: 404 });
-    }
-
-    // Find eller opret ArticleMetric
-    let metric = await db.articleMetric.findUnique({
-      where: { articleId },
-    });
-
-    const newViews = (metric?.visninger ?? 0) + (isNewView ? 1 : 0);
-    const newSeconds = (metric?.totalLaesetidSek ?? 0) + Math.min(300, Math.max(0, secondsSpent));
-    const newReadings = (metric?.laesninger ?? 0) + (reached75 ? 1 : 0);
-
-    const sektionSlug = article.kategori?.parent?.slug || article.kategori?.slug || "nyheder";
-    const omraadeSlug = article.geoTags?.[0]?.slug || null;
-
-    // Genberegn score
-    const scoreResult = calculateArticleScore({
-      id: article.id,
-      titel: article.titel,
-      publiceretTid: article.publiceretTid ?? article.createdAt,
-      indholdstype: article.indholdstype as ArticleDistributionInput["indholdstype"],
-      breaking: article.breaking,
-      pinned: article.pinned,
-      sektionSlug,
-      omraadeSlug,
-      visninger: newViews,
-      laesninger: Math.min(newViews, newReadings),
-      totalLaesetidSek: newSeconds,
-    });
-
-    metric = await db.articleMetric.upsert({
-      where: { articleId },
-      update: {
-        visninger: newViews,
-        totalLaesetidSek: newSeconds,
-        laesninger: Math.min(newViews, newReadings),
-        score: scoreResult.totalScore,
-      },
-      create: {
-        articleId,
-        instansId: article.instansId,
-        visninger: Math.max(1, newViews),
-        totalLaesetidSek: newSeconds,
-        laesninger: newReadings,
-        score: scoreResult.totalScore,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      score: metric.score,
-      visninger: metric.visninger,
-    });
+    if ("notFound" in result) return NextResponse.json({ error: "Artikel ikke fundet" }, { status: 404 });
+    return NextResponse.json({ success: true, counted: result.counted, score: result.score, visninger: result.visninger });
   } catch (error) {
     console.error("Fejl ved metrik-opdatering:", error);
     return NextResponse.json({ error: "Intern fejl" }, { status: 500 });

@@ -111,10 +111,11 @@ export default async function SignalerPage({ searchParams }: { searchParams: Pro
                 <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
                   {signal.breaking && <span className="tag" style={{ background: "var(--color-danger)", color: "#fff", borderRadius: 9999, fontSize: 9 }}>Breaking</span>}
                   {signal.notable && <span className="tag tag-success">Notable</span>}
+                  {signal.maskinindsamlet && <span className="tag" title="Indsamlet automatisk af en agent — ikke redaktionelt vurderet">Maskinindsamlet · ikke vurderet{signal.sourceType ? ` · ${signal.sourceType.replace(/_/g, " ")}` : ""}</span>}
                 </div>
                 <p className="signal-headline">{signal.overskrift}</p>
                 {signal.brødtekst && <p className="signal-body">{signal.brødtekst}</p>}
-                {signal.kildeUrl && <a href={signal.kildeUrl} target="_blank" rel="noopener" className="signal-link">{signal.kilde} ↗</a>}
+                {signal.kildeUrl && /^https?:\/\//i.test(signal.kildeUrl) && <a href={signal.kildeUrl} target="_blank" rel="noopener noreferrer" className="signal-link">{signal.kilde} ↗</a>}
               </div>
               <div className="signal-meta">
                 <span className="signal-time">{relativeTime(signal.createdAt)}</span>

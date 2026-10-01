@@ -1,6 +1,8 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { slugify } from "../lib/slug";
 import { hash } from "bcryptjs";
-import { PERMISSIONS } from "../lib/permissions";
+import { randomBytes } from "node:crypto";
+import { DEFAULT_ROLES } from "../lib/default-roles";
 import { NETWORK_SITES, ALL_NETWORK_SITES_INFO } from "./network-seed-data";
 
 const db = new PrismaClient();
@@ -95,28 +97,37 @@ const categoryTree = [
 ];
 
 const mediaItems = [
-  { id: "media-byraad", url: "/media/byraad.svg", filnavn: "byraad.svg", altTekst: "Slagelse Rådhus set fra forpladsen", billedtekst: "Slagelse Byråd i samling på rådhuset.", filtype: "billede" },
-  { id: "media-havn", url: "/media/havn.svg", filnavn: "havn.svg", altTekst: "Korsør Havn med Storebæltsbroen i baggrunden", billedtekst: "Udsigt over Korsør Havn en tidlig formiddag.", filtype: "billede" },
+  { id: "media-byraad", url: "/media/byraad.svg", filnavn: "byraad.svg", altTekst: "Rådhus set fra forpladsen", billedtekst: "Byrådet i samling på rådhuset.", filtype: "billede" },
+  { id: "media-havn", url: "/media/havn.svg", filnavn: "havn.svg", altTekst: "Havn med skibe og kajanlæg", billedtekst: "Udsigt over havnen en tidlig formiddag.", filtype: "billede" },
   { id: "media-erhverv", url: "/media/erhverv.svg", filnavn: "erhverv.svg", altTekst: "Erhvervsbygninger og kontorer", billedtekst: "Det lokale erhvervsliv oplever vækst.", filtype: "billede" },
-  { id: "media-sport", url: "/media/sport.svg", filnavn: "sport.svg", altTekst: "Slagelse Stadion med løbebane", billedtekst: "Sportsanlægget klar til aftenens kamp.", filtype: "billede" },
+  { id: "media-sport", url: "/media/sport.svg", filnavn: "sport.svg", altTekst: "Stadion med løbebane", billedtekst: "Sportsanlægget klar til aftenens kamp.", filtype: "billede" },
   { id: "media-kultur", url: "/media/kultur.svg", filnavn: "kultur.svg", altTekst: "Kulturhuset i aftensol", billedtekst: "Kulturnat samler borgere i alle aldre.", filtype: "billede" },
   { id: "media-forening", url: "/media/forening.svg", filnavn: "forening.svg", altTekst: "Frivillige borgere samlet til arbejdsdag", billedtekst: "Foreningslivet er grundpillen i lokalsamfundet.", filtype: "billede" },
-  { id: "media-natur", url: "/media/natur.svg", filnavn: "natur.svg", altTekst: "Kystlinje og strandeng ved Skælskør", billedtekst: "Vestsjællands natur indbyder til gåture.", filtype: "billede" },
+  { id: "media-natur", url: "/media/natur.svg", filnavn: "natur.svg", altTekst: "Kystlinje og strandeng", billedtekst: "Naturen indbyder til gåture.", filtype: "billede" },
   { id: "media-skole", url: "/media/skole.svg", filnavn: "skole.svg", altTekst: "Moderne folkeskolebygning", billedtekst: "Ny teknologi og fællesskaber på folkeskolerne.", filtype: "billede" },
   { id: "media-trafik", url: "/media/trafik.svg", filnavn: "trafik.svg", altTekst: "Hovedfærdselsåre og cykelsti", billedtekst: "Trafiksikkerheden opgraderes i flere kryds.", filtype: "billede" },
   { id: "media-debat", url: "/media/debat.svg", filnavn: "debat.svg", altTekst: "Talebobler der symboliserer debat", billedtekst: "Borgernes stemme og debatindlæg.", filtype: "billede" },
 ];
 
-const roles = [
-  { navn: "Ansvarshavende redaktør", permissions: Object.values(PERMISSIONS) },
-  { navn: "Redaktionsleder", permissions: [PERMISSIONS.ARTICLE_CREATE, PERMISSIONS.ARTICLE_EDIT_ALL, PERMISSIONS.SOURCE_VIEW_CONFIDENTIAL, PERMISSIONS.SUPPORT_READ, PERMISSIONS.HONORAR_VIEW, PERMISSIONS.HONOR_MANAGE, PERMISSIONS.TASK_MANAGE, PERMISSIONS.TASK_VIEW_ALL, PERMISSIONS.FRONTPAGE_EDIT] },
-  { navn: "Freelancejournalist", permissions: [PERMISSIONS.ARTICLE_CREATE, PERMISSIONS.SOURCE_VIEW_CONFIDENTIAL, PERMISSIONS.HONOR_VIEW_OWN] },
-  { navn: "Medieproducent", permissions: [PERMISSIONS.MEDIA_MANAGE, PERMISSIONS.HONOR_VIEW_OWN] },
-  { navn: "Community manager", permissions: [PERMISSIONS.ARTICLE_CREATE] },
-  { navn: "Salgs- og partnerskabsansvarlig", permissions: [PERMISSIONS.SUPPORT_READ, PERMISSIONS.SUPPORT_MANAGE] },
-  { navn: "Teknisk produktansvarlig", permissions: [PERMISSIONS.USERS_MANAGE] },
-  { navn: "Støtte", permissions: [PERMISSIONS.SUPPORT_READ] },
-] as const;
+const roles = DEFAULT_ROLES;
+
+// ── Sikkerhedsværn: demo-data og demo-adgangskode må aldrig ende i produktion ─
+try { process.loadEnvFile?.(".env"); } catch { /* .env er valgfri */ }
+
+function resolveDemoPassword(): string {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Seed afvist: NODE_ENV=production. Demo-brugere og demo-adgangskode må ikke oprettes i produktion.");
+  }
+  const explicit = process.env.SEED_DEMO_PASSWORD;
+  if (explicit) {
+    if (explicit.length < 12) throw new Error("SEED_DEMO_PASSWORD skal være mindst 12 tegn.");
+    return explicit;
+  }
+  // Ingen hardkodet adgangskode: generér en tilfældig og vis den én gang (kun dev).
+  const generated = randomBytes(12).toString("base64url");
+  console.warn(`\n[seed] SEED_DEMO_PASSWORD er ikke sat. Genereret engangs-adgangskode til alle demo-brugere (kun dev): ${generated}\n`);
+  return generated;
+}
 
 async function main() {
   const instance = await db.instance.upsert({
@@ -204,7 +215,7 @@ async function main() {
   }
 
   // Brugere
-  const passwordHash = await hash("cms-demo-2026", 12);
+  const passwordHash = await hash(resolveDemoPassword(), 12);
   await db.user.upsert({
     where: { email: "redaktoer@slagelse.test" },
     update: { passwordHash, roleId: roleMap.get("Ansvarshavende redaktør")!, authorId: authorMap.get("author-rikke")! },
@@ -256,7 +267,7 @@ async function main() {
   const tagList = ["Kommunalpolitik", "Storebælt", "Handelsliv", "Børnefamilier", "Bæredygtighed", "Frivillighed", "Kulturarv", "Lokalsport"];
   const tagMap = new Map<string, string>();
   for (const navn of tagList) {
-    const slug = navn.toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "oe").replace(/å/g, "aa");
+    const slug = slugify(navn);
     const t = await db.tag.upsert({
       where: { instansId_navn: { instansId: instance.id, navn } },
       update: { slug },
@@ -862,7 +873,7 @@ async function main() {
       hoursAgo: 6,
     },
     {
-      slug: "døgnrapport-overblik-over-nattens-haendelser-i-sydvestsjaelland",
+      slug: "doegnrapport-overblik-over-nattens-haendelser-i-sydvestsjaelland",
       titel: "Døgnrapporten: Nattens meldinger fra Midt- og Vestsjællands Politi",
       manchet: "En rolig nat i politikredsen med få henvendelser om musik og et enkelt færdselsuheld uden personskade på Vestmotorvejen.",
       sectionSlug: "trafik",
@@ -1418,7 +1429,7 @@ async function seedNetworkSites(
     // Tags
     const defaultTags = ["Kommunalpolitik", "Handelsliv", "Børnefamilier", "Bæredygtighed", "Frivillighed", "Kulturarv", "Lokalsport", "Klima", "Erhverv"];
     for (const navn of defaultTags) {
-      const slug = navn.toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "oe").replace(/å/g, "aa");
+      const slug = slugify(navn);
       await db.tag.upsert({
         where: { instansId_navn: { instansId: siteInstance.id, navn } },
         update: { slug },
@@ -1509,7 +1520,7 @@ async function seedNetworkSites(
           data: {
             quote: "Vi arbejder hver dag for at skabe de bedste rammer for vores lokalsamfund og fællesskab.",
             attribution: `Lokal talsperson, ${siteCfg.kommune}`,
-            kildeUrl: `https://${siteCfg.domaene}/presse`,
+            kildeUrl: `https://${siteCfg.domaene}/om-mediet/kontakt`,
             dato: "2026-09-30",
           },
         });

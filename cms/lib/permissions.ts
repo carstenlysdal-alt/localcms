@@ -14,6 +14,13 @@ export const PERMISSIONS = {
   HONOR_VIEW_OWN: "honorar.viewOwn",
   HONOR_MANAGE: "honorar.manage",
   CATEGORY_MANAGE: "category.manage",
+  NEWSLETTER_MANAGE: "newsletter.manage",
+  ADS_MANAGE: "ads.manage",
+  INGEST_MANAGE: "ingest.manage",
+  // T11/T12: modulær forside (docs/review/T11-T12-spec.md)
+  FRONTPAGE_LAYOUT_MANAGE: "frontpage.layout.manage",
+  FRONTPAGE_SNAPSHOT_APPROVE: "frontpage.snapshot.approve",
+  FRONTPAGE_AI_USE: "frontpage.ai.use",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Mic, Copy, Check, FilePlus, ExternalLink } from "lucide-react";
 import { convertInterviewToArticle } from "@/app/redaktion/indbakke/actions";
+import { isAnswered } from "@/lib/validation/status";
 
 interface InterviewItem {
   id: string;
@@ -78,8 +79,8 @@ export function InterviewListClient({ interviews }: { interviews: InterviewItem[
                     fontWeight: "700",
                     padding: "2px 8px",
                     borderRadius: "9999px",
-                    background: item.status === "GENNEMFOERT" ? "#ede9fe" : item.status === "ArtikelOprettet" ? "#dcfce7" : "#fef3c7",
-                    color: item.status === "GENNEMFOERT" ? "#5b21b6" : item.status === "ArtikelOprettet" ? "#166534" : "#92400e",
+                    background: isAnswered("interview", item.status) ? "#ede9fe" : item.status === "ArtikelOprettet" ? "#dcfce7" : "#fef3c7",
+                    color: isAnswered("interview", item.status) ? "#5b21b6" : item.status === "ArtikelOprettet" ? "#166534" : "#92400e",
                   }}
                 >
                   {item.status === "ArtikelOprettet" ? "Artikel oprettet" : item.status}

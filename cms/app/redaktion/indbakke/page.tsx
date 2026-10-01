@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { UnifiedIntakeInbox, type IntakeItem } from "@/components/admin/UnifiedIntakeInbox";
 import { Inbox, MessageSquarePlus, ExternalLink } from "lucide-react";
+import { isNewIntakeStatus } from "@/lib/validation/status";
 
 export default async function RedaktionIndbakkePage() {
   const session = await auth();
@@ -153,7 +154,7 @@ export default async function RedaktionIndbakkePage() {
   items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const nyCount = items.filter(
-    (i) => i.status === "Ny" || i.status === "AFVENTER_SVAR" || i.status === "OPRETTET" || i.status === "BriefModtaget" || i.status === "Modtaget"
+    (i) => isNewIntakeStatus(i.status)
   ).length;
 
   return (

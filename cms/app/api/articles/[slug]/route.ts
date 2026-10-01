@@ -1,19 +1,16 @@
-import { db } from "@/lib/db";
+import { getCurrentSite } from "@/lib/site";
+import { findPublicArticle, publicJson } from "@/lib/public-api";
+import { getClientIp, rateLimit } from "@/lib/ratelimit";
 
-export async function GET(_request: Request, context: { params: Promise<{ slug: string }> }) {
+/** GET /api/articles/{slug} — én publiceret artikel for den aktuelle sites instans. Svar: { data: PublicArticle } */
+export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
+  const limited = await rateLimit({ bucket: "api-articles", key: getClientIp(request.headers), limit: 120, windowMs: 60_000 });
+  if (!limited.ok) return publicJson({ error: "For mange forespørgsler." }, { status: 429, cache: false });
+
   const { slug } = await context.params;
-  const article = await db.article.findFirst({
-    where: { slug, status: "Publiceret" },
-    select: {
-      id: true, titel: true, manchet: true, slug: true, blocks: true,
-      indholdstype: true, marking: true, pinned: true, breaking: true,
-      seoTitel: true, seoBeskrivelse: true, sprog: true, publiceretTid: true, opdateretTid: true,
-      kategori: { select: { navn: true, slug: true } },
-      coverMedia: { select: { id: true, url: true, altTekst: true, billedtekst: true, ophavsperson: true } },
-      forfatter: { select: { navn: true, bio: true, profilbilledeUrl: true } },
-      tags: { select: { navn: true } }, geoTags: { select: { navn: true } },
-    },
-  });
-  if (!article) return Response.json({ error: "Artiklen findes ikke." }, { status: 404 });
-  return Response.json({ data: article });
+  if (!/^[\p{L}\p{N}-]{1,200}$/u.test(slug)) return publicJson({ error: "Artiklen findes ikke." }, { status: 404, cache: false });
+  const site = await getCurrentSite();
+  const article = await findPublicArticle(site.id, slug);
+  if (!article) return publicJson({ error: "Artiklen findes ikke." }, { status: 404, cache: false });
+  return publicJson({ data: article, site: { domaene: site.domaene } });
 }

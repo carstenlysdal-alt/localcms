@@ -20,8 +20,8 @@ export async function pinArticleToZoneAction(formData: FormData) {
 
   if (!articleId) throw new Error("Mangler artikel");
 
-  const article = await db.article.findUnique({
-    where: { id: articleId },
+  const article = await db.article.findFirst({
+    where: { id: articleId, instansId: session.user.instansId },
   });
   if (!article) throw new Error("Artikel ikke fundet");
 
@@ -69,9 +69,10 @@ export async function removePlacementAction(placementId: string) {
     throw new Error("Mangler rettighed til at redigere forsiden");
   }
 
-  await db.frontpagePlacement.delete({
-    where: { id: placementId },
+  const removed = await db.frontpagePlacement.deleteMany({
+    where: { id: placementId, instansId: session.user.instansId },
   });
+  if (removed.count !== 1) throw new Error("Placeringen findes ikke");
 
   revalidatePath("/redaktion/forside");
   revalidatePath("/");

@@ -1,19 +1,27 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth, getAuthorizedUser } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
+import { cleanText, isSafePublicUrl } from "@/lib/validation/text";
 import { db } from "@/lib/db";
 
 async function createTopic(data: FormData) {
   "use server";
-  const session = await auth();
-  if (!session?.user) return;
-  const titel = data.get("titel") as string;
-  const beskrivelse = data.get("beskrivelse") as string;
-  const coverUrl = data.get("coverUrl") as string;
-  const kategorierRaw = data.get("kategorier") as string;
-  const kategorier = kategorierRaw.split(",").map((k) => k.trim()).filter(Boolean);
+  // Server-side autorisation uafhængig af proxy.ts: rettigheden slås op i databasen.
+  const user = await getAuthorizedUser(PERMISSIONS.ARTICLE_CREATE);
+  if (!user) return;
+  const titel = cleanText(String(data.get("titel") ?? ""), 160);
+  if (titel.length < 2) return;
+  const beskrivelse = cleanText(String(data.get("beskrivelse") ?? ""), 1000, { multiline: true });
+  const coverRaw = String(data.get("coverUrl") ?? "").trim();
+  const coverUrl = isSafePublicUrl(coverRaw) ? coverRaw : "";
+  const kategorier = cleanText(String(data.get("kategorier") ?? ""), 500)
+    .split(",")
+    .map((k) => k.trim().slice(0, 60))
+    .filter(Boolean)
+    .slice(0, 20);
   await db.topic.create({
-    data: { titel, beskrivelse: beskrivelse || null, coverUrl: coverUrl || null, kategorier, instansId: session.user.instansId },
+    data: { titel, beskrivelse: beskrivelse || null, coverUrl: coverUrl || null, kategorier, instansId: user.instansId },
   });
   redirect("/redaktion/emner");
 }

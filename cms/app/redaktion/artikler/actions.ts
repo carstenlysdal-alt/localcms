@@ -7,7 +7,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { blocksSchema } from "@/lib/blocks/schema";
 import { db } from "@/lib/db";
-import { assertPublishableMarking, CONTENT_TYPES } from "@/lib/marking";
+import { assertPublishableMarking, CONTENT_TYPES, isAiRestrictedCategory } from "@/lib/marking";
 import { can, canEditArticle, PERMISSIONS } from "@/lib/permissions";
 import { canTransition, isArticleStatus } from "@/lib/workflow";
 import { honorAmountForAssignment } from "@/lib/assignments";
@@ -101,8 +101,8 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
   const requestedCategoryId = values.data.kategoriId || null;
 
   if (values.data.indholdstype === "AI-assisteret" && requestedCategoryId) {
-    const cat = await db.category.findUnique({ where: { id: requestedCategoryId } });
-    if (cat && (cat.slug === "krimi-og-retsvaesen" || cat.slug === "sundhed" || cat.navn.toLowerCase().includes("krimi") || cat.navn.toLowerCase().includes("sundhed"))) {
+    const cat = await db.category.findFirst({ where: { id: requestedCategoryId, instansId: session.user.instansId } });
+    if (cat && isAiRestrictedCategory(cat)) {
       return { error: "Artikler i kategorierne Krimi og retsvæsen samt Sundhed må ikke være AI-assisterede uden journalistisk gennemskrivning." };
     }
   }

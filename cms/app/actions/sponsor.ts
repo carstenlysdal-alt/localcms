@@ -1,8 +1,14 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getCurrentSite } from "@/lib/site";
-import { revalidatePath } from "next/cache";
+import { guardPublicAction } from "@/lib/ratelimit/guard";
+import { cleanText } from "@/lib/validation/text";
+import { generateToken, looksLikeToken } from "@/lib/validation/tokens";
+import { firstIssue, partnerReviewInput, sponsorBriefInput } from "@/lib/validation/public";
+import { normalizeStatus } from "@/lib/validation/status";
 
 export async function createSponsorBrief(formData: {
   partnerNavn: string;
@@ -16,30 +22,41 @@ export async function createSponsorBrief(formData: {
   citater?: string;
   fakta?: string;
   links?: string;
+  /** Honeypot — skal være tomt (skjult felt i formularen). */
+  website?: string;
 }) {
   try {
+    const guard = await guardPublicAction({ action: "sponsor-brief", limit: 5, windowMs: 30 * 60_000, honeypot: formData?.website });
+    if (!guard.ok) return { success: false, error: guard.error };
+
+    const parsed = sponsorBriefInput.safeParse(formData);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error) };
+    const input = parsed.data;
+
     const site = await getCurrentSite();
 
     const briefData = {
-      formaal: formData.formaal,
-      budskab: formData.budskab,
-      fakta: formData.fakta || "",
-      links: formData.links || "",
+      formaal: input.formaal,
+      budskab: input.budskab,
+      fakta: input.fakta || "",
+      links: input.links || "",
     };
 
-    const initialQuotes = formData.citater
-      ? formData.citater.split("\n").filter((q) => q.trim().length > 10)
+    const initialQuotes = input.citater
+      ? input.citater.split("\n").map((q) => q.trim()).filter((q) => q.length > 10).slice(0, 20)
       : [];
 
     const brief = await db.sponsorBrief.create({
       data: {
-        partnerNavn: formData.partnerNavn,
-        kontaktNavn: formData.kontaktNavn,
-        kontaktEmail: formData.kontaktEmail,
-        kontaktTelefon: formData.kontaktTelefon || null,
-        kampagnePeriode: formData.kampagnePeriode || "Løbende",
-        format: formData.format || "Sponsoreret artikel",
-        status: "BriefModtaget",
+        // Nye tokens: 24 bytes CSPRNG (base64url). Eksisterende cuid-tokens virker uændret.
+        token: generateToken(),
+        partnerNavn: input.partnerNavn,
+        kontaktNavn: input.kontaktNavn,
+        kontaktEmail: input.kontaktEmail,
+        kontaktTelefon: input.kontaktTelefon || null,
+        kampagnePeriode: input.kampagnePeriode || "Løbende",
+        format: input.format || "Sponsoreret artikel",
+        status: "BriefIndsendt", // kanonisk (tidligere "BriefModtaget")
         briefData,
         citater: initialQuotes,
         reviewItems: [],
@@ -63,29 +80,35 @@ export async function submitPartnerReview(
   comment?: string
 ) {
   try {
-    const brief = await db.sponsorBrief.findUnique({
-      where: { token },
-    });
+    const guard = await guardPublicAction({ action: "partner-review", limit: 20, windowMs: 10 * 60_000 });
+    if (!guard.ok) return { success: false, error: guard.error };
 
-    if (!brief) {
-      return { success: false, error: "Partner-briefet blev ikke fundet." };
+    const parsed = partnerReviewInput.safeParse({ approval, comment });
+    if (!parsed.success || !looksLikeToken(token)) return { success: false, error: "Ugyldig forespørgsel." };
+
+    const brief = await db.sponsorBrief.findUnique({ where: { token } });
+    if (!brief) return { success: false, error: "Partner-briefet blev ikke fundet." };
+
+    const current = normalizeStatus("sponsor", brief.status);
+    if (current === "Publiceret" || current === "ArtikelOprettet") {
+      return { success: false, error: "Briefet er allerede afsluttet og kan ikke ændres." };
     }
 
     const reviewItems = Array.isArray(brief.reviewItems)
-      ? (brief.reviewItems as Array<Record<string, unknown>>)
+      ? (brief.reviewItems as Array<Record<string, unknown>>).slice(-49)
       : [];
 
     reviewItems.push({
       at: new Date().toISOString(),
-      approval,
-      comment: comment || "",
+      approval: parsed.data.approval,
+      comment: cleanText(parsed.data.comment ?? "", 3000, { multiline: true }),
     });
 
     await db.sponsorBrief.update({
       where: { token },
       data: {
-        status: approval === "godkendt" ? "Godkendt" : "RettelserAnmodet",
-        reviewItems: reviewItems as unknown as import("@prisma/client").Prisma.InputJsonValue,
+        status: parsed.data.approval === "godkendt" ? "Godkendt" : "RettelserAnmodet",
+        reviewItems: reviewItems as unknown as Prisma.InputJsonValue,
       },
     });
 

@@ -1,40 +1,47 @@
 "use server";
 
-import { db } from "@/lib/db";
-import { getCurrentSite } from "@/lib/site";
 import { revalidatePath } from "next/cache";
+import { db } from "@/lib/db";
+import { getAuthorizedUser } from "@/lib/auth";
+import { getCurrentSite } from "@/lib/site";
+import { PERMISSIONS } from "@/lib/permissions";
+import { guardPublicAction } from "@/lib/ratelimit/guard";
+import { cleanText } from "@/lib/validation/text";
+import { generateToken, looksLikeToken } from "@/lib/validation/tokens";
+import { firstIssue, journalistQaInput, publicQaInquiryInput, qaAnswersInput } from "@/lib/validation/public";
+import { isAnswered } from "@/lib/validation/status";
 
 export async function submitQaAnswers(
   token: string,
   answers: Record<string, { choice?: string; text: string }>
 ) {
   try {
-    const qa = await db.sourceQA.findUnique({
-      where: { token },
-    });
+    const guard = await guardPublicAction({ action: "qa-answers", limit: 15, windowMs: 10 * 60_000 });
+    if (!guard.ok) return { success: false, error: guard.error };
 
-    if (!qa) {
-      return { success: false, error: "Q&A-sessionen blev ikke fundet." };
+    if (!looksLikeToken(token)) return { success: false, error: "Q&A-sessionen blev ikke fundet." };
+    const parsed = qaAnswersInput.safeParse(answers);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error, "Kontrollér dine svar.") };
+
+    const qa = await db.sourceQA.findUnique({ where: { token } });
+    if (!qa) return { success: false, error: "Q&A-sessionen blev ikke fundet." };
+    if (isAnswered("qa", qa.status)) return { success: false, error: "Denne Q&A er allerede besvaret." };
+
+    // Kun svar på kendte spørgsmål gemmes.
+    const known = new Set(((qa.spoergsmaal as Array<{ id: string }>) || []).map((q) => q.id));
+    const clean: Record<string, { choice?: string; text: string }> = {};
+    for (const [id, ans] of Object.entries(parsed.data)) {
+      if (known.size > 0 && !known.has(id)) continue;
+      clean[id] = { ...(ans.choice ? { choice: ans.choice } : {}), text: ans.text };
     }
+    if (Object.keys(clean).length === 0) return { success: false, error: "Ingen gyldige svar modtaget." };
 
-    // Ekstrahér citater fra svarene
-    const quotes: string[] = [];
-    Object.values(answers).forEach((ans) => {
-      if (ans.text && ans.text.trim().length > 25) {
-        quotes.push(ans.text.trim());
-      }
-    });
-
-    const summary = `Besvaret af kilde (${qa.kildeNavn || "Anonym"}). ${Object.keys(answers).length} spørgsmål besvaret.`;
+    const quotes = Object.values(clean).map((a) => a.text.trim()).filter((t) => t.length > 25);
+    const summary = `Besvaret af kilde (${cleanText(qa.kildeNavn || "Anonym", 120)}). ${Object.keys(clean).length} spørgsmål besvaret.`;
 
     await db.sourceQA.update({
       where: { token },
-      data: {
-        status: "BESVARET",
-        svar: answers,
-        citater: quotes,
-        aiOpsummering: summary,
-      },
+      data: { status: "Besvaret", svar: clean, citater: quotes, aiOpsummering: summary },
     });
 
     revalidatePath(`/qa/${token}`);
@@ -55,8 +62,17 @@ export async function createPublicQaInquiry(formData: {
   emne: string;
   baggrund?: string;
   udtalelse?: string;
+  /** Honeypot — skal være tomt. */
+  website?: string;
 }) {
   try {
+    const guard = await guardPublicAction({ action: "qa-inquiry", limit: 5, windowMs: 30 * 60_000, honeypot: formData?.website });
+    if (!guard.ok) return { success: false, error: guard.error };
+
+    const parsed = publicQaInquiryInput.safeParse(formData);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error) };
+    const input = parsed.data;
+
     const site = await getCurrentSite();
 
     const questions = [
@@ -66,19 +82,18 @@ export async function createPublicQaInquiry(formData: {
     ];
 
     const answers: Record<string, { text: string }> = {};
-    if (formData.udtalelse) {
-      answers["q-1"] = { text: formData.udtalelse };
-    }
+    if (input.udtalelse) answers["q-1"] = { text: input.udtalelse };
 
     const qa = await db.sourceQA.create({
       data: {
-        titel: formData.emne,
-        emne: formData.emne,
-        baggrund: formData.baggrund || null,
-        kildeNavn: formData.kildeNavn,
-        kildeKontakt: formData.kildeKontakt,
-        kildeRolle: formData.kildeRolle || null,
-        status: formData.udtalelse ? "BESVARET" : "AFVENTER_SVAR",
+        token: generateToken(),
+        titel: input.emne,
+        emne: input.emne,
+        baggrund: input.baggrund || null,
+        kildeNavn: input.kildeNavn,
+        kildeKontakt: input.kildeKontakt,
+        kildeRolle: input.kildeRolle || null,
+        status: input.udtalelse ? "Besvaret" : "Sendt",
         spoergsmaal: questions,
         svar: answers,
         instansId: site.id,
@@ -106,27 +121,29 @@ export async function createJournalistQa(data: {
   spoergsmaal: string[];
 }) {
   try {
-    const { auth } = await import("@/lib/auth");
-    const session = await auth();
-    if (!session?.user) return { success: false, error: "Ikke autoriseret." };
+    const user = await getAuthorizedUser(PERMISSIONS.ARTICLE_CREATE);
+    if (!user) return { success: false, error: "Ikke autoriseret." };
 
-    const questions = data.spoergsmaal
-      .filter((q) => q.trim().length > 0)
-      .map((text, idx) => ({ id: `q-${idx + 1}`, text, type: "text" }));
+    const parsed = journalistQaInput.safeParse(data);
+    if (!parsed.success) return { success: false, error: firstIssue(parsed.error) };
+    const input = parsed.data;
+
+    const questions = input.spoergsmaal.map((text, idx) => ({ id: `q-${idx + 1}`, text, type: "text" }));
 
     const qa = await db.sourceQA.create({
       data: {
-        titel: data.titel,
-        emne: data.emne,
-        baggrund: data.baggrund || null,
-        deadline: data.deadline ? new Date(data.deadline) : null,
-        kildeNavn: data.kildeNavn,
-        kildeKontakt: data.kildeKontakt,
-        kildeRolle: data.kildeRolle || null,
-        status: "AFVENTER_SVAR",
+        token: generateToken(),
+        titel: input.titel,
+        emne: input.emne,
+        baggrund: input.baggrund || null,
+        deadline: input.deadline ? new Date(input.deadline) : null,
+        kildeNavn: input.kildeNavn,
+        kildeKontakt: input.kildeKontakt,
+        kildeRolle: input.kildeRolle || null,
+        status: "Sendt",
         spoergsmaal: questions.length > 0 ? questions : [{ id: "q-1", text: "Hvad er din kommentar til sagen?", type: "text" }],
         svar: {},
-        instansId: session.user.instansId,
+        instansId: user.instansId,
       },
     });
 
@@ -139,4 +156,3 @@ export async function createJournalistQa(data: {
     return { success: false, error: "Der opstod en fejl." };
   }
 }
-

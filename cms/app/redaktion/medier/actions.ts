@@ -7,15 +7,18 @@ import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ALLOWED_UPLOADS, MAX_UPLOAD_BYTES, mediaMetadataSchema, parseRightsExpiry, validateRequiredImageMetadata } from "@/lib/media";
+import { mediaMetadataSchema, parseRightsExpiry, validateRequiredImageMetadata } from "@/lib/media";
 import { optimizeImage } from "@/lib/media-storage";
-import { can, PERMISSIONS } from "@/lib/permissions";
+import { PERMISSIONS } from "@/lib/permissions";
+import { validateUploadBuffer } from "@/lib/upload";
+import { isHttpUrl, safeFilename } from "@/lib/validation/text";
+import { rateLimit } from "@/lib/ratelimit";
 
 export type MediaFormState = { error?: string; success?: string; fieldErrors?: Record<string, string[]> };
 
-const externalSchema = z.string().url("Angiv en gyldig URL med http eller https.");
+const externalSchema = z.string().max(2048).refine(isHttpUrl, "Angiv en gyldig URL med http eller https.");
 
 function metadataFrom(formData: FormData, forcedType?: string) {
   return mediaMetadataSchema.safeParse({
@@ -30,9 +33,8 @@ function metadataFrom(formData: FormData, forcedType?: string) {
 }
 
 async function requireMediaManager() {
-  const session = await auth();
-  if (!session?.user || !can(session.user, PERMISSIONS.MEDIA_MANAGE)) return null;
-  return session.user;
+  // Server-side autorisation (rettighed slås op i databasen) — uafhængig af proxy.ts.
+  return getAuthorizedUser(PERMISSIONS.MEDIA_MANAGE);
 }
 
 export async function createMedia(_: MediaFormState, formData: FormData): Promise<MediaFormState> {
@@ -51,19 +53,26 @@ export async function createMedia(_: MediaFormState, formData: FormData): Promis
   if (source === "upload") {
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) return { error: "Vælg en fil, der skal uploades." };
-    if (file.size > MAX_UPLOAD_BYTES) return { error: "Filen må højst fylde 10 MB." };
-    const allowed = ALLOWED_UPLOADS[file.type];
-    if (!allowed) return { error: "Filtypen understøttes ikke. Brug JPG, PNG, WebP, MP4, WebM, MP3, WAV, OGG eller PDF." };
+    const limited = await rateLimit({ bucket: "media-upload", key: user.id, limit: 30, windowMs: 10 * 60_000 });
+    if (!limited.ok) return { error: "For mange uploads på kort tid. Vent lidt og prøv igen." };
+    // Hård øvre grænse før filen læses i hukommelsen; typespecifikke grænser håndhæves i validateUploadBuffer.
+    if (file.size > 10 * 1024 * 1024) return { error: "Filen må højst fylde 10 MB." };
+    const input = Buffer.from(await file.arrayBuffer());
+    // Filtypen afgøres af filindholdet (magic bytes), ikke af klientens MIME-type eller filendelse.
+    const checked = validateUploadBuffer(input);
+    if (!checked.ok) return { error: checked.error };
+    const allowed = checked.detected;
     const earlyMetadata = metadataFrom(formData, allowed.type);
     if (!earlyMetadata.success) return { error: "Kontrollér mediets metadata.", fieldErrors: earlyMetadata.error.flatten().fieldErrors };
     const earlyImageError = validateRequiredImageMetadata(allowed.type, earlyMetadata.data);
     if (earlyImageError) return { error: earlyImageError };
-    const input = Buffer.from(await file.arrayBuffer());
+    // Filnavnet på disk er altid et uuid + fast endelse — brugerens filnavn bruges aldrig i stien.
     const id = randomUUID();
     const uploadRoot = path.resolve(process.cwd(), "public", "uploads");
     await mkdir(uploadRoot, { recursive: true });
     if (allowed.type === "billede") {
       try {
+        // Genkodning til WebP fjerner EXIF/GPS og eventuelt skjult indhold (polyglot-filer).
         const optimized = await optimizeImage(input);
         await writeFile(path.join(uploadRoot, `${id}.webp`), optimized.data, { flag: "wx" });
         url = `/uploads/${id}.webp`;
@@ -78,17 +87,17 @@ export async function createMedia(_: MediaFormState, formData: FormData): Promis
       const storedName = `${id}.${allowed.extension}`;
       await writeFile(path.join(uploadRoot, storedName), input, { flag: "wx" });
       url = `/uploads/${storedName}`;
-      mimeType = file.type;
-      stoerrelse = file.size;
+      mimeType = allowed.mime;
+      stoerrelse = input.length;
     }
-    filnavn = file.name.slice(0, 240);
+    filnavn = safeFilename(file.name);
     forcedType = allowed.type;
     kildeType = "Lokal";
   } else {
     const parsedUrl = externalSchema.safeParse(formData.get("url"));
     if (!parsedUrl.success) return { error: parsedUrl.error.issues[0]?.message };
     url = parsedUrl.data;
-    filnavn = url.split("/").pop()?.slice(0, 240) || null;
+    filnavn = safeFilename(new URL(url).pathname, "ekstern-fil");
   }
 
   const metadata = metadataFrom(formData, forcedType);

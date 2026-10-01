@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
+import { textToParagraphHtml } from "@/lib/validation/text";
 
 function slugify(text: string): string {
   const base = text
@@ -99,7 +100,7 @@ export async function convertSubmissionToArticle(submissionId: string) {
       id: `p-${Date.now()}`,
       type: "paragraph",
       data: {
-        text: sub.tekst,
+        content: textToParagraphHtml(sub.tekst),
       },
     },
   ];
@@ -203,7 +204,7 @@ export async function convertQaToArticle(qaId: string) {
       id: `intro-${Date.now()}`,
       type: "paragraph",
       data: {
-        text: qa.baggrund || `Q&A med ${qa.kildeNavn || "kilde"} (${qa.kildeRolle || "kilde"}) om ${qa.emne}.`,
+        content: textToParagraphHtml(qa.baggrund || `Q&A med ${qa.kildeNavn || "kilde"} (${qa.kildeRolle || "kilde"}) om ${qa.emne}.`),
       },
     },
   ];
@@ -218,7 +219,7 @@ export async function convertQaToArticle(qaId: string) {
     blocks.push({
       id: `p-${Date.now()}-${idx}`,
       type: "paragraph",
-      data: { text: ans },
+      data: { content: textToParagraphHtml(ans) },
     });
   });
 
@@ -297,7 +298,7 @@ export async function convertInterviewToArticle(interviewId: string) {
       id: `p-intro-${Date.now()}`,
       type: "paragraph",
       data: {
-        text: `I et interview med redaktionen sætter ${interview.kildeNavn || "kilden"} (${interview.kildeRolle || "lokal stemme"}) ord på ${interview.emne}.`,
+        content: textToParagraphHtml(`I et interview med redaktionen sætter ${interview.kildeNavn || "kilden"} (${interview.kildeRolle || "lokal stemme"}) ord på ${interview.emne}.`),
       },
     },
   ];
@@ -313,7 +314,7 @@ export async function convertInterviewToArticle(interviewId: string) {
       blocks.push({
         id: `a-${Date.now()}-${idx}`,
         type: "paragraph",
-        data: { text: ans },
+        data: { content: textToParagraphHtml(ans) },
       });
     }
   });
@@ -399,14 +400,14 @@ export async function convertSponsorBriefToArticle(briefId: string) {
       id: `p-disc-${Date.now()}`,
       type: "paragraph",
       data: {
-        text: `◆ FINANSIERET AF ${brief.partnerNavn.toUpperCase()} — Denne artikel er udarbejdet i samarbejde med vores lokale partner.`,
+        content: textToParagraphHtml(`◆ FINANSIERET AF ${brief.partnerNavn.toUpperCase()} — Denne artikel er udarbejdet i samarbejde med vores lokale partner.`),
       },
     },
     {
       id: `p-budskab-${Date.now()}`,
       type: "paragraph",
       data: {
-        text: briefData.budskab || briefData.formaal || `Mød ${brief.partnerNavn}.`,
+        content: textToParagraphHtml(briefData.budskab || briefData.formaal || `Mød ${brief.partnerNavn}.`),
       },
     },
   ];
@@ -420,7 +421,7 @@ export async function convertSponsorBriefToArticle(briefId: string) {
     blocks.push({
       id: `p-fakta-${Date.now()}`,
       type: "paragraph",
-      data: { text: briefData.fakta },
+      data: { content: textToParagraphHtml(briefData.fakta) },
     });
   }
 
@@ -503,7 +504,7 @@ export async function convertMeddelerSagToArticle(sagId: string) {
       id: `p-meddeler-${Date.now()}`,
       type: "paragraph",
       data: {
-        text: sag.tekst,
+        content: textToParagraphHtml(sag.tekst),
       },
     },
   ];
