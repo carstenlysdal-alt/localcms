@@ -9,8 +9,8 @@ const EXPECTED_SITES = [
   { domain: "slagelselokalt.dk", navn: "SlagelseLokalt", accent: "#9E3D1B" },
   { domain: "naestvedlokalt.dk", navn: "NæstvedLokalt", accent: "#1F5663" },
   { domain: "holbaeklokalt.dk", navn: "HolbækLokalt", accent: "#4F5B1E" },
-  { domain: "ringstedlokalt.dk", navn: "RingstedLokalt", accent: "#8A5A00" },
-  { domain: "koegelokalt.dk", navn: "KøgeLokalt", accent: "#24533A" },
+  { domain: "ringstedlokalt.dk", navn: "RingstedLokalt", accent: "#24533A" },
+  { domain: "koegelokalt.dk", navn: "KøgeLokalt", accent: "#8A5A00" },
   { domain: "roskildelokalt.dk", navn: "RoskildeLokalt", accent: "#6A3553" },
 ];
 

@@ -27,6 +27,9 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Lysdals CMS",
   description: "Generisk, AI-understøttet redaktionelt CMS",
+  // Standard for alt uden for det offentlige site (login, redaktion). (site)/layout.tsx
+  // sætter sine egne robots-regler, så offentlige sider ikke påvirkes.
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({

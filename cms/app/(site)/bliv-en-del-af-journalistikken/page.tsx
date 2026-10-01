@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { pageMeta } from "@/lib/seo/page-meta";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
@@ -17,11 +18,10 @@ import { MeddelerPortalClient } from "../meddeler/MeddelerPortalClient";
 import { SponsorBriefForm } from "../sponsor/SponsorBriefForm";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Bliv en del af journalistikken — ${site.navn}`,
-    description: `Bliv en del af journalistikken for ${site.navn}. Tip redaktionen, rapportér lokale begivenheder eller indgå et gennemsigtigt lokalt erhvervspartnerskab.`,
-  };
+  return pageMeta("/bliv-en-del-af-journalistikken", (site) => ({
+    title: "Bliv en del af journalistikken",
+    description: `Tip redaktionen, rapportér lokale begivenheder eller indgå et gennemsigtigt lokalt erhvervspartnerskab med ${site.navn}.`,
+  }));
 }
 
 export default async function BlivEnDelAfJournalistikkenPage({

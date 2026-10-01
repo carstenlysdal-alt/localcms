@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Clock, LayoutGrid, Bookmark, MoreHorizontal } from "lucide-react";
+import { Home, LayoutGrid, CalendarDays, Search, User } from "lucide-react";
 import { SectionSheet } from "./SectionSheet";
+import type { NetworkSiteLink } from "@/lib/network-sites";
 
 type CategoryItem = {
   id: string;
@@ -23,67 +24,82 @@ type BottomNavProps = {
   categories: CategoryItem[];
   areas: AreaItem[];
   siteNavn: string;
+  networkSites?: NetworkSiteLink[];
+  currentDomaene?: string;
+  sectionPaths?: string[];
 };
 
-export function BottomNav({ categories, areas, siteNavn }: BottomNavProps) {
-  const pathname = usePathname();
+export function BottomNav({
+  categories,
+  areas,
+  siteNavn,
+  networkSites,
+  currentDomaene,
+  sectionPaths,
+}: BottomNavProps) {
+  const pathname = usePathname() ?? "/";
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const isHome = pathname === "/";
-  const isLatest = pathname.startsWith("/nyheder");
-  const isSaved = pathname.startsWith("/gemte");
+  // Aktiv fane følger sektionen: Sektioner lyser for alle sektions-/undersektionsstier
+  // (og artikler under dem), aldrig for Forside, Kalender, Søg eller Profil.
+  const firstSegment = pathname.split("/")[1] ?? "";
+  const sectionSlugs = new Set(categories.map((c) => c.slug));
+  const isHome = pathname === "/" && !sheetOpen;
+  const isSections = sectionSlugs.has(firstSegment) || sheetOpen;
+  const isCalendar = firstSegment === "kalender";
+  const isSearch = firstSegment === "soeg";
+  const isProfile = firstSegment === "profil" || firstSegment === "gemte";
 
   return (
     <>
-      <nav className="site-bottom-nav" aria-label="Mobil navigation">
+      <nav className="site-bottom-nav" aria-label="Hovednavigation">
         <Link
           href="/"
           className={`site-bottom-nav-item ${isHome ? "is-active" : ""}`}
           aria-current={isHome ? "page" : undefined}
         >
-          <Home size={20} />
-          <span>Hjem</span>
-        </Link>
-
-        <Link
-          href="/nyheder"
-          className={`site-bottom-nav-item ${isLatest ? "is-active" : ""}`}
-          aria-current={isLatest ? "page" : undefined}
-        >
-          <Clock size={20} />
-          <span>Seneste</span>
+          <Home size={22} aria-hidden="true" />
+          <span>Forside</span>
         </Link>
 
         <button
           type="button"
-          className={`site-bottom-nav-item ${sheetOpen ? "is-active" : ""}`}
+          className={`site-bottom-nav-item ${isSections ? "is-active" : ""}`}
           onClick={() => setSheetOpen(true)}
+          aria-haspopup="dialog"
           aria-expanded={sheetOpen}
-          aria-label="Åbn emner og sektioner"
+          aria-current={sectionSlugs.has(firstSegment) && !sheetOpen ? "page" : undefined}
         >
-          <LayoutGrid size={20} />
-          <span>Emner</span>
+          <LayoutGrid size={22} aria-hidden="true" />
+          <span>Sektioner</span>
         </button>
 
         <Link
-          href="/gemte"
-          className={`site-bottom-nav-item ${isSaved ? "is-active" : ""}`}
-          aria-current={isSaved ? "page" : undefined}
+          href="/kalender"
+          className={`site-bottom-nav-item ${isCalendar ? "is-active" : ""}`}
+          aria-current={isCalendar ? "page" : undefined}
         >
-          <Bookmark size={20} />
-          <span>Gemte</span>
+          <CalendarDays size={22} aria-hidden="true" />
+          <span>Kalender</span>
         </Link>
 
-        <button
-          type="button"
-          className="site-bottom-nav-item"
-          onClick={() => setSheetOpen(true)}
-          aria-expanded={sheetOpen}
-          aria-label="Mere information og netværk"
+        <Link
+          href="/soeg"
+          className={`site-bottom-nav-item ${isSearch ? "is-active" : ""}`}
+          aria-current={isSearch ? "page" : undefined}
         >
-          <MoreHorizontal size={20} />
-          <span>Mere</span>
-        </button>
+          <Search size={22} aria-hidden="true" />
+          <span>Søg</span>
+        </Link>
+
+        <Link
+          href="/profil"
+          className={`site-bottom-nav-item ${isProfile ? "is-active" : ""}`}
+          aria-current={isProfile ? "page" : undefined}
+        >
+          <User size={22} aria-hidden="true" />
+          <span>Profil</span>
+        </Link>
       </nav>
 
       <SectionSheet
@@ -92,6 +108,9 @@ export function BottomNav({ categories, areas, siteNavn }: BottomNavProps) {
         categories={categories}
         areas={areas}
         siteNavn={siteNavn}
+        networkSites={networkSites}
+        currentDomaene={currentDomaene}
+        sectionPaths={sectionPaths}
       />
     </>
   );

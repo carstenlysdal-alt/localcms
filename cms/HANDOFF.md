@@ -46,8 +46,8 @@ alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste t
 - **Kreeret og seedet alle 5 øvrige hovedsites:**
   1. **NæstvedLokalt** (`naestvedlokalt.dk`, id: `naestved-site`): Accent Fjord `#1F5663` (kontrast 8,2:1), 8 delområder (Næstved By, Karrebæksminde, Fuglebjerg m.fl.), 10 realistiske lokale artikler, 3 forfattere og lokale brugere.
   2. **HolbækLokalt** (`holbaeklokalt.dk`, id: `holbaek-site`): Accent Mos `#4F5B1E` (kontrast 7,4:1), 8 delområder (Holbæk By, Jyderup, Tølløse, Orø m.fl.), 10 realistiske artikler, 3 forfattere.
-  3. **RingstedLokalt** (`ringstedlokalt.dk`, id: `ringsted-site`): Accent Okker `#8A5A00` (kontrast 5,9:1), 8 delområder (Ringsted By, Benløse, Jystrup, Kværkeby m.fl.), 10 realistiske artikler, 2 forfattere.
-  4. **KøgeLokalt** (`koegelokalt.dk`, id: `koege-site`): Accent Skov `#24533A` (kontrast 8,9:1), 8 delområder (Køge By, Køge Nord, Herfølge, Borup m.fl.), 10 realistiske artikler, 3 forfattere.
+  3. **RingstedLokalt** (`ringstedlokalt.dk`, id: `ringsted-site`): Accent Skov `#24533A`, 8 delområder (Ringsted By, Benløse, Jystrup, Kværkeby m.fl.), 10 realistiske artikler, 2 forfattere.
+  4. **KøgeLokalt** (`koegelokalt.dk`, id: `koege-site`): Accent Okker `#8A5A00` (kontrast 5,9:1; adskilt fra Holbæks Mos), 8 delområder (Køge By, Køge Nord, Herfølge, Borup m.fl.), 10 realistiske artikler, 3 forfattere.
   5. **RoskildeLokalt** (`roskildelokalt.dk`, id: `roskilde-site`): Accent Lyng `#6A3553` (kontrast 9,4:1), 8 delområder (Roskilde By, Trekroner, Jyllinge, Viby Sjælland m.fl.), 10 realistiske artikler, 3 forfattere.
 - **Multi-site arkitektur & Site-switching:**
   - `getCurrentSite()` udvidet til at understøtte både host-header, `.localhost`-subdomæner, dev-cookie `site` og fallback til `slagelselokalt.dk`.
@@ -255,7 +255,7 @@ Den afbrudte byggeproces er fortsat og fundament-backloggen er gennemført:
 - Offentligt `GET /api/articles` og `/api/articles/[slug]`, begge begrænset til `Publiceret`.
 - README opdateret. `npm run lint`, `npx tsc --noEmit` og `npm run build` gennemført; build er grøn.
 
-Demo-login: `redaktoer@slagelse.test` eller `journalist@slagelse.test`, adgangskode `cms-demo-2026`.
+Demo-login: `redaktoer@slagelse.test` eller `journalist@slagelse.test`, adgangskode = `SEED_DEMO_PASSWORD` (sat ved seed; den hardkodede demo-adgangskode er fjernet).
 
 ### Næste anbefalede arbejde
 

@@ -16,7 +16,7 @@ npm run dev
 
 Åbn [http://localhost:3000](http://localhost:3000). SQLite-filen oprettes som `prisma/dev.db`.
 
-Demo-brugere (samme adgangskode: `cms-demo-2026`):
+Demo-brugere (adgangskode = `SEED_DEMO_PASSWORD` fra `.env`, ellers en tilfældig der printes af `npm run seed`; seed afviser `NODE_ENV=production`):
 
 - `redaktoer@slagelse.test` — fuld redaktionel adgang og publiceringsret
 - `journalist@slagelse.test` — kan oprette og redigere egne artikler, men ikke publicere

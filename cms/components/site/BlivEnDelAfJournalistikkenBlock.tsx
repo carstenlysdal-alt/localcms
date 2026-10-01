@@ -80,7 +80,7 @@ export function BlivEnDelAfJournalistikkenBlock({
               <ArrowRight size={16} />
             </Link>
             <Link
-              href="/tip-os"
+              href="/indsend?kategori=tip"
               className="bliv-del-secondary-btn"
             >
               <Radio size={15} />

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { getCurrentSite } from "@/lib/site";
 import { searchSiteArticles, getSiteNavigation } from "@/lib/site-queries";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
@@ -7,11 +8,10 @@ import { LoadMore } from "@/components/site/LoadMore";
 import { Search } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
+  return pageMeta("/soeg", (site) => ({
     title: `Søg i ${site.navn}`,
     description: `Søg blandt alle lokale nyheder, baggrundsartikler og debatter i ${site.kommune}.`,
-  };
+  }), { noindex: true });
 }
 
 export default async function SearchPage({

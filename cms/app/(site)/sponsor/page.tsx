@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { Handshake, Award, ShieldCheck, Check, FileText } from "lucide-react";
@@ -7,11 +8,10 @@ import { SponsorBriefForm } from "./SponsorBriefForm";
 import Link from "next/link";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Sponsor & Erhvervspartnerskaber — ${site.navn}`,
-    description: `Styrk din lokale synlighed og fortæl din virksomheds historie med gennemsigtigt, troværdigt partnerindhold på ${site.navn}.`,
-  };
+  return pageMeta("/sponsor", (site) => ({
+    title: "Sponsor og erhvervspartnerskaber",
+    description: `Styrk din lokale synlighed og fortæl din virksomheds historie med gennemsigtigt, mærket partnerindhold på ${site.navn}.`,
+  }));
 }
 
 export default async function SponsorPortalPage() {

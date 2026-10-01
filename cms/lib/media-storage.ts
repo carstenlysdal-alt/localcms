@@ -1,7 +1,7 @@
 import sharp from "sharp";
 
 export async function optimizeImage(input: Buffer) {
-  const { data, info } = await sharp(input, { failOn: "warning" })
+  const { data, info } = await sharp(input, { failOn: "warning", limitInputPixels: 40_000_000 })
     .rotate()
     .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })
     .webp({ quality: 82 })

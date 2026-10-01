@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
@@ -6,11 +7,10 @@ import { Inbox, CheckCircle, ArrowRight, ShieldCheck, HelpCircle } from "lucide-
 import { QaPortalClient } from "./QaPortalClient";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Kilde-Q&A — ${site.navn}`,
-    description: `Besvar spørgsmål som kilde eller indsend udtalelser til ${site.navn}. Hurtig, sikker og transparent kildebetjening uden login.`,
-  };
+  return pageMeta("/qa", (site) => ({
+    title: "Kilde-Q&A",
+    description: `Besvar spørgsmål som kilde eller indsend udtalelser til ${site.navn}.`,
+  }), { noindex: true });
 }
 
 export default async function QaPortalPage() {

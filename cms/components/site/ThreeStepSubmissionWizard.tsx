@@ -454,7 +454,7 @@ export function ThreeStepSubmissionWizard({
                     </label>
                     <input
                       type="text"
-                      placeholder="F.eks. Slagelse Musikhus, Sdr. Stationsvej 1"
+                      placeholder="F.eks. byens kulturhus, adresse"
                       value={eventAddress}
                       onChange={(e) => setEventAddress(e.target.value)}
                       className="submission-input"
@@ -466,7 +466,7 @@ export function ThreeStepSubmissionWizard({
                     </label>
                     <input
                       type="text"
-                      placeholder="F.eks. Slagelse Kulturforening eller Korsør Bylaug"
+                      placeholder="F.eks. navnet på din forening eller dit bylaug"
                       value={eventOrganizer}
                       onChange={(e) => setEventOrganizer(e.target.value)}
                       className="submission-input"

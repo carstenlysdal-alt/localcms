@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Mail, Check, AlertCircle } from "lucide-react";
+import { slugify } from "@/lib/slug";
 import { subscribeToNewsletter } from "@/app/(site)/nyhedsbrev/actions";
 
 type NewsletterSignupProps = {
@@ -12,6 +13,7 @@ type NewsletterSignupProps = {
 
 export function NewsletterSignup({ siteNavn, sektion, omraade }: NewsletterSignupProps) {
   const [email, setEmail] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [samtykke, setSamtykke] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -31,8 +33,9 @@ export function NewsletterSignup({ siteNavn, sektion, omraade }: NewsletterSignu
       const formData = new FormData();
       formData.set("email", email);
       formData.set("samtykke", "true");
-      if (sektion) formData.set("sektionSlug", sektion.toLowerCase());
-      if (omraade) formData.set("omraadeSlug", omraade.toLowerCase());
+      formData.set("website", honeypot);
+      if (sektion) formData.set("sektionSlug", slugify(sektion));
+      if (omraade) formData.set("omraadeSlug", slugify(omraade));
 
       const res = await subscribeToNewsletter(null, formData);
       if (res.success) {
@@ -75,6 +78,13 @@ export function NewsletterSignup({ siteNavn, sektion, omraade }: NewsletterSignu
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="site-newsletter-form">
+            {/* Honeypot mod spam-robotter: skjult for brugere */}
+            <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
+              <label>
+                Lad dette felt være tomt
+                <input type="text" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+              </label>
+            </div>
             <div className="site-newsletter-input-group">
               <label htmlFor="newsletter-email" className="sr-only">
                 Din e-mailadresse

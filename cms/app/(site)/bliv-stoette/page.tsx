@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { getCurrentSite } from "@/lib/site";
 import { SupportMembershipClient } from "@/components/site/SupportMembershipClient";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Støt lokalt — ${site.navn}`,
+  return pageMeta("/bliv-stoette", (site) => ({
+    title: `Støt lokaljournalistik i ${site.kommune}`,
     description: `Uafhængig lokaljournalistik i ${site.kommune}. Bliv medlem og vær med til at sikre kritisk og konstruktiv journalistik.`,
-  };
+  }));
 }
 
 export default async function SupportPage() {

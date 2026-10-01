@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
+import { getCurrentSite, getNetworkLinks } from "@/lib/site";
+import { networkHref } from "@/lib/network-sites";
 
 type CategoryItem = {
   id: string;
@@ -11,15 +13,18 @@ type SiteFooterProps = {
   siteNavn: string;
   tagline?: string;
   categories: CategoryItem[];
+  /** Bevaret for bagudkompatibilitet – søstermedier beregnes nu server-side med korrekte links. */
   netvaerk?: Array<{ navn: string; domaene: string; by: string }>;
 };
 
-export function SiteFooter({
+export async function SiteFooter({
   siteNavn,
   tagline,
   categories,
-  netvaerk = [],
 }: SiteFooterProps) {
+  const [site, networkLinks] = await Promise.all([getCurrentSite(), getNetworkLinks()]);
+  const sisterSites = networkLinks.filter((s) => s.domaene !== site.domaene);
+
   return (
     <footer className="site-footer">
       <div className="site-container">
@@ -48,6 +53,12 @@ export function SiteFooter({
                   <Link href={`/${cat.slug}`}>{cat.navn}</Link>
                 </li>
               ))}
+              <li>
+                <Link href="/omraade">Områder i {site.kommune}</Link>
+              </li>
+              <li>
+                <Link href="/emne">Emner</Link>
+              </li>
             </ul>
           </div>
 
@@ -59,22 +70,44 @@ export function SiteFooter({
                 <Link href="/indsend">Indsend tip eller læserbrev</Link>
               </li>
               <li>
+                <Link href="/kalender">Det sker (kalender)</Link>
+              </li>
+              <li>
+                <Link href="/opslagstavle">Opslagstavlen</Link>
+              </li>
+              <li>
                 <Link href="/nyhedsbrev">Nyhedsbrev</Link>
               </li>
               <li>
                 <Link href="/bliv-stoette">Bliv lokal støtte</Link>
               </li>
               <li>
-                <Link href="/priser">Priser & annoncering</Link>
-              </li>
-              <li>
-                <Link href="/kalender">Det sker (Kalender)</Link>
+                <Link href="/bliv-en-del-af-journalistikken">Bliv en del af journalistikken</Link>
               </li>
               <li>
                 <Link href="/soeg">Søg i arkivet</Link>
               </li>
               <li>
-                <Link href="/feed.xml">RSS Feed</Link>
+                <Link href="/feed.xml">RSS-feed</Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Kolonne 3b: Annoncering og samarbejde */}
+          <div className="site-footer-nav-col">
+            <h4 className="site-footer-heading">Annoncering</h4>
+            <ul className="site-footer-links">
+              <li>
+                <Link href="/priser">Priser & annoncering</Link>
+              </li>
+              <li>
+                <Link href="/sponsor">Sponsor & partner</Link>
+              </li>
+              <li>
+                <Link href="/qa">Kilde-Q&A</Link>
+              </li>
+              <li>
+                <Link href="/interview">Kildeinterview</Link>
               </li>
             </ul>
           </div>
@@ -84,7 +117,10 @@ export function SiteFooter({
             <h4 className="site-footer-heading">Om mediet</h4>
             <ul className="site-footer-links">
               <li>
-                <Link href="/om-mediet">Redaktionen & kontakt</Link>
+                <Link href="/om-mediet">Om {siteNavn}</Link>
+              </li>
+              <li>
+                <Link href="/om-mediet/kontakt">Kontakt redaktionen</Link>
               </li>
               <li>
                 <Link href="/om-mediet/redaktionelle-principper">Redaktionelle principper</Link>
@@ -96,26 +132,20 @@ export function SiteFooter({
                 <Link href="/om-mediet/privatliv">Privatliv & databeskyttelse</Link>
               </li>
               <li>
-                <Link href="/redaktion" className="site-footer-admin-link">
-                  Redaktionsadgang
-                </Link>
+                <Link href="/velkommen">Ny her? Velkommen</Link>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Søstersites i netværket */}
-        {netvaerk.length > 0 && (
+        {/* Søstermedier i netværket – rigtige links til målbyens domæne */}
+        {sisterSites.length > 0 && (
           <div className="site-footer-network">
-            <span className="site-footer-network-label">En del af [By]Lokalt-netværket:</span>
+            <span className="site-footer-network-label">Søstermedier i netværket:</span>
             <div className="site-footer-network-links">
-              {netvaerk.map((site) => (
-                <a
-                  key={site.domaene}
-                  href={`/api/site/switch?site=${site.domaene}&redirect=/`}
-                  className="site-footer-network-item"
-                >
-                  {site.navn}
+              {sisterSites.map((s) => (
+                <a key={s.domaene} href={networkHref(s, "/")} className="site-footer-network-item">
+                  {s.navn}
                 </a>
               ))}
             </div>

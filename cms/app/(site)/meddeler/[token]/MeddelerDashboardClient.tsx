@@ -506,11 +506,11 @@ export function MeddelerDashboardClient({ token, profile }: MeddelerDashboardCli
               required
               placeholder={
                 category === "tip"
-                  ? "F.eks. Skjult affaldsdeponi fundet ved Korsør Nor eller nyt butikscenter"
+                  ? "F.eks. Skjult affaldsdeponi fundet ved åen eller nyt butikscenter"
                   : category === "haendelse"
                   ? "F.eks. Vandrørsbrud lukker Vestergade eller brand i industrikvarteret"
                   : category === "sport"
-                  ? "F.eks. Slagelse Håndbold sikrede oprykning med 28-26 sejr"
+                  ? "F.eks. Byens håndboldhold sikrede oprykning med 28-26 sejr"
                   : "Kort, præcis overskrift..."
               }
               value={what}
@@ -565,7 +565,7 @@ export function MeddelerDashboardClient({ token, profile }: MeddelerDashboardCli
               </label>
               <input
                 type="text"
-                placeholder="F.eks. Slagelse By, Skælskør, Korsør..."
+                placeholder="F.eks. bymidten eller dit nabolag..."
                 value={where}
                 onChange={(e) => setWhere(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: "1px solid var(--line)", borderRadius: "6px" }}

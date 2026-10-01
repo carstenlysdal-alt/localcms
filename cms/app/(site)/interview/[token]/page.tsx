@@ -4,6 +4,7 @@ import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { InterviewRunner } from "./InterviewRunner";
 import { Mic, User, ShieldCheck } from "lucide-react";
+import { isAnswered } from "@/lib/validation/status";
 
 export async function generateMetadata({
   params,
@@ -76,15 +77,15 @@ export default async function InterviewRunPage({
             <span
               style={{
                 marginLeft: "auto",
-                background: interview.status === "GENNEMFOERT" ? "#dcfce7" : "#ede9fe",
-                color: interview.status === "GENNEMFOERT" ? "#166534" : "#5b21b6",
+                background: isAnswered("interview", interview.status) ? "#dcfce7" : "#ede9fe",
+                color: isAnswered("interview", interview.status) ? "#166534" : "#5b21b6",
                 padding: "2px 8px",
                 borderRadius: "9999px",
                 fontSize: "11px",
                 fontWeight: "700",
               }}
             >
-              {interview.status === "GENNEMFOERT" ? "Gennemført" : "I gang"}
+              {isAnswered("interview", interview.status) ? "Gennemført" : "I gang"}
             </span>
           </div>
 
@@ -113,7 +114,7 @@ export default async function InterviewRunPage({
           token={token}
           questions={questions}
           initialAnswers={existingAnswers}
-          isCompleted={interview.status === "GENNEMFOERT"}
+          isCompleted={isAnswered("interview", interview.status)}
         />
       </div>
     </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
 import { db } from "@/lib/db";
@@ -7,15 +8,21 @@ import { NewsletterPageForm } from "@/components/site/NewsletterPageForm";
 import { Mail, ShieldCheck, Zap, BellOff } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Nyhedsbrev — Følg med i ${site.navn}`,
-    description: `Modtag de vigtigste lokale nyheder, analyser og debatindlæg fra ${site.kommune} direkte i din indbakke hver morgen.`,
-  };
+  return pageMeta("/nyhedsbrev", (site) => ({
+    title: "Nyhedsbrev",
+    description: `Modtag de vigtigste lokale nyheder fra ${site.kommune} direkte i din indbakke.`,
+  }), { noindex: true });
 }
 
-export default async function NyhedsbrevPage() {
+export default async function NyhedsbrevPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const site = await getCurrentSite();
+  const query = searchParams ? await searchParams : {};
+  const status = typeof query.tilmelding === "string" ? query.tilmelding : null;
+  const besked = typeof query.besked === "string" ? query.besked.slice(0, 160) : null;
 
   const areas = await db.geoTag.findMany({
     where: { instansId: site.id },
@@ -51,6 +58,17 @@ export default async function NyhedsbrevPage() {
             politiske beslutninger og menneskelige historier i {site.kommune}.
           </p>
         </header>
+
+        {status === "ok" && (
+          <div className="site-form-success-card" role="status" aria-live="polite" style={{ marginBottom: "24px" }}>
+            <p style={{ margin: 0 }}>Tak for din tilmelding til {site.navn}s nyhedsbrev!</p>
+          </div>
+        )}
+        {status === "fejl" && (
+          <div className="site-form-alert-error" role="alert" style={{ marginBottom: "24px" }}>
+            <span>{besked || "Tilmeldingen lykkedes ikke. Prøv igen."}</span>
+          </div>
+        )}
 
         {/* Fordele */}
         <div

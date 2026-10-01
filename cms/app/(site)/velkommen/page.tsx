@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Din by. Dine nyheder. Lige ved hånden. — ${site.navn}`,
+  return pageMeta("/velkommen", (site) => ({
+    title: "Velkommen",
     description: `Uafhængig lokaljournalistik, der sætter fællesskabet først i ${site.kommune}.`,
-  };
+  }), { noindex: true });
 }
 
 export default async function VelkommenPage() {
   const site = await getCurrentSite();
 
   return (
-    <main className="site-onboarding-wrapper">
+    <div className="site-onboarding-wrapper">
       {/* Mobil topbar med logo og Spring over */}
       <header className="site-onboarding-mobile-header site-mobile-only">
         <span className="site-brand-logo">
@@ -78,6 +78,6 @@ export default async function VelkommenPage() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

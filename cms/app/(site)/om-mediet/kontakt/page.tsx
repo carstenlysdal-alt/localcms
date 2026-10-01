@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { Mail, MapPin, Send, MessageSquare, AlertCircle } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Kontakt redaktionen og tip os — ${site.navn}`,
+  return pageMeta("/om-mediet/kontakt", (site) => ({
+    title: "Kontakt redaktionen",
     description: `Kontakt ${site.navn}, send en pressemeddelelse eller indsend et anonymt eller åbent tip til redaktionen.`,
-  };
+  }));
 }
 
 export default async function ContactPage() {

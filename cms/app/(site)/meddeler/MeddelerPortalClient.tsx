@@ -380,11 +380,11 @@ export function MeddelerPortalClient({ kommuneNavn }: { kommuneNavn: string }) {
                 required
                 placeholder={
                   category === "tip"
-                    ? "F.eks. Skjult affaldsdeponi fundet ved Korsør Nor eller nyt butikscenter"
+                    ? "F.eks. Skjult affaldsdeponi fundet ved åen eller nyt butikscenter"
                     : category === "haendelse"
                     ? "F.eks. Vandrørsbrud lukker Vestergade eller brand i industrikvarteret"
                     : category === "sport"
-                    ? "F.eks. Slagelse Håndbold sikrede oprykning med 28-26 sejr"
+                    ? "F.eks. Byens håndboldhold sikrede oprykning med 28-26 sejr"
                     : "Kort, præcis overskrift..."
                 }
                 value={what}
@@ -439,7 +439,7 @@ export function MeddelerPortalClient({ kommuneNavn }: { kommuneNavn: string }) {
                 </label>
                 <input
                   type="text"
-                  placeholder="F.eks. Slagelse By, Skælskør, Korsør, Boeslunde..."
+                  placeholder="F.eks. bymidten eller dit nabolag..."
                   value={where}
                   onChange={(e) => setWhere(e.target.value)}
                   style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: "6px" }}

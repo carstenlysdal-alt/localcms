@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import { Newsreader, Inter } from "next/font/google";
 import "@/styles/site.css";
-import { getCurrentSite, ALL_NETWORK_SITES } from "@/lib/site";
+import { getCurrentSite, getNetworkLinks } from "@/lib/site";
 import { getSiteNavigation } from "@/lib/site-queries";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BottomNav } from "@/components/site/BottomNav";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { JsonLd } from "@/components/site/JsonLd";
+import { buildSiteMetadata } from "@/lib/seo/meta";
+import { resolveSeoConfig } from "@/lib/seo/config";
+import { siteGraph } from "@/lib/seo/jsonld";
+import { siteBase } from "@/lib/seo/url";
 
 const newsreader = Newsreader({
   variable: "--font-serif",
@@ -24,13 +29,16 @@ const inter = Inter({
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getCurrentSite();
+  const base = siteBase(site);
+  const meta = await buildSiteMetadata(site);
   return {
-    metadataBase: new URL(`https://${site.domaene}`),
-    title: {
-      default: `${site.navn} — Lokaljournalistik`,
-      template: `%s · ${site.navn}`,
+    ...meta,
+    manifest: "/manifest.webmanifest",
+    icons: {
+      icon: [{ url: "/favicon.ico" }, { url: "/icons/192.png", sizes: "192x192", type: "image/png" }],
+      apple: [{ url: `${base}/icons/180.png`, sizes: "180x180", type: "image/png" }],
     },
-    description: site.tagline || `Uafhængigt lokalt nyhedsmedie for ${site.kommune}.`,
+    other: { "theme-color": site.colors.accent },
   };
 }
 
@@ -41,6 +49,12 @@ export default async function SiteLayout({
 }) {
   const site = await getCurrentSite();
   const { categories, areas } = await getSiteNavigation(site.id);
+  const networkLinks = await getNetworkLinks();
+  // Stier der findes på alle byer (sektioner/undersektioner) – bevares når man skifter by.
+  const sectionPaths = categories.flatMap((c) => [
+    `/${c.slug}`,
+    ...c.children.map((sub) => `/${c.slug}/${sub.slug}`),
+  ]);
 
   // Netværkslinks fra instans
   const netvaerk = Array.isArray(site.netvaerk)
@@ -59,12 +73,15 @@ export default async function SiteLayout({
       className={`site-wrapper ${newsreader.variable} ${inter.variable}`}
       style={styleVariables}
     >
+      {/* Entitet: NewsMediaOrganization + WebSite (SearchAction). Samme @id'er refereres fra artikler/sider. */}
+      <JsonLd data={siteGraph(site, resolveSeoConfig(site), siteBase(site))} />
       <SiteHeader
         siteNavn={site.navn}
         tagline={site.tagline}
         categories={categories.map((c) => ({ id: c.id, navn: c.navn, slug: c.slug }))}
-        networkSites={ALL_NETWORK_SITES}
+        networkSites={networkLinks}
         currentDomaene={site.domaene}
+        sectionPaths={sectionPaths}
       />
 
       <main id="hovedindhold" className="site-main-content">
@@ -80,6 +97,9 @@ export default async function SiteLayout({
         }))}
         areas={areas.map((a) => ({ id: a.id, navn: a.navn, slug: a.slug }))}
         siteNavn={site.navn}
+        networkSites={networkLinks}
+        currentDomaene={site.domaene}
+        sectionPaths={sectionPaths}
       />
 
       <SiteFooter

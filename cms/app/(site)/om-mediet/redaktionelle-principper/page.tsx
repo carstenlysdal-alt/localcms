@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { ShieldCheck, Handshake, AlertCircle, MessageSquare, Bot, Megaphone, CheckCircle2 } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Redaktionelle principper og etik — ${site.navn}`,
+  return pageMeta("/om-mediet/redaktionelle-principper", (site) => ({
+    title: "Redaktionelle principper og etik",
     description: `Læs om ${site.navn}s regler for uafhængighed, kilder, adskillelse af salg og redaktion, samt mærkning af indhold.`,
-  };
+  }));
 }
 
 export default async function EditorialPrinciplesPage() {

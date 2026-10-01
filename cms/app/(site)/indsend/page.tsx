@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
 import { db } from "@/lib/db";
@@ -9,11 +10,10 @@ import { MessageSquarePlus, ShieldCheck, Mail } from "lucide-react";
 import { ThreeStepSubmissionWizard } from "@/components/site/ThreeStepSubmissionWizard";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Indsend historie — ${site.navn}`,
+  return pageMeta("/indsend", (site) => ({
+    title: "Indsend en historie",
     description: `Har du en historie, et tip, et arrangement eller et opslag til ${site.navn}? Vi lytter til vores læsere i ${site.kommune}.`,
-  };
+  }), { noindex: true });
 }
 
 export default async function SubmissionPage({

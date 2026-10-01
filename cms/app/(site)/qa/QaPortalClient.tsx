@@ -177,7 +177,7 @@ export function QaPortalClient({ siteNavn }: { siteNavn: string }) {
                 </label>
                 <input
                   type="text"
-                  placeholder="F.eks. Formand for Slagelse Børneteater"
+                  placeholder="F.eks. Formand for det lokale børneteater"
                   value={kildeRolle}
                   onChange={(e) => setKildeRolle(e.target.value)}
                   style={{ width: "100%", padding: "9px 12px", border: "1px solid var(--line)", borderRadius: "6px" }}

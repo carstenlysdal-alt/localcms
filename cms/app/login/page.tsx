@@ -5,6 +5,6 @@ import { LoginForm } from "./login-form";
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ callbackUrl?: string; error?: string }> }) {
   if ((await auth())?.user) redirect("/redaktion/artikler");
   const params = await searchParams;
-  const callbackUrl = typeof params.callbackUrl === "string" && params.callbackUrl.startsWith("/") ? params.callbackUrl : "/redaktion/artikler";
+  const callbackUrl = typeof params.callbackUrl === "string" && params.callbackUrl.startsWith("/") && !params.callbackUrl.startsWith("//") && !params.callbackUrl.includes("\\") ? params.callbackUrl : "/redaktion/artikler";
   return <main className="login-page"><LoginForm callbackUrl={callbackUrl} /></main>;
 }

@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import { slugCandidates } from "@/lib/seo/url";
+import { searchVariants } from "@/lib/slug";
 import { Prisma } from "@prisma/client";
 import { calculateArticleScore, ArticleDistributionInput } from "@/lib/distribution-engine";
 
@@ -111,7 +113,7 @@ export function formatDateDivider(date: Date | string): string {
   });
 }
 
-function mapArticleToSummary(article: {
+export function mapArticleToSummary(article: {
   id: string;
   titel: string;
   manchet: string | null;
@@ -430,9 +432,11 @@ export async function getSectionData(
     areaSlug?: string;
     page?: number;
     take?: number;
+    /** "mest-laest": sortér efter visninger (ArticleMetric). Øvrige værdier ignoreres. */
+    filter?: string;
   } = {}
 ) {
-  const { subcategorySlug, areaSlug, page = 1, take = 20 } = options;
+  const { subcategorySlug, areaSlug, page = 1, take = 20, filter } = options;
 
   const section = await db.category.findFirst({
     where: { instansId, slug: sectionSlug, parentId: null },
@@ -465,7 +469,10 @@ export async function getSectionData(
     db.article.count({ where }),
     db.article.findMany({
       where,
-      orderBy: [{ pinned: "desc" }, { publiceretTid: "desc" }],
+      orderBy:
+        filter === "mest-laest"
+          ? [{ metric: { visninger: "desc" } }, { publiceretTid: "desc" }]
+          : [{ pinned: "desc" }, { publiceretTid: "desc" }],
       skip: (page - 1) * take,
       take,
       include: {
@@ -542,11 +549,16 @@ export async function getSectionData(
   };
 }
 
+/**
+ * Artikel-opslag. Håndhæver både instans (tenant) og sektion: en artikel findes kun
+ * på sin egen sti `/<sektion>/<slug>`, så `/foo/<slug>` giver null (-> 404) i stedet for
+ * en uendelig række indekserbare dubletter. Slug-param kan være rå eller percent-kodet.
+ */
 export async function getArticleBySlug(instansId: string, sectionSlug: string, slug: string) {
   const article = await db.article.findFirst({
     where: {
       instansId,
-      slug,
+      slug: { in: slugCandidates(slug) },
       status: "Publiceret",
     },
     include: {
@@ -562,6 +574,9 @@ export async function getArticleBySlug(instansId: string, sectionSlug: string, s
   });
 
   if (!article) return null;
+
+  const ownSection = article.kategori?.parent?.slug ?? article.kategori?.slug ?? "nyheder";
+  if (ownSection !== sectionSlug) return null;
 
   const relaterede = await db.article.findMany({
     where: {
@@ -723,6 +738,24 @@ export async function getAuthorArticles(
   };
 }
 
+function buildSearchWordFilters(query: string): Prisma.ArticleWhereInput[] {
+  const words = query.split(/\s+/).filter(Boolean).slice(0, 6);
+  return words.map((word) => {
+    const variants = new Set<string>();
+    for (const v of searchVariants(word)) {
+      variants.add(v);
+      // SQLite LIKE er kun case-insensitiv for ASCII: tilføj også version med stort begyndelsesbogstav (Å, Ø, Æ).
+      variants.add(v.charAt(0).toUpperCase() + v.slice(1));
+    }
+    return {
+      OR: Array.from(variants).flatMap((v) => [
+        { titel: { contains: v } },
+        { manchet: { contains: v } },
+      ]),
+    };
+  });
+}
+
 export async function searchSiteArticles(
   instansId: string,
   query: string,
@@ -739,14 +772,8 @@ export async function searchSiteArticles(
   const where: Prisma.ArticleWhereInput = {
     instansId,
     status: "Publiceret",
-    ...(q
-      ? {
-          OR: [
-            { titel: { contains: q } },
-            { manchet: { contains: q } },
-          ],
-        }
-      : {}),
+    // Diakritik-ufølsom søgning: hvert ord matches i alle varianter (byraad ~ byråd), alle ord skal findes.
+    ...(q ? { AND: buildSearchWordFilters(q) } : {}),
     ...(sectionSlug
       ? {
           kategori: {

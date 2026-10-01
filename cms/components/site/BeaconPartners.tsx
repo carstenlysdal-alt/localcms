@@ -2,71 +2,31 @@ import Link from "next/link";
 
 interface BeaconPartnersProps {
   kommuneNavn: string;
+  /** Aktive støttepartnere for netop denne by (fra støtteaftaler i databasen). */
+  partners?: string[];
 }
 
-// Fyrtårnspartnere tilpasset hver kommune
-const LOCAL_PARTNERS: Record<string, string[]> = {
-  Slagelse: [
-    "Slagelse Sparekasse",
-    "Korsør Erhvervsforening",
-    "Skælskør Bypulje",
-    "Vestsjællands Boligselskab",
-    "Sparekassen Sjælland-Fyn",
-  ],
-  Næstved: [
-    "Møn Sparekasse",
-    "Næstved Erhvervsforening",
-    "Fjordens Venner",
-    "Karrebæk Brolaug",
-    "Næstved Håndværkerforening",
-  ],
-  Holbæk: [
-    "Sparekassen Sjælland Holbæk",
-    "Holbæk Byforum",
-    "Sidesporet Kulturfond",
-    "Tølløse Borgerforening",
-    "Nordvestsjællands Erhvervsråd",
-  ],
-  Ringsted: [
-    "Ringsted Erhvervsforum",
-    "Midtsjællands Sparekasse",
-    "Kværkeby Udvikling",
-    "Ringsted Idrætsunion",
-    "Sjællandske Ildsjæle",
-  ],
-  Køge: [
-    "Køge Handel & Erhverv",
-    "Køge Bugt Sparekasse",
-    "Herfølge Fællesskab",
-    "Køge Kyst Partnerskab",
-    "Østsjællandske Medier",
-  ],
-  Roskilde: [
-    "Roskilde Festival Fonden",
-    "Sparekassen Sjælland Roskilde",
-    "Roskilde Erhvervsråd",
-    "Trekroner Bynetværk",
-    "Fjordlandets Kulturforening",
-  ],
-};
-
-export function BeaconPartners({ kommuneNavn }: BeaconPartnersProps) {
-  const partners = LOCAL_PARTNERS[kommuneNavn] || LOCAL_PARTNERS.Slagelse;
-
+export function BeaconPartners({ kommuneNavn, partners = [] }: BeaconPartnersProps) {
   return (
     <section className="site-beacon-partners-section" aria-label="Fyrtårnspartnere">
-      <div className="site-beacon-header">
-        FYRTÅRNSPARTNERE · MED TIL AT GØRE LOKALJOURNALISTIK MULIG
-      </div>
-      <div className="site-beacon-grid">
-        {partners.map((partner, idx) => (
-          <div key={idx} className="b site-beacon-card">
-            <span className="site-beacon-name">{partner}</span>
+      {partners.length > 0 ? (
+        <>
+          <div className="site-beacon-header">
+            FYRTÅRNSPARTNERE · MED TIL AT GØRE LOKALJOURNALISTIK I {kommuneNavn.toUpperCase()} MULIG
           </div>
-        ))}
-      </div>
+          <div className="site-beacon-grid">
+            {partners.map((partner) => (
+              <div key={partner} className="b site-beacon-card">
+                <span className="site-beacon-name">{partner}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="site-beacon-header">STØT LOKALJOURNALISTIKKEN I {kommuneNavn.toUpperCase()}</div>
+      )}
       <div className="site-beacon-footer">
-        <Link href="/stoet" className="site-beacon-link">
+        <Link href="/bliv-stoette" className="site-beacon-link">
           Vil din virksomhed også støtte lokaljournalistikken? Læs om støtteaftaler her →
         </Link>
       </div>

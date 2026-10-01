@@ -4,20 +4,17 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentSite } from "@/lib/site";
 import { revalidatePath } from "next/cache";
+import { guardPublicAction } from "@/lib/ratelimit/guard";
+import { contactSchema, longText, plain } from "@/lib/validation/public";
+import { isSafePublicUrl } from "@/lib/validation/text";
 
 const submissionSchema = z.object({
-  navn: z.string().trim().min(2, "Angiv venligst dit navn (mindst 2 tegn)."),
-  kontakt: z
-    .string()
-    .trim()
-    .min(5, "Angiv venligst en gyldig e-mailadresse eller et telefonnummer."),
-  emne: z.string().trim().min(3, "Angiv et emne eller en overskrift for historien."),
-  tekst: z
-    .string()
-    .trim()
-    .min(10, "Beskriv venligst sagen eller historien (mindst 10 tegn)."),
-  omraadeId: z.string().optional().nullable(),
-  billeder: z.string().optional().nullable(),
+  navn: plain(120, 2).refine((v) => v.length >= 2, "Angiv venligst dit navn (mindst 2 tegn)."),
+  kontakt: contactSchema,
+  emne: plain(200, 3),
+  tekst: longText(10_000, 10),
+  omraadeId: z.string().max(64).optional().nullable(),
+  billeder: z.string().max(4000).optional().nullable(),
   rettigheder: z.boolean().refine((v) => v === true, {
     message: "Du skal bekræfte rettighederne til det indsendte materiale.",
   }),
@@ -35,12 +32,14 @@ export async function submitCitizenProposal(
   formData: FormData
 ): Promise<SubmissionActionResult> {
   try {
-    // 1. Spamværn: Honeypot-tjek (bots udfylder skjulte felter)
-    const honeypot = formData.get("_hp_website")?.toString().trim();
-    if (honeypot) {
-      // Diskret afvisning af bot
-      return { success: false, error: "Indsendelse kunne ikke valideres." };
-    }
+    // 1. Spamværn: honeypot (skjult felt) + rate limit pr. IP (5 indsendelser / 30 min)
+    const guard = await guardPublicAction({
+      action: "indsend",
+      limit: 5,
+      windowMs: 30 * 60_000,
+      honeypot: formData.get("_hp_website")?.toString(),
+    });
+    if (!guard.ok) return { success: false, error: guard.error };
 
     // 2. Valider input
     const rawData = {
@@ -83,7 +82,8 @@ export async function submitCitizenProposal(
       billederArray = billeder
         .split(/[\n,]+/)
         .map((s) => s.trim())
-        .filter((s) => s.startsWith("http://") || s.startsWith("https://") || s.startsWith("/"));
+        .filter((s) => isSafePublicUrl(s))
+        .slice(0, 10);
     }
 
     // 5. Gem i databasen som "Ny" i indbakken

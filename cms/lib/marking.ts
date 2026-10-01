@@ -93,3 +93,14 @@ export function assertPublishableMarking(indholdstype: string, marking: unknown)
   const result = validateMarking(indholdstype, marking);
   if (!result.success) throw new Error(result.error);
 }
+
+/**
+ * AI-assisteret indhold må ikke ligge i Krimi og retsvæsen eller Sundhed uden journalistisk gennemskrivning.
+ * Delt regel for redaktørens editor (artikler/actions.ts) og agent-indtaget (lib/ingest).
+ */
+export function isAiRestrictedCategory(category: { slug?: string | null; navn?: string | null } | null | undefined): boolean {
+  if (!category) return false;
+  const slug = (category.slug ?? "").toLowerCase();
+  const navn = (category.navn ?? "").toLowerCase();
+  return slug === "krimi-og-retsvaesen" || slug === "sundhed" || navn.includes("krimi") || navn.includes("sundhed");
+}

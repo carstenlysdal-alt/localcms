@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { getCurrentSite } from "@/lib/site";
 import { db } from "@/lib/db";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { BrugerprofilClient } from "@/components/site/BrugerprofilClient";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Min brugerprofil — ${site.navn}`,
-    description: `Administrér dine personlige præferencer, fulgte emner, nyhedsbreve og gemte artikler på ${site.navn}.`,
-  };
+  return pageMeta("/profil", (site) => ({
+    title: "Min brugerprofil",
+    description: `Administrér dine præferencer, fulgte emner, nyhedsbreve og gemte artikler på ${site.navn}.`,
+  }), { noindex: true });
 }
 
 export default async function BrugerprofilPage() {

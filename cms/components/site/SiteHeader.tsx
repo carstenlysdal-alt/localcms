@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Heart, MapPin, ChevronDown, Check, User, Bookmark } from "lucide-react";
-import { ALL_NETWORK_SITES, type NetworkSiteSummary } from "@/lib/network-sites";
+import { Search, Heart, User, Bookmark } from "lucide-react";
+import { ALL_NETWORK_SITES, networkHref, type NetworkSiteLink } from "@/lib/network-sites";
 
 type CategoryItem = {
   id: string;
@@ -16,16 +16,19 @@ type SiteHeaderProps = {
   siteNavn: string;
   tagline?: string;
   categories: CategoryItem[];
-  networkSites?: NetworkSiteSummary[];
+  networkSites?: NetworkSiteLink[];
   currentDomaene?: string;
+  /** Sektion-/undersektionsstier der findes på alle byer (bevares ved byskift). */
+  sectionPaths?: string[];
 };
 
 export function SiteHeader({
   siteNavn,
   tagline,
   categories,
-  networkSites = ALL_NETWORK_SITES,
+  networkSites = ALL_NETWORK_SITES.map((s) => ({ ...s, origin: `https://${s.domaene}` })),
   currentDomaene,
+  sectionPaths = [],
 }: SiteHeaderProps) {
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -35,8 +38,6 @@ export function SiteHeader({
   // f.eks. /nyheder/... matcher kategorien med slug 'nyheder'
   const activeSectionSlug = pathname.split("/")[1] || "";
 
-  // Find aktuelt site i listen
-  const currentSite = networkSites.find((s) => s.domaene === currentDomaene) || networkSites[0];
 
   // Luk dropdown ved klik uden for eller Escape
   useEffect(() => {
@@ -72,7 +73,7 @@ export function SiteHeader({
         <div className="site-network-bar">
           <div className="site-container site-network-bar-inner">
             <div className="site-network-bar-label">
-              <span>[By]Lokalt netværket:</span>
+              <span>Søstermedier:</span>
             </div>
             <ul className="site-network-bar-list">
               {networkSites.map((s) => {
@@ -86,7 +87,7 @@ export function SiteHeader({
                       </span>
                     ) : (
                       <a
-                        href={`/api/site/switch?site=${s.domaene}&redirect=${encodeURIComponent(pathname)}`}
+                        href={networkHref(s, pathname, sectionPaths)}
                         className="site-network-bar-link"
                         title={`Skift til ${s.navn}`}
                       >
@@ -136,30 +137,48 @@ export function SiteHeader({
                     </li>
                   );
                 })}
+                <li>
+                  <Link
+                    href="/omraade"
+                    className={`site-header-primary-link ${activeSectionSlug === "omraade" ? "is-active" : ""}`}
+                    aria-current={activeSectionSlug === "omraade" ? "page" : undefined}
+                  >
+                    Områder
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/kalender"
+                    className={`site-header-primary-link ${activeSectionSlug === "kalender" ? "is-active" : ""}`}
+                    aria-current={activeSectionSlug === "kalender" ? "page" : undefined}
+                  >
+                    Kalender
+                  </Link>
+                </li>
               </ul>
             </nav>
           </div>
 
           <div className="site-header-actions">
-            {/* Desktop Søg */}
-            <Link href="/soeg" className="site-header-action-btn site-desktop-only" aria-label="Søg på sitet">
-              <Search size={16} />
+            {/* Søg: ikon alene på alle skærme (label kun på brede skærme) */}
+            <Link href="/soeg" className="site-header-action-btn" aria-label="Søg på sitet">
+              <Search size={18} aria-hidden="true" />
               <span className="site-action-label">Søg</span>
             </Link>
 
-            {/* Desktop Indsend historie (solid terrakotta pill) */}
-            <Link href="/indsend" className="site-header-btn-solid site-desktop-only" aria-label="Indsend historie">
-              <span>Indsend historie</span>
+            {/* Indsend = sekundær handling (outline) fra tablet og op */}
+            <Link href="/indsend" className="site-header-btn-indsend-outline site-cta-tablet-up">
+              <span>Indsend</span>
             </Link>
 
-            {/* Desktop Støt (solid terrakotta pill med hjerte) */}
-            <Link href="/bliv-stoette" className="site-header-btn-solid site-desktop-only" title="Bliv støtte">
-              <Heart size={14} fill="currentColor" />
+            {/* Støt = primær handling (fyldt accent), altid synlig */}
+            <Link href="/bliv-stoette" className="site-header-btn-solid site-header-btn-support-primary">
+              <Heart size={14} fill="currentColor" aria-hidden="true" />
               <span>Støt</span>
             </Link>
 
             {/* Desktop Bogmærker / Gemte */}
-            <Link href="/gemte" className="site-header-icon-btn site-desktop-only" aria-label="Gemte artikler" title="Gemte artikler">
+            <Link href="/gemte" className="site-header-icon-btn site-desktop-only site-header-icon-saved" aria-label="Gemte artikler" title="Gemte artikler">
               <Bookmark size={18} />
             </Link>
 
@@ -167,28 +186,12 @@ export function SiteHeader({
             <Link href="/profil" className="site-header-icon-btn site-desktop-only" aria-label="Min profil" title="Min profil">
               <User size={18} />
             </Link>
-
-            {/* Desktop Slogan til højre jf. mockup */}
-            <div className="site-header-slogan site-desktop-only" aria-hidden="true">
-              <span>Lokaljournalistik,</span>
-              <span>der sætter fællesskabet først</span>
-            </div>
-
-            {/* Mobil Søg icon */}
-            <Link href="/soeg" className="site-header-mobile-icon-btn site-mobile-only" aria-label="Søg">
-              <Search size={20} />
-            </Link>
-
-            {/* Mobil Profil/Konto icon */}
-            <Link href="/profil" className="site-header-mobile-profile-btn site-mobile-only" aria-label="Min profil">
-              <User size={19} />
-            </Link>
           </div>
         </div>
       </div>
 
       {/* Mobil sekundær navigation (vandret scroll med kategorier) */}
-      <nav className="site-header-mobile-nav site-mobile-only" aria-label="Kategorier mobil">
+      <nav className="site-header-mobile-nav site-mobile-only" aria-label="Sektioner">
         <div className="site-header-mobile-scroll">
           {categories.map((cat) => {
             const isActive = activeSectionSlug === cat.slug;
@@ -197,16 +200,32 @@ export function SiteHeader({
                 key={cat.id}
                 href={`/${cat.slug}`}
                 className={`site-header-mobile-link ${isActive ? "is-active" : ""}`}
+                aria-current={isActive ? "page" : undefined}
               >
                 {cat.navn}
               </Link>
             );
           })}
           <Link
-            href="/bliv-en-del-af-journalistikken"
-            className="site-header-mobile-link"
+            href="/omraade"
+            className={`site-header-mobile-link ${activeSectionSlug === "omraade" ? "is-active" : ""}`}
+            aria-current={activeSectionSlug === "omraade" ? "page" : undefined}
           >
-            Mere
+            Områder
+          </Link>
+          <Link
+            href="/kalender"
+            className={`site-header-mobile-link ${activeSectionSlug === "kalender" ? "is-active" : ""}`}
+            aria-current={activeSectionSlug === "kalender" ? "page" : undefined}
+          >
+            Kalender
+          </Link>
+          <Link
+            href="/om-mediet"
+            className={`site-header-mobile-link ${activeSectionSlug === "om-mediet" ? "is-active" : ""}`}
+            aria-current={activeSectionSlug === "om-mediet" ? "page" : undefined}
+          >
+            Om mediet
           </Link>
         </div>
       </nav>

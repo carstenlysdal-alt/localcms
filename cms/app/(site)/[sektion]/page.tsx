@@ -1,7 +1,13 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getCurrentSite } from "@/lib/site";
 import { getSectionData, getSiteNavigation, formatDateDivider } from "@/lib/site-queries";
+import { db } from "@/lib/db";
+import { JsonLd } from "@/components/site/JsonLd";
+import { analyzeQuery, buildPageMetadata } from "@/lib/seo/meta";
+import { sectionCollection } from "@/lib/seo/jsonld";
+import { encodeSegment, siteBase } from "@/lib/seo/url";
+import { stripHtml } from "@/lib/seo/escape";
 import { SectionHeader } from "@/components/site/SectionHeader";
 import { ArticleCard } from "@/components/site/ArticleCard";
 import { DateDivider } from "@/components/site/DateDivider";
@@ -10,21 +16,61 @@ import { NewsletterSignup } from "@/components/site/NewsletterSignup";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
+// Gamle emne-links (/nyheder?emne=trafik) pegede på samme side; de omdirigeres nu til de rigtige undersektioner.
+const LEGACY_TOPIC_REDIRECTS: Record<string, string> = {
+  nabolag: "/omraade",
+  sundhed: "/nyheder/sundhed",
+  skole: "/nyheder/skole-og-boern",
+  trafik: "/nyheder/trafik",
+  krimi: "/nyheder/krimi-og-retsvaesen",
+  bolig: "/nyheder/bolig-og-byudvikling",
+  natur: "/nyheder/natur-og-klima",
+  politik: "/nyheder/politik",
+};
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ sektion: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { sektion } = await params;
+  const query = searchParams ? await searchParams : {};
   const site = await getCurrentSite();
-  const data = await getSectionData(site.id, sektion);
-  if (!data) return {};
+  const section = await db.category.findFirst({
+    where: { instansId: site.id, slug: sektion, parentId: null },
+    include: { children: { select: { id: true } } },
+  });
+  if (!section) return {};
 
-  return {
-    title: data.section.navn,
-    description:
-      data.section.beskrivelse || `Seneste lokale nyheder om ${data.section.navn.toLowerCase()} i ${site.kommune}.`,
+  // Filtrerede visninger (?omraade, ?filter, ?emne …) er dubletter: canonical til ren URL + noindex,follow.
+  const { page, hasFilter } = analyzeQuery(query);
+  const where = {
+    instansId: site.id,
+    status: "Publiceret",
+    kategoriId: { in: [section.id, ...section.children.map((c) => c.id)] },
   };
+  const [count, top] = await Promise.all([
+    db.article.count({ where }),
+    db.article.findMany({ where, orderBy: { publiceretTid: "desc" }, take: 3, select: { titel: true } }),
+  ]);
+  const headlines = top.map((t) => stripHtml(t.titel)).join(" · ");
+
+  return buildPageMetadata({
+    site,
+    path: `/${encodeSegment(section.slug)}`,
+    title: `${section.navn} fra ${site.kommune} – seneste lokale historier`,
+    description:
+      section.beskrivelse && section.beskrivelse.length >= 70
+        ? section.beskrivelse
+        : `${section.beskrivelse ? `${section.beskrivelse}. ` : ""}Seneste lokale ${section.navn.toLowerCase()} fra ${site.kommune}${headlines ? `: ${headlines}` : "."}`,
+    page,
+    totalPages: Math.ceil(count / 15),
+    hasFilter,
+    noindex: count < 1,
+    feeds: [{ path: `/${encodeSegment(section.slug)}/feed.xml`, title: `${section.navn} – ${site.navn}` }],
+  });
 }
 
 export default async function SectionPage({
@@ -39,10 +85,15 @@ export default async function SectionPage({
   const site = await getCurrentSite();
 
   const areaSlug = typeof query.omraade === "string" ? query.omraade : undefined;
+  const filter = typeof query.filter === "string" ? query.filter : undefined;
+  const legacyEmne = typeof query.emne === "string" ? query.emne : undefined;
+  if (legacyEmne && LEGACY_TOPIC_REDIRECTS[legacyEmne]) {
+    permanentRedirect(LEGACY_TOPIC_REDIRECTS[legacyEmne]);
+  }
   const page = typeof query.side === "string" ? parseInt(query.side, 10) || 1 : 1;
 
   const [sectionData, { areas }] = await Promise.all([
-    getSectionData(site.id, sektion, { areaSlug, page, take: 15 }),
+    getSectionData(site.id, sektion, { areaSlug, page, take: 15, filter }),
     getSiteNavigation(site.id),
   ]);
 
@@ -77,6 +128,17 @@ export default async function SectionPage({
 
   return (
     <div className="site-section-page">
+      <JsonLd
+        data={sectionCollection(
+          {
+            sektion: { navn: section.navn, slug: section.slug },
+            name: `${section.navn} fra ${site.kommune}`,
+            description: section.beskrivelse ?? undefined,
+            items: sectionData.alleArtikler.map((a) => ({ href: a.href })),
+          },
+          siteBase(site),
+        )}
+      />
       <div className="site-container">
         {/* Sektionshoved med piller og områdefilter */}
         <SectionHeader
@@ -87,6 +149,12 @@ export default async function SectionPage({
           omraader={areas.map((a) => ({ id: a.id, navn: a.navn, slug: a.slug }))}
           valgtOmraadeSlug={areaSlug}
         />
+
+        {filter === "mest-laest" && (
+          <p style={{ margin: "0 0 12px 0", fontSize: 14, color: "var(--ink-2)" }}>
+            Sorteret efter mest læst. <Link href={`/${section.slug}`} style={{ textDecoration: "underline" }}>Vis seneste i stedet</Link>
+          </p>
+        )}
 
         <div className="site-section-layout">
           {/* Hovedspalte */}
@@ -303,6 +371,26 @@ export default async function SectionPage({
                     </li>
                   ))}
                 </ol>
+              </div>
+            )}
+
+            {areas.length > 0 && (
+              <div className="site-most-read-card">
+                <h3 className="site-most-read-heading">Områder i {site.kommune}</h3>
+                <ul className="site-most-read-list" style={{ listStyle: "none", padding: 0 }}>
+                  {areas.map((a) => (
+                    <li key={a.id} className="site-most-read-item">
+                      <Link href={`/omraade/${a.slug}`} className="site-most-read-link">
+                        {a.navn}
+                      </Link>
+                    </li>
+                  ))}
+                  <li className="site-most-read-item">
+                    <Link href="/omraade" className="site-most-read-link">
+                      Alle områder →
+                    </Link>
+                  </li>
+                </ul>
               </div>
             )}
 

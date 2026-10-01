@@ -56,6 +56,13 @@ export function NewsletterPageForm({
 
   return (
     <form action={formAction} className="site-form-card" noValidate>
+      {/* Honeypot mod spam-robotter: skjult for brugere */}
+      <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
+        <label>
+          Lad dette felt være tomt
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </label>
+      </div>
       {state?.error && (
         <div className="site-form-alert-error" role="alert">
           <AlertCircle size={18} style={{ flexShrink: 0 }} />

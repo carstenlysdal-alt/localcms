@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { SavedArticlesClient } from "@/components/site/SavedArticlesClient";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Gemte artikler — ${site.navn}`,
-    description: `Dine gemte artikler på ${site.navn}. Læs offline og genfind dine yndlingshistorier.`,
-  };
+  return pageMeta("/gemte", (site) => ({
+    title: "Gemte artikler",
+    description: `Dine gemte artikler på ${site.navn}.`,
+  }), { noindex: true });
 }
 
 export default async function GemteArtiklerPage() {

@@ -1,4 +1,9 @@
 import { notFound } from "next/navigation";
+import { analyzeQuery, buildPageMetadata } from "@/lib/seo/meta";
+import { MIN_ARTICLES_FOR_INDEX } from "@/lib/seo/pages";
+import { profilePage } from "@/lib/seo/jsonld";
+import { encodeSegment, siteBase } from "@/lib/seo/url";
+import { JsonLd } from "@/components/site/JsonLd";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getCurrentSite } from "@/lib/site";
@@ -10,18 +15,29 @@ import { LoadMore } from "@/components/site/LoadMore";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const { page, hasFilter } = analyzeQuery(searchParams ? await searchParams : {});
   const site = await getCurrentSite();
-  const data = await getAuthorArticles(site.id, slug);
+  const data = await getAuthorArticles(site.id, slug, { page, take: 15 });
   if (!data) return {};
-
-  return {
-    title: `${data.author.navn} — Journalistprofil`,
-    description: data.author.bio || `Artikler og dækning af ${data.author.navn} på ${site.navn}.`,
-  };
+  const [first, ...rest] = data.author.navn.trim().split(/\s+/);
+  return buildPageMetadata({
+    site,
+    path: `/forfatter/${encodeSegment(data.author.slug ?? slug)}`,
+    title: `${data.author.navn} – journalist`,
+    description: data.author.bio || `Artikler og dækning af ${data.author.navn} på ${site.navn} i ${site.kommune}.`,
+    type: "profile",
+    profile: { firstName: first, lastName: rest.join(" ") || undefined },
+    page,
+    totalPages: data.totalPages,
+    hasFilter,
+    noindex: data.totalCount < MIN_ARTICLES_FOR_INDEX.forfatter,
+  });
 }
 
 export default async function AuthorPage({
@@ -56,6 +72,18 @@ export default async function AuthorPage({
 
   return (
     <div className="site-page-container" style={{ padding: "24px 0 64px 0" }}>
+      <JsonLd
+        data={profilePage(
+          {
+            slug: author.slug ?? slug,
+            navn: author.navn,
+            bio: author.bio,
+            profilbilledeUrl: author.profilbilledeUrl,
+            dateModified: artikler[0]?.publiceretTid ?? null,
+          },
+          siteBase(site),
+        )}
+      />
       <div className="site-container">
         <Breadcrumbs
           items={[

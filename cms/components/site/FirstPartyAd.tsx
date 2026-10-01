@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
+import { safeHref } from "@/lib/html-sanitize";
 import { ArrowUpRight, Calendar } from "lucide-react";
 
 export interface FirstPartyAdProps {
@@ -48,7 +50,8 @@ export function FirstPartyAd({ campaign }: FirstPartyAdProps) {
     } catch {}
   };
 
-  const { overskrift, manchet, ctaTekst = "Læs mere", linkUrl = "#", badgeTekst = "ANNONCE" } = campaign.kreativData;
+  const { overskrift, manchet, ctaTekst = "Læs mere", badgeTekst = "ANNONCE" } = campaign.kreativData;
+  const linkUrl = safeHref(campaign.kreativData.linkUrl) ?? "#";
 
   // Format: EVENT_POST
   if (campaign.format === "EVENT_POST") {
@@ -137,10 +140,13 @@ export function FirstPartyAd({ campaign }: FirstPartyAdProps) {
             justifyContent: "center",
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={campaign.kreativData.billedeUrl}
             alt={campaign.annoncoer}
+            width={320}
+            height={200}
+            sizes="160px"
+            unoptimized={!campaign.kreativData.billedeUrl.startsWith("/")}
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         </div>

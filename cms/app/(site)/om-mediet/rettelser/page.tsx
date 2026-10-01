@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
 import { db } from "@/lib/db";
@@ -7,11 +8,10 @@ import { formatFullDate } from "@/lib/site-queries";
 import { AlertCircle, CheckCircle, Mail } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Rettelser og præciseringer — ${site.navn}`,
+  return pageMeta("/om-mediet/rettelser", (site) => ({
+    title: "Rettelser og præciseringer",
     description: `Offentlig log over faktuelle rettelser og præciseringer i artikler på ${site.navn}.`,
-  };
+  }));
 }
 
 export default async function CorrectionsPage() {

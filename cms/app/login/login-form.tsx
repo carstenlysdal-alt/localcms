@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { login, type LoginState } from "@/app/actions/auth";
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
@@ -14,7 +15,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
       <div className="field"><label htmlFor="password">Adgangskode</label><input className="input" id="password" name="password" type="password" autoComplete="current-password" required /></div>
       {state.error && <p className="error-text" role="alert">{state.error}</p>}
       <button className="btn btn-primary btn-block" disabled={pending}>{pending ? "Logger ind…" : "Log ind"}</button>
-      <p className="help-text">Demooplysninger og lokal opsætning findes i README.</p>
+      <p className="help-text">Kun for redaktionens medarbejdere. <Link href="/">← Tilbage til forsiden</Link></p>
     </form>
   );
 }

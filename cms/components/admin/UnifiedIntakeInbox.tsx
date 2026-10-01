@@ -26,6 +26,7 @@ import {
   convertMeddelerSagToArticle,
   convertSubmissionToArticle,
 } from "@/app/redaktion/indbakke/actions";
+import { isNewIntakeStatus } from "@/lib/validation/status";
 
 export type IntakeItem = {
   id: string;
@@ -171,7 +172,7 @@ export function UnifiedIntakeInbox({ items }: UnifiedIntakeInboxProps) {
             const isExpanded = expandedId === item.id;
             const isConverting = loadingItemId === item.id;
             const hasArticle = !!item.articleId || !!item.article;
-            const isNew = item.status === "Ny" || item.status === "AFVENTER_SVAR" || item.status === "OPRETTET" || item.status === "BriefModtaget" || item.status === "Modtaget";
+            const isNew = isNewIntakeStatus(item.status);
 
             return (
               <div

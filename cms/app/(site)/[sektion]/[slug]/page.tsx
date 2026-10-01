@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { cache } from "react";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,56 +19,97 @@ import { ArticleCard } from "@/components/site/ArticleCard";
 import { DateDivider } from "@/components/site/DateDivider";
 import { LoadMore } from "@/components/site/LoadMore";
 import { NewsletterSignup } from "@/components/site/NewsletterSignup";
+import { ArticleEndCta } from "@/components/site/ArticleEndCta";
 import { SiteBlockRenderer, normalizeHtml } from "@/components/site/blocks/SiteBlockRenderer";
 import { parseBlocks } from "@/lib/blocks/schema";
 import { db } from "@/lib/db";
 import { BookmarkButton } from "@/components/site/BookmarkButton";
-import { AlertCircle, ChevronLeft, Share2, MoreHorizontal } from "lucide-react";
+import { AlertCircle, ChevronLeft } from "lucide-react";
 import { MetricTracker } from "@/components/site/MetricTracker";
+import { JsonLd } from "@/components/site/JsonLd";
+import { ShareButton } from "@/components/site/ShareButton";
+import { buildPageMetadata, analyzeQuery } from "@/lib/seo/meta";
+import { resolveSeoConfig } from "@/lib/seo/config";
+import { articleGraph, articleImageUrl, creditLabel, sectionCollection } from "@/lib/seo/jsonld";
+import { encodeSegment, articlePath, siteBase } from "@/lib/seo/url";
+import { fitTitle, stripHtml } from "@/lib/seo/escape";
+
+// Dedupér DB-opslag mellem generateMetadata og selve siden (samme request).
+const loadSection = cache(async (instansId: string, sektion: string) =>
+  db.category.findFirst({
+    where: { instansId, slug: sektion, parentId: null },
+    include: { children: { orderBy: { sortering: "asc" } } },
+  }),
+);
+const loadArticle = cache(getArticleBySlug);
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ sektion: string; slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { sektion, slug } = await params;
+  const query = searchParams ? await searchParams : {};
   const site = await getCurrentSite();
+  const base = siteBase(site);
 
   // Tjek først om det er en undersektion
-  const section = await db.category.findFirst({
-    where: { instansId: site.id, slug: sektion, parentId: null },
-    include: { children: true },
-  });
+  const section = await loadSection(site.id, sektion);
+  const sub = section?.children.find((c) => c.slug === slug);
 
-  if (section) {
-    const sub = section.children.find((c) => c.slug === slug);
-    if (sub) {
-      return {
-        title: `${sub.navn} — ${section.navn}`,
-        description: `Nyheder om ${sub.navn.toLowerCase()} i ${site.kommune}.`,
-      };
-    }
+  if (section && sub) {
+    const { page, hasFilter } = analyzeQuery(query);
+    const where = { instansId: site.id, status: "Publiceret", kategoriId: sub.id };
+    const [count, top] = await Promise.all([
+      db.article.count({ where }),
+      db.article.findMany({ where, orderBy: { publiceretTid: "desc" }, take: 3, select: { titel: true } }),
+    ]);
+    const headlines = top.map((t) => stripHtml(t.titel)).join(" · ");
+    return buildPageMetadata({
+      site,
+      path: `/${encodeSegment(section.slug)}/${encodeSegment(sub.slug)}`,
+      title: `${sub.navn} i ${site.kommune} – ${section.navn}`,
+      description:
+        sub.beskrivelse ||
+        `Seneste ${sub.navn.toLowerCase()}-historier fra ${site.kommune}${headlines ? `: ${headlines}` : "."}`,
+      page,
+      totalPages: Math.ceil(count / 15),
+      hasFilter,
+      noindex: count < 1,
+      feeds: [{ path: `/${encodeSegment(section.slug)}/${encodeSegment(sub.slug)}/feed.xml`, title: `${sub.navn} – ${site.navn}` }],
+    });
   }
 
-  // Ellers tjek artikel
-  const articleData = await getArticleBySlug(site.id, sektion, slug);
+  // Ellers tjek artikel (kun på sin egen sektion-sti)
+  const articleData = await loadArticle(site.id, sektion, slug);
   if (articleData) {
-    const { article } = articleData;
-    return {
-      title: article.seoTitel || article.titel,
-      description: article.seoBeskrivelse || article.manchet || undefined,
-      openGraph: {
-        title: article.titel,
-        description: article.manchet || undefined,
-        type: "article",
-        publishedTime: article.publiceretTid?.toISOString(),
-        modifiedTime: article.opdateretTid?.toISOString(),
-        images: article.coverMedia ? [{ url: article.coverMedia.url }] : [],
+    const { article, summary } = articleData;
+    const cover = article.coverMedia;
+    const version = article.opdateretTid?.getTime();
+    return buildPageMetadata({
+      site,
+      path: articlePath(summary.sektion.slug, article.slug),
+      title: fitTitle(article.seoTitel || article.titel, 60),
+      ogTitle: stripHtml(article.titel),
+      description: article.seoBeskrivelse || article.manchet,
+      type: "article",
+      image: {
+        url: articleImageUrl(base, article.slug, "og", version),
+        alt: cover?.altTekst || stripHtml(article.titel),
+        width: 1200,
+        height: 630,
       },
-      alternates: {
-        canonical: `https://${site.domaene}/${sektion}/${slug}`,
+      article: {
+        publishedTime: article.publiceretTid,
+        modifiedTime: article.opdateretTid,
+        authorUrls: article.forfatter?.slug ? [`${base}/forfatter/${encodeSegment(article.forfatter.slug)}`] : undefined,
+        section: summary.sektion.navn,
+        tags: [...article.tags.map((t) => t.navn)],
       },
-    };
+      feeds: [{ path: `/${encodeSegment(summary.sektion.slug)}/feed.xml`, title: `${summary.sektion.navn} – ${site.navn}` }],
+    });
   }
 
   return {};
@@ -84,11 +126,13 @@ export default async function SectionOrArticlePage({
   const query = await searchParams;
   const site = await getCurrentSite();
 
+  // Store bogstaver i sektionsstien (/NYHEDER/...) -> 308 til den rigtige sti.
+  if (sektion !== sektion.toLowerCase()) {
+    permanentRedirect(`/${encodeSegment(sektion.toLowerCase())}/${encodeSegment(slug)}`);
+  }
+
   // 1. Tjek om slug matcher en undersektion i den aktuelle sektion
-  const section = await db.category.findFirst({
-    where: { instansId: site.id, slug: sektion, parentId: null },
-    include: { children: { orderBy: { sortering: "asc" } } },
-  });
+  const section = await loadSection(site.id, sektion);
 
   const isSubcategory = section?.children.some((c) => c.slug === slug);
 
@@ -137,6 +181,18 @@ export default async function SectionOrArticlePage({
 
     return (
       <div className="site-section-page">
+        <JsonLd
+          data={sectionCollection(
+            {
+              sektion: { navn: section.navn, slug: section.slug },
+              undersektion: { navn: activeSubcategory.navn, slug: activeSubcategory.slug },
+              name: `${activeSubcategory.navn} i ${site.kommune}`,
+              description: activeSubcategory.beskrivelse ?? undefined,
+              items: sectionData.alleArtikler.map((a) => ({ href: a.href })),
+            },
+            siteBase(site),
+          )}
+        />
         <div className="site-container">
           {/* Brødkrumme: Forside › Sektion */}
           <Breadcrumbs
@@ -315,7 +371,7 @@ export default async function SectionOrArticlePage({
   }
 
   // 2. Hvis det ikke er en undersektion: Slå artikel op
-  const articleData = await getArticleBySlug(site.id, sektion, slug);
+  const articleData = await loadArticle(site.id, sektion, slug);
 
   if (!articleData) {
     notFound();
@@ -325,46 +381,81 @@ export default async function SectionOrArticlePage({
   const blocks = parseBlocks(article.blocks);
   const primaryArea = article.geoTags[0] ?? null;
 
-  // Schema.org NewsArticle data
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    headline: article.titel,
-    description: article.manchet || undefined,
-    datePublished: article.publiceretTid?.toISOString(),
-    dateModified: article.opdateretTid?.toISOString(),
-    isAccessibleForFree: true,
-    author: article.forfatter
-      ? {
-          "@type": "Person",
-          name: article.forfatter.navn,
-          ...(article.forfatter.slug
-            ? { url: `https://${site.domaene}/forfatter/${article.forfatter.slug}` }
-            : {}),
-        }
-      : {
-          "@type": "Organization",
-          name: site.navn,
-        },
-    publisher: {
-      "@type": "NewsMediaOrganization",
-      name: site.navn,
-      url: `https://${site.domaene}`,
-      publishingPrinciples: `https://${site.domaene}/om-mediet/redaktionelle-principper`,
+  // Forrige/næste historie i samme sektion (kronologisk), til artiklens afslutning
+  const sectionCategoryIds = section
+    ? [section.id, ...section.children.map((c) => c.id)]
+    : article.kategoriId
+      ? [article.kategoriId]
+      : [];
+  const publishedAt = article.publiceretTid ?? new Date();
+  const [prevRow, nextRow] =
+    sectionCategoryIds.length > 0
+      ? await Promise.all([
+          db.article.findFirst({
+            where: {
+              instansId: site.id,
+              status: "Publiceret",
+              id: { not: article.id },
+              kategoriId: { in: sectionCategoryIds },
+              publiceretTid: { lt: publishedAt },
+            },
+            orderBy: { publiceretTid: "desc" },
+            select: { titel: true, slug: true },
+          }),
+          db.article.findFirst({
+            where: {
+              instansId: site.id,
+              status: "Publiceret",
+              id: { not: article.id },
+              kategoriId: { in: sectionCategoryIds },
+              publiceretTid: { gt: publishedAt },
+            },
+            orderBy: { publiceretTid: "asc" },
+            select: { titel: true, slug: true },
+          }),
+        ])
+      : [null, null];
+  const prevArticle = prevRow
+    ? { titel: stripHtml(prevRow.titel), href: articlePath(summary.sektion.slug, prevRow.slug) }
+    : null;
+  const nextArticle = nextRow
+    ? { titel: stripHtml(nextRow.titel), href: articlePath(summary.sektion.slug, nextRow.slug) }
+    : null;
+
+  // Schema.org NewsArticle (type afhænger af indholdstype, jf. lib/seo/jsonld.ts)
+  const base = siteBase(site);
+  const jsonLd = articleGraph(
+    {
+      titel: article.titel,
+      manchet: article.manchet,
+      seoBeskrivelse: article.seoBeskrivelse,
+      slug: article.slug,
+      indholdstype: article.indholdstype,
+      marking: summary.marking,
+      aiBrug: article.aiBrug,
+      sprog: article.sprog,
+      publiceretTid: article.publiceretTid,
+      opdateretTid: article.opdateretTid,
+      sektion: summary.sektion,
+      undersektion: summary.undersektion,
+      forfatter: article.forfatter,
+      tags: article.tags,
+      geoTags: article.geoTags,
+      corrections: article.corrections,
+      cover: article.coverMedia,
     },
-    ...(article.corrections && article.corrections.length > 0
-      ? {
-          correction: article.corrections.map((c) => ({
-            "@type": "CorrectionComment",
-            text: c.tekst,
-            datePublished: c.dato.toISOString(),
-            url: `https://${site.domaene}/om-mediet/rettelser`,
-          })),
-        }
-      : {}),
-    ...(article.coverMedia ? { image: [article.coverMedia.url] } : {}),
-    ...(primaryArea ? { contentLocation: { "@type": "Place", name: primaryArea.navn } } : {}),
-  };
+    site,
+    resolveSeoConfig(site),
+    base,
+  );
+  const canonicalUrl = `${base}${articlePath(summary.sektion.slug, article.slug)}`;
+  // Eksterne links i betalt/indsendt indhold mærkes (rel=sponsored/ugc).
+  const linkRel =
+    article.indholdstype === "Partner" || article.indholdstype === "Sponsoreret" || article.indholdstype === "PR"
+      ? ["sponsored"]
+      : article.indholdstype === "Brugerindsendt"
+        ? ["ugc"]
+        : undefined;
 
   const breadcrumbItems = [
     { label: "Forside", href: "/" },
@@ -378,89 +469,35 @@ export default async function SectionOrArticlePage({
   return (
     <article className="site-article-page">
       <MetricTracker articleId={article.id} />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
 
       <div className="site-container">
         <div className="site-article-layout">
           {/* Hovedspalte */}
           <div className="site-article-main">
             {/* Mobil topbar med tilbage-pil og handlinger jf. Mock Screen 3 */}
-            <div
-              className="site-article-mobile-topbar site-mobile-only"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "16px",
-              }}
-            >
-              <Link
-                href={`/${summary.sektion.slug}`}
-                className="site-article-back-link"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  color: "var(--ink)",
-                  textDecoration: "none",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                }}
-              >
-                <ChevronLeft size={20} />
-                <span>Tilbage</span>
+            <div className="site-article-mobile-topbar site-mobile-only">
+              <Link href={`/${summary.sektion.slug}`} className="site-article-back-link">
+                <ChevronLeft size={20} aria-hidden="true" />
+                <span>Tilbage til {summary.sektion.navn}</span>
               </Link>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div className="site-article-mobile-actions">
                 <BookmarkButton
                   id={article.id}
                   titel={article.titel}
                   href={summary.href}
                   sektion={summary.sektion.navn}
                 />
-                <button
-                  type="button"
-                  aria-label="Del artikel"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--ink-3)",
-                    cursor: "pointer",
-                    padding: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <Share2 size={18} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Flere handlinger"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--ink-3)",
-                    cursor: "pointer",
-                    padding: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <MoreHorizontal size={18} />
-                </button>
+                <ShareButton url={canonicalUrl} title={article.titel} />
               </div>
             </div>
 
-            {/* Desktop Brødkrumme */}
-            <div className="site-desktop-only">
-              <Breadcrumbs items={breadcrumbItems} />
-            </div>
+            {/* Brødkrumme på alle skærmstørrelser */}
+            <Breadcrumbs items={breadcrumbItems} />
 
             {/* Kicker over H1 jf. Mock Screen 3 */}
-            <div className="site-kicker" style={{ margin: "14px 0 10px 0" }}>
+            <div className="site-kicker" style={{ margin: "8px 0 12px 0" }}>
               <span className="site-kicker-accent">
                 {(summary.sektion.navn).toUpperCase()}
               </span>
@@ -485,68 +522,26 @@ export default async function SectionOrArticlePage({
             {article.manchet && (
               <div
                 className="site-article-manchet"
-                dangerouslySetInnerHTML={{ __html: normalizeHtml(article.manchet) }}
+                dangerouslySetInnerHTML={{ __html: normalizeHtml(article.manchet, { linkRel }) }}
               />
             )}
 
             {/* Byline-række med desktop handlinger til højre jf. Mock Screen 3 */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "16px",
-                margin: "20px 0 24px 0",
-              }}
-            >
+            <div className="site-article-byline-row">
               <Byline
                 forfatter={article.forfatter}
                 publiceretTid={article.publiceretTid ?? new Date()}
                 opdateretTid={article.opdateretTid}
               />
 
-              <div
-                className="site-desktop-only"
-                style={{ display: "flex", alignItems: "center", gap: "10px" }}
-              >
+              <div className="site-article-actions site-desktop-only">
                 <BookmarkButton
                   id={article.id}
                   titel={article.titel}
                   href={summary.href}
                   sektion={summary.sektion.navn}
                 />
-                <button
-                  type="button"
-                  aria-label="Del artikel"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--ink-3)",
-                    cursor: "pointer",
-                    padding: "6px",
-                    display: "flex",
-                    alignItems: "center",
-                    borderRadius: "6px",
-                  }}
-                >
-                  <Share2 size={18} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Flere handlinger"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--ink-3)",
-                    cursor: "pointer",
-                    padding: "6px",
-                    display: "flex",
-                    alignItems: "center",
-                    borderRadius: "6px",
-                  }}
-                >
-                  <MoreHorizontal size={18} />
-                </button>
+                <ShareButton url={canonicalUrl} title={article.titel} />
               </div>
             </div>
 
@@ -567,7 +562,7 @@ export default async function SectionOrArticlePage({
                   <figcaption className="site-article-caption">
                     {article.coverMedia.billedtekst && <span>{article.coverMedia.billedtekst}</span>}
                     {article.coverMedia.ophavsperson && (
-                      <span className="site-article-credit">Arkivfoto: {article.coverMedia.ophavsperson}</span>
+                      <span className="site-article-credit">{creditLabel(article.coverMedia.ophavsperson)}</span>
                     )}
                   </figcaption>
                 )}
@@ -608,7 +603,7 @@ export default async function SectionOrArticlePage({
             )}
 
             {/* 7. Brødtekst med blokke */}
-            <SiteBlockRenderer blocks={blocks} />
+            <SiteBlockRenderer blocks={blocks} linkRel={linkRel} />
 
             {/* 8. Tags (område og emner) */}
             {(article.geoTags.length > 0 || article.tags.length > 0) && (
@@ -635,80 +630,69 @@ export default async function SectionOrArticlePage({
               </div>
             )}
 
-            {/* 11. Relaterede artikler jf. Mock Screen 3 */}
-            {relaterede.length > 0 && (
-              <section className="site-related-section" style={{ marginTop: "48px" }}>
-                <h3 className="site-news-section-title" style={{ marginBottom: "18px" }}>
-                  Relaterede historier
-                </h3>
-                <div className="site-cards-grid-3">
-                  {relaterede.map((rel) => (
-                    <ArticleCard
-                      key={rel.id}
-                      variant="standard"
-                      article={{
-                        titel: rel.titel,
-                        href: rel.href,
-                        sektion: rel.sektion.navn,
-                        undersektion: rel.undersektion?.navn,
-                        omraade: rel.omraade?.navn,
-                        cover: rel.coverMedia
-                          ? { url: rel.coverMedia.url, alt: rel.coverMedia.altTekst || rel.titel }
-                          : null,
-                        forfatter: rel.forfatter,
-                        publiceret: rel.publiceretTid,
-                        indholdstype: rel.indholdstype,
-                        sponsor: rel.marking?.sponsor as string | undefined,
-                        afsender: rel.marking?.afsender as string | undefined,
-                        breaking: rel.breaking,
-                      }}
-                      headingLevel={4}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* Artiklens afslutning: Støt + tip, derefter mere fra området */}
+            <div className="site-article-end">
+              <ArticleEndCta siteNavn={site.navn} kommune={site.kommune} />
 
-            {/* 12. Nyhedsbrevsmodul */}
-            <div style={{ marginTop: "48px" }}>
-              <NewsletterSignup siteNavn={site.navn} sektion={summary.sektion.navn} />
+              {relaterede.length > 0 && (
+                <section className="site-related-section" aria-labelledby="related-title">
+                  <h2 id="related-title" className="site-section-title-inline">
+                    {primaryArea ? `Mere fra ${primaryArea.navn}` : `Mere fra ${summary.sektion.navn}`}
+                  </h2>
+                  <div className="site-cards-grid-3">
+                    {relaterede.map((rel) => (
+                      <ArticleCard
+                        key={rel.id}
+                        variant="standard"
+                        article={{
+                          titel: rel.titel,
+                          href: rel.href,
+                          sektion: rel.sektion.navn,
+                          undersektion: rel.undersektion?.navn,
+                          omraade: rel.omraade?.navn,
+                          cover: rel.coverMedia
+                            ? { url: rel.coverMedia.url, alt: rel.coverMedia.altTekst || rel.titel }
+                            : null,
+                          forfatter: rel.forfatter,
+                          publiceret: rel.publiceretTid,
+                          indholdstype: rel.indholdstype,
+                          sponsor: rel.marking?.sponsor as string | undefined,
+                          afsender: rel.marking?.afsender as string | undefined,
+                          breaking: rel.breaking,
+                        }}
+                        headingLevel={3}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {(prevArticle || nextArticle) && (
+                <nav className="site-article-pager" aria-label="Forrige og næste historie">
+                  {prevArticle ? (
+                    <Link href={prevArticle.href} rel="prev" className="site-article-pager-link">
+                      <span className="site-article-pager-label">Forrige historie</span>
+                      <span className="site-article-pager-title">{prevArticle.titel}</span>
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                  {nextArticle ? (
+                    <Link href={nextArticle.href} rel="next" className="site-article-pager-link is-next">
+                      <span className="site-article-pager-label">Næste historie</span>
+                      <span className="site-article-pager-title">{nextArticle.titel}</span>
+                    </Link>
+                  ) : (
+                    <span />
+                  )}
+                </nav>
+              )}
             </div>
           </div>
 
-          {/* Sidespalte på desktop */}
-          <aside className="site-section-aside">
-            {relaterede.length > 0 && (
-              <div className="site-most-read-card">
-                <h3 className="site-most-read-heading">Læs også</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  {relaterede.map((rel) => (
-                    <ArticleCard
-                      key={rel.id}
-                      variant="kompakt"
-                      article={{
-                        titel: rel.titel,
-                        href: rel.href,
-                        sektion: rel.sektion.navn,
-                        undersektion: rel.undersektion?.navn,
-                        omraade: rel.omraade?.navn,
-                        cover: rel.coverMedia
-                          ? { url: rel.coverMedia.url, alt: rel.coverMedia.altTekst || rel.titel }
-                          : null,
-                        forfatter: rel.forfatter,
-                        publiceret: rel.publiceretTid,
-                        indholdstype: rel.indholdstype,
-                        sponsor: rel.marking?.sponsor as string | undefined,
-                        afsender: rel.marking?.afsender as string | undefined,
-                        breaking: rel.breaking,
-                      }}
-                      headingLevel={4}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <NewsletterSignup siteNavn={site.navn} />
+          {/* Sidespalte (desktop): ét nyhedsbrev. Indholdet gentages ikke i hovedspalten. */}
+          <aside className="site-section-aside" aria-label="Nyhedsbrev">
+            <NewsletterSignup siteNavn={site.navn} sektion={summary.sektion.navn} />
           </aside>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { SourceQaResponder } from "./SourceQaResponder";
 import { Inbox, Clock, User, ShieldCheck } from "lucide-react";
+import { isAnswered } from "@/lib/validation/status";
 
 export async function generateMetadata({
   params,
@@ -78,15 +79,15 @@ export default async function SourceQaResponsePage({
             <span
               style={{
                 marginLeft: "auto",
-                background: qa.status === "BESVARET" ? "#dcfce7" : "#fef3c7",
-                color: qa.status === "BESVARET" ? "#166534" : "#92400e",
+                background: isAnswered("qa", qa.status) ? "#dcfce7" : "#fef3c7",
+                color: isAnswered("qa", qa.status) ? "#166534" : "#92400e",
                 padding: "2px 8px",
                 borderRadius: "9999px",
                 fontSize: "11px",
                 fontWeight: "700",
               }}
             >
-              {qa.status === "BESVARET" ? "Besvaret" : "Afventer dit svar"}
+              {isAnswered("qa", qa.status) ? "Besvaret" : "Afventer dit svar"}
             </span>
           </div>
 
@@ -123,7 +124,7 @@ export default async function SourceQaResponsePage({
           token={token}
           questions={questions}
           initialAnswers={existingAnswers}
-          isAlreadyAnswered={qa.status === "BESVARET"}
+          isAlreadyAnswered={isAnswered("qa", qa.status)}
         />
       </div>
     </div>

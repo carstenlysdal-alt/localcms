@@ -1,11 +1,18 @@
 import Image from "next/image";
 import type { Block } from "@/lib/blocks/schema";
+import { sanitizeHtml, safeHref, type SanitizeOptions } from "@/lib/html-sanitize";
 
 type SiteBlockRendererProps = {
   blocks: Block[];
+  /** Ekstra rel-tokens på eksterne links i brødteksten: ["sponsored"] (Partner/Sponsoreret), ["ugc"] (Brugerindsendt). */
+  linkRel?: string[];
 };
 
-export function normalizeHtml(content: string): string {
+/**
+ * Afkoder entity-escapet HTML og sanitiserer med en allowlist (lib/html-sanitize.ts).
+ * Alt der sendes til dangerouslySetInnerHTML skal igennem denne funktion.
+ */
+export function normalizeHtml(content: string, options?: SanitizeOptions): string {
   if (!content) return "";
   let text = content;
   // Hvis teksten er HTML-entity-escapet som fx &lt;p&gt;&lt;strong&gt;
@@ -17,11 +24,13 @@ export function normalizeHtml(content: string): string {
       .replace(/&#39;/g, "'")
       .replace(/&amp;/g, "&");
   }
-  return text;
+  return sanitizeHtml(text, options);
 }
 
-export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
+export function SiteBlockRenderer({ blocks, linkRel }: SiteBlockRendererProps) {
   if (!blocks || blocks.length === 0) return null;
+  const sanitizeOpts: SanitizeOptions = { linkRel };
+  const normalizeHtml_ = (content: string) => normalizeHtml(content, sanitizeOpts);
 
   return (
     <div className="site-article-blocks">
@@ -32,7 +41,7 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
               <div
                 key={block.id}
                 className="site-block-paragraph"
-                dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.content) }}
+                dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.content) }}
               />
             );
 
@@ -42,7 +51,7 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
               <HeadingTag
                 key={block.id}
                 className="site-block-heading"
-                dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.text) }}
+                dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.text) }}
               />
             );
           }
@@ -53,7 +62,7 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
                 key={block.id}
                 className="site-block-heading"
                 style={{ fontSize: "22px" }}
-                dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.text) }}
+                dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.text) }}
               />
             );
 
@@ -62,7 +71,7 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
               <div
                 key={block.id}
                 className="site-article-manchet"
-                dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.text) }}
+                dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.text) }}
               />
             );
 
@@ -80,7 +89,7 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
                 </div>
                 {block.data.caption && (
                   <figcaption className="site-block-image-caption">
-                    <span dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.caption) }} />
+                    <span dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.caption) }} />
                   </figcaption>
                 )}
               </figure>
@@ -92,7 +101,7 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
                 <p
                   className="site-block-quote-text"
                   dangerouslySetInnerHTML={{
-                    __html: `&ldquo;${normalizeHtml(block.data.quote)}&rdquo;`,
+                    __html: `&ldquo;${normalizeHtml_(block.data.quote)}&rdquo;`,
                   }}
                 />
                 {(block.data.attribution || block.data.kildeUrl || block.data.dato) && (
@@ -102,16 +111,16 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
                         {block.data.attribution}
                       </cite>
                     )}
-                    {block.data.kildeUrl && (
+                    {safeHref(block.data.kildeUrl) && /^https?:\/\//i.test(block.data.kildeUrl ?? "") && (
                       <span className="site-block-quote-source">
                         {" "}· Kilde:{" "}
                         <a
-                          href={block.data.kildeUrl}
+                          href={safeHref(block.data.kildeUrl) ?? "#"}
                           target="_blank"
-                          rel="noopener noreferrer"
+                          rel={["noopener", "noreferrer", ...(linkRel ?? [])].join(" ")}
                           className="site-block-quote-link"
                         >
-                          {block.data.kildeUrl.replace(/^https?:\/\//, "")}
+                          {(block.data.kildeUrl ?? "").replace(/^https?:\/\//, "")}
                         </a>
                       </span>
                     )}
@@ -131,13 +140,13 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
                 {block.data.title && (
                   <h3
                     className="site-block-factbox-title"
-                    dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.title) }}
+                    dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.title) }}
                   />
                 )}
                 <div
                   className="site-block-factbox-text"
                   style={{ whiteSpace: "pre-line" }}
-                  dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.content) }}
+                  dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.content) }}
                 />
               </aside>
             );
@@ -153,13 +162,13 @@ export function SiteBlockRenderer({ blocks }: SiteBlockRendererProps) {
                 {block.data.title && (
                   <h3
                     className="site-block-factbox-title"
-                    dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.title) }}
+                    dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.title) }}
                   />
                 )}
                 <div
                   className="site-block-factbox-text"
                   style={{ whiteSpace: "pre-line" }}
-                  dangerouslySetInnerHTML={{ __html: normalizeHtml(block.data.content) }}
+                  dangerouslySetInnerHTML={{ __html: normalizeHtml_(block.data.content) }}
                 />
               </aside>
             );

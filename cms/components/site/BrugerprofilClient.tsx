@@ -451,7 +451,7 @@ export function BrugerprofilClient({ siteNavn, kommune, areas }: BrugerprofilPro
             />
             <div>
               <div style={{ fontSize: "14px", fontWeight: "600", color: "var(--ink)" }}>
-                Akutte advarsler (Storebælt, vejr og beredskab)
+                Akutte advarsler (trafik, vejr og beredskab)
               </div>
               <div style={{ fontSize: "12.5px", color: "var(--ink-2)" }}>
                 Kun når der er markante hændelser, der påvirker hverdagen i kommunen.

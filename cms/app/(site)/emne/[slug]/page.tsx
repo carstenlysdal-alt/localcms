@@ -1,4 +1,10 @@
 import { notFound } from "next/navigation";
+import { analyzeQuery, buildPageMetadata } from "@/lib/seo/meta";
+import { MIN_ARTICLES_FOR_INDEX } from "@/lib/seo/pages";
+import { topicCollection } from "@/lib/seo/jsonld";
+import { encodeSegment, siteBase } from "@/lib/seo/url";
+import { stripHtml } from "@/lib/seo/escape";
+import { JsonLd } from "@/components/site/JsonLd";
 import type { Metadata } from "next";
 import { getCurrentSite } from "@/lib/site";
 import { getTopicArticles, formatDateDivider } from "@/lib/site-queries";
@@ -10,18 +16,27 @@ import { Tag } from "lucide-react";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const { page, hasFilter } = analyzeQuery(searchParams ? await searchParams : {});
   const site = await getCurrentSite();
-  const data = await getTopicArticles(site.id, slug);
+  const data = await getTopicArticles(site.id, slug, { page, take: 15 });
   if (!data) return {};
-
-  return {
-    title: `Emne: #${data.tag.navn}`,
-    description: `Artikler og baggrund om #${data.tag.navn} i ${site.kommune}.`,
-  };
+  const headlines = data.artikler.slice(0, 3).map((a) => stripHtml(a.titel)).join(" · ");
+  return buildPageMetadata({
+    site,
+    path: `/emne/${encodeSegment(data.tag.slug ?? slug)}`,
+    title: `${data.tag.navn} – baggrund og artikler`,
+    description: `Artikler og baggrund om ${data.tag.navn} i ${site.kommune}${headlines ? `: ${headlines}` : "."}`,
+    page,
+    totalPages: data.totalPages,
+    hasFilter,
+    noindex: data.totalCount < MIN_ARTICLES_FOR_INDEX.emne,
+  });
 }
 
 export default async function TopicPage({
@@ -56,6 +71,12 @@ export default async function TopicPage({
 
   return (
     <div className="site-page-container" style={{ padding: "24px 0 64px 0" }}>
+      <JsonLd
+        data={topicCollection(
+          { slug: tag.slug ?? slug, navn: tag.navn, items: artikler.map((a) => ({ href: a.href })) },
+          siteBase(site),
+        )}
+      />
       <div className="site-container">
         <Breadcrumbs
           items={[

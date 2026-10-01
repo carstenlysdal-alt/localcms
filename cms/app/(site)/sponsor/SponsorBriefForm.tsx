@@ -129,7 +129,7 @@ export function SponsorBriefForm({ siteNavn }: { siteNavn: string }) {
               <input
                 type="text"
                 required
-                placeholder="F.eks. Slagelse El & Energi A/S"
+                placeholder="F.eks. firmaets navn"
                 value={partnerNavn}
                 onChange={(e) => setPartnerNavn(e.target.value)}
                 style={{ width: "100%", padding: "9px 12px", border: "1px solid var(--line)", borderRadius: "6px" }}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import Image from "next/image";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
@@ -7,11 +8,10 @@ import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { ShieldCheck, Mail, Users, Heart } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `Om ${site.navn} — Lokaljournalistik og uafhængighed`,
+  return pageMeta("/om-mediet", (site) => ({
+    title: `Om ${site.navn} – redaktion, ejerskab og finansiering`,
     description: `Læs om ${site.navn}, vores redaktion, finansiering og vision for fri lokaljournalistik i ${site.kommune}.`,
-  };
+  }));
 }
 
 export default async function AboutPage() {
@@ -27,6 +27,12 @@ export default async function AboutPage() {
     }),
   ]);
 
+  const rawCoverage = site.geografiskDækning as unknown;
+  const coverage: string[] = Array.isArray(rawCoverage)
+    ? rawCoverage.filter((v): v is string => typeof v === "string")
+    : [];
+  const sideTekster = (site.sideTekster as Record<string, string> | null) ?? null;
+
   return (
     <div className="site-page-container" style={{ padding: "24px 0 64px 0" }}>
       <div className="site-container" style={{ maxWidth: "880px" }}>
@@ -35,8 +41,9 @@ export default async function AboutPage() {
         <header className="site-page-header">
           <h1 className="site-page-title">Om {site.navn}</h1>
           <p className="site-page-desc" style={{ fontSize: "19px", lineHeight: "1.5" }}>
-            {site.navn} er et uafhængigt, digitalt lokalmedie for alle borgere og lokalsamfund i{" "}
-            {site.kommune} Kommune. Vi tror på, at et oplyst lokaldemokrati kræver grundig, fair og
+            {sideTekster?.omMediet ??
+              `${site.navn} er et uafhængigt, digitalt lokalmedie for alle borgere og lokalsamfund i ${site.kommune} Kommune.`}{" "}
+            Vi tror på, at et oplyst lokaldemokrati kræver grundig, fair og
             tilgængelig journalistik – uden betalingsmure og uden kommercielle sporingscookies.
           </p>
         </header>
@@ -65,7 +72,7 @@ export default async function AboutPage() {
               {site.kommune} Kommune
             </div>
             <p style={{ fontSize: "14px", color: "var(--ink-2)", margin: "4px 0 0 0" }}>
-              Slagelse, Korsør, Skælskør og omegn
+              {coverage.length > 0 ? coverage.join(", ") : `Hele ${site.kommune} Kommune`}
             </p>
           </div>
 
@@ -277,6 +284,30 @@ export default async function AboutPage() {
               </Link>
             </p>
           </div>
+        </section>
+
+        {/* Find rundt på sitet */}
+        <section style={{ borderTop: "1px solid var(--line)", marginTop: "32px", paddingTop: "24px" }}>
+          <h2 className="site-block-heading">Find rundt i {site.navn}</h2>
+          <p style={{ display: "flex", flexWrap: "wrap", gap: "8px", margin: 0 }}>
+            <Link href="/omraade" className="site-pill">Områder</Link>
+            <Link href="/emne" className="site-pill">Emner</Link>
+            <Link href="/kalender" className="site-pill">Det sker</Link>
+            <Link href="/opslagstavle" className="site-pill">Opslagstavlen</Link>
+            <Link href="/nyhedsbrev" className="site-pill">Nyhedsbrev</Link>
+            <Link href="/priser" className="site-pill">Priser & annoncering</Link>
+            <Link href="/sponsor" className="site-pill">Sponsor & partner</Link>
+            <Link href="/qa" className="site-pill">Kilde-Q&A</Link>
+            <Link href="/interview" className="site-pill">Kildeinterview</Link>
+            <Link href="/velkommen" className="site-pill">Ny her? Velkommen</Link>
+            <Link href="/om-mediet/privatliv" className="site-pill">Privatliv</Link>
+          </p>
+          <p style={{ marginTop: "24px", fontSize: "13px", color: "var(--ink-3)" }}>
+            Medarbejder?{" "}
+            <Link href="/redaktion" style={{ color: "var(--ink-3)", textDecoration: "underline" }}>
+              Redaktion
+            </Link>
+          </p>
         </section>
       </div>
     </div>

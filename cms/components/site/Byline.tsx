@@ -65,11 +65,11 @@ export function Byline({ forfatter, publiceretTid, opdateretTid }: BylineProps) 
         </div>
 
         <div className="site-byline-time">
-          <span>Publiceret {formatFullDate(pubDate)}</span>
+          <span>Publiceret <time dateTime={pubDate.toISOString()}>{formatFullDate(pubDate)}</time></span>
           {isUpdated && (
             <>
               <span className="site-byline-dot">·</span>
-              <span>Opdateret {formatFullDate(updDate)}</span>
+              <span>Opdateret <time dateTime={updDate.toISOString()}>{formatFullDate(updDate)}</time></span>
             </>
           )}
         </div>

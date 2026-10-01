@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo/page-meta";
 import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { Mic, Sparkles, MessageCircle, Clock, Volume2, Shield } from "lucide-react";
 import { InterviewPortalClient } from "./InterviewPortalClient";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getCurrentSite();
-  return {
-    title: `AI Kildeinterview — ${site.navn}`,
-    description: `Giv et guidet interview til ${site.navn} via tale eller tekst. Fleksibel journalistisk kildebetjening.`,
-  };
+  return pageMeta("/interview", (site) => ({
+    title: "Kildeinterview",
+    description: `Giv et guidet interview til ${site.navn} via tale eller tekst.`,
+  }), { noindex: true });
 }
 
 export default async function InterviewPortalPage() {
