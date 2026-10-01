@@ -1,18 +1,191 @@
 import re
 import json
 
-# Read base64 images from current nyhedssite.html
 with open('nyhedssite.html', 'r', encoding='utf-8') as f:
     existing_content = f.read()
 
-match = re.search(r'window\.SL_IMAGES\s*=\s*(\{.*?\});', existing_content, re.DOTALL)
-if not match:
-    raise ValueError("Could not find window.SL_IMAGES in nyhedssite.html")
+# Extract all 8 image data URIs
+img_keys = [
+    'storebaelt_hero', 'slagelse_bymidte', 'skaelskoer_sommerhus',
+    'slagelse_erhverv', 'nabolag_kort', 'slagelse_fodbold',
+    'tude_aa_natur', 'debat_skriver'
+]
 
-sl_images = json.loads(match.group(1))
+sl_images = {}
+for k in img_keys:
+    m = re.search(rf'--img-{k}:\s*url\(\"(data:image[^\"]+)\"\);', existing_content)
+    if m:
+        sl_images[k] = m.group(1)
+    else:
+        raise ValueError(f"Missing image {k}")
 
-# CSS variables for images
 css_vars = "\n    ".join([f'--img-{k}: url("{v}");' for k, v in sl_images.items()])
+
+cities_data = {
+    "slagelse": {
+        "navn": "SlagelseLokalt",
+        "prefix": "Slagelse",
+        "by": "Slagelse",
+        "kommune": "Slagelse Kommune",
+        "accent": "#007038",
+        "accent_soft": "#EBF7EE",
+        "tagline": "Lokaljournalistik, der sætter fællesskabet først",
+        "omraader": ["Slagelse C", "Korsør", "Skælskør", "Dalmose", "Vemmelev"],
+        "hero_kicker": "TRAFIK · STOREBÆLT",
+        "hero_title": "Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld",
+        "hero_manchet": "Et trafikuheld spærrer et spor på Storebæltsbroen. Bilister skal forvente 20-30 minutters ekstra rejsetid.",
+        "hero_meta": "2 t. siden",
+        "hero_img": "img-storebaelt",
+        "wire": [
+            ("08:12", "Nyt flertal på rådhuset vil investere 45 millioner i bymidten", "art-byraad"),
+            ("07:48", "Flere sommerhuse udsat for indbrud ved Skælskør Næs", "art-sommerhuse"),
+            ("06:32", "Ny butikskæde åbner på Schweizerpladsen til foråret", "art-butik"),
+            ("22:15", "Slagelse B&I tager vigtig sejr i topopgøret på Harboe Arena", "art-sport"),
+            ("21:05", "Stort naturprojekt ved Tude Å skal sikre mod oversvømmelser", "art-tudeaa")
+        ],
+        "nabolag_text": "Slagelse C: 4 nye byggeprojekter godkendt i bymidten. Håndværkere er i gang ved Nytorv."
+    },
+    "naestved": {
+        "navn": "NæstvedLokalt",
+        "prefix": "Næstved",
+        "by": "Næstved",
+        "kommune": "Næstved Kommune",
+        "accent": "#1F5663",
+        "accent_soft": "#E8F2F4",
+        "tagline": "Din lokale stemme i Næstved, Karrebæksminde og omegn",
+        "omraader": ["Næstved By", "Karrebæksminde", "Fuglebjerg", "Holme-Olstrup", "Rønnebæk"],
+        "hero_kicker": "HAVN & KLIMA · KARREBÆKSMINDE",
+        "hero_title": "Ny havne- og klimapromenade godkendt: Forvandler Karrebæksminde",
+        "hero_manchet": "En investering på 38 millioner kroner skal sikre havnen mod stormflod og skabe nyt maritimt samlingspunkt.",
+        "hero_meta": "1 t. siden",
+        "hero_img": "img-storebaelt",
+        "wire": [
+            ("08:30", "Grønnegades Kaserne Kulturcenter melder om rekordstort forårsprogram", "art-kultur"),
+            ("07:55", "Næstved Byråd afsætter 25 millioner til nye cykelstier i oplandet", "art-byraad"),
+            ("06:40", "Lokale fiskere i Karrebæksminde fejrer starten på forårssæsonen", "art-butik"),
+            ("21:45", "Næstved Boldklub henter stærk sejr foran 1.400 tilskuere", "art-sport"),
+            ("19:20", "Susåen sikres med nyt natur- og vådområde ved Herlufsholm", "art-tudeaa")
+        ],
+        "nabolag_text": "Næstved By: Omfattende renovering af gågadenettet ved Axeltorv starter i næste måned."
+    },
+    "holbaek": {
+        "navn": "HolbækLokalt",
+        "prefix": "Holbæk",
+        "by": "Holbæk",
+        "kommune": "Holbæk Kommune",
+        "accent": "#4F5B1E",
+        "accent_soft": "#F2F5E8",
+        "tagline": "Lokaljournalistik fra Isefjorden til det åbne Vestsjælland",
+        "omraader": ["Holbæk By", "Jyderup", "Tølløse", "Orø", "Vipperød"],
+        "hero_kicker": "INFRASTRUKTUR · ORØ",
+        "hero_title": "Ny grøn elfærge til Orø er sat i drift: Halverer rejsetiden over fjorden",
+        "hero_manchet": "Den nye færgeforbindelse er officielt indviet med gratis overfart for alle øens beboere og pendlere.",
+        "hero_meta": "3 t. siden",
+        "hero_img": "img-storebaelt",
+        "wire": [
+            ("08:15", "Holbæk Havneby udvides med 80 nye bæredygtige boliger", "art-byraad"),
+            ("07:30", "Jyderup Erhvervsforening lancerer nyt lærlinge-initiativ for unge", "art-butik"),
+            ("06:50", "Isefjordens fuglereservater oplever markant fremgang i 2026", "art-tudeaa"),
+            ("22:00", "Holbæk B&I rykker tættere på oprykning efter flot sejr", "art-sport"),
+            ("20:10", "Kulturkasernen i Holbæk inviterer til gratis forårskoncerter", "art-kultur")
+        ],
+        "nabolag_text": "Holbæk By: Omlægning af havnefronten giver plads til nye caféer og rekreativt byliv."
+    },
+    "ringsted": {
+        "navn": "RingstedLokalt",
+        "prefix": "Ringsted",
+        "by": "Ringsted",
+        "kommune": "Ringsted Kommune",
+        "accent": "#8A5A00",
+        "accent_soft": "#FBF4E6",
+        "tagline": "Nyheder fra hjertet af Sjælland — lokalt og tæt på dig",
+        "omraader": ["Ringsted By", "Benløse", "Jystrup", "Kværkeby", "Vetterslev"],
+        "hero_kicker": "ERHVERV & HANDEL · RINGSTED",
+        "hero_title": "Ringsted Outlet og bymidten indgår unikt samarbejde med gratis busser",
+        "hero_manchet": "Nyt fælles initiativ skal sikre, at de mange tusinde besøgende i outletbyen også finder vej til handelsgaderne.",
+        "hero_meta": "2 t. siden",
+        "hero_img": "img-erhverv",
+        "wire": [
+            ("08:40", "Ringsted Festival melder om tæt på udsolgt til jubilæumskoncert", "art-kultur"),
+            ("08:05", "Ny cykelsti langs Kværkebyvej øger trafiksikkerheden for skolebørn", "art-byraad"),
+            ("07:15", "Erhvervspark Ringsted Syd tiltrækker to nye højteknologiske firmaer", "art-butik"),
+            ("21:30", "TMS Ringsted leverer kæmpe overraskelse i håndboldligaen", "art-sport"),
+            ("18:50", "Oplevelsesstien omkring Haraldsted Sø udvides med nye shelters", "art-tudeaa")
+        ],
+        "nabolag_text": "Ringsted By: Torvet summer af liv efter etablering af nye udendørs serveringsarealer."
+    },
+    "koege": {
+        "navn": "KøgeLokalt",
+        "prefix": "Køge",
+        "by": "Køge",
+        "kommune": "Køge Kommune",
+        "accent": "#24533A",
+        "accent_soft": "#EAF3EE",
+        "tagline": "Lokaljournalistik med blik for Køges vækst, havn og stærke fællesskaber",
+        "omraader": ["Køge By", "Køge Nord", "Herfølge", "Borup", "Ejby"],
+        "hero_kicker": "VÆKST & ERHVERV · KØGE HAVN",
+        "hero_title": "Køge Havn indvier ny terminal og skaber 150 nye arbejdspladser",
+        "hero_manchet": "Nordens hurtigst voksende erhvervshavn udvider faciliteterne med 120.000 kvm nyt logistikareal.",
+        "hero_meta": "4 t. siden",
+        "hero_img": "img-erhverv",
+        "wire": [
+            ("08:20", "Køge Nord Station runder milepæl med over 10.000 daglige passagerer", "art-byraad"),
+            ("07:45", "Kulturstrøget i Køge Bymidte åbner for nye kunstneriske værksteder", "art-kultur"),
+            ("06:30", "Herfølge Idrætscenter udvider faciliteterne med ny moderne springhal", "art-sport"),
+            ("22:10", "HB Køge tager vigtig sejr foran et feststemt hjemmepublikum", "art-sport"),
+            ("20:40", "Køge Å-stien renoveres med nye træbroer og forbedret belysning", "art-tudeaa")
+        ],
+        "nabolag_text": "Køge Nord: Nye grønne boligkvarterer skyder op med fælleshaver og delebilsordninger."
+    },
+    "roskilde": {
+        "navn": "RoskildeLokalt",
+        "prefix": "Roskilde",
+        "by": "Roskilde",
+        "kommune": "Roskilde Kommune",
+        "accent": "#6A3553",
+        "accent_soft": "#F7EDF3",
+        "tagline": "Kultur, viden og byens puls — lokaljournalistik i Roskilde",
+        "omraader": ["Roskilde By", "Trekroner", "Jyllinge", "Viby Sjælland", "Svogerslev"],
+        "hero_kicker": "KULTURARV · ROSKILDE FJORD",
+        "hero_title": "Vikingeskibsmuseets nye klimasikrede museumsbygning godkendt af byrådet",
+        "hero_manchet": "En historisk bevilling sikrer de fem originale vikingeskibe mod fremtidige stormfloder og skaber et nyt vartegn.",
+        "hero_meta": "2 t. siden",
+        "hero_img": "img-storebaelt",
+        "wire": [
+            ("08:35", "Roskilde Festival løfter sløret for 24 nye internationale kunstnere", "art-kultur"),
+            ("07:50", "RUC i Trekroner etablerer nyt forskningscenter for grøn omstilling", "art-byraad"),
+            ("07:10", "Stændertorvet omdannes til levende madmarked hver lørdag i foråret", "art-butik"),
+            ("21:50", "Roskilde KFUM vinder topopgør og fastholder førstepladsen", "art-sport"),
+            ("19:15", "Jyllinge Havn sikres med ny højvandsport og forstærket dige", "art-tudeaa")
+        ],
+        "nabolag_text": "Roskilde By: Historiske brolægninger omkring Domkirken og Algade restaureres med respekt for arven."
+    },
+    "kalundborg": {
+        "navn": "KalundborgLokalt",
+        "prefix": "Kalundborg",
+        "by": "Kalundborg",
+        "kommune": "Kalundborg Kommune",
+        "accent": "#0284C7",
+        "accent_soft": "#EBF6FC",
+        "tagline": "Biotekbyen, havnen og livet langs kysten i Kalundborg",
+        "omraader": ["Kalundborg By", "Høng", "Gørlev", "Svebølle", "Havnsø"],
+        "hero_kicker": "BIOTEK & UDDANNELSE · KALUNDBORG",
+        "hero_title": "Novo Nordisk og Kalundborg Kommune indvier nyt biotek-akademi",
+        "hero_manchet": "Det nye uddannelsescenter skal uddanne hundredvis af procesteknologer og ingeniører til den voksende industri.",
+        "hero_meta": "1 t. siden",
+        "hero_img": "img-erhverv",
+        "wire": [
+            ("08:25", "Kalundborg Havn klar til rekordstor krydstogtsæson med 40 anløb", "art-byraad"),
+            ("07:40", "Nyt sundhedshus i Gørlev samler læger og fysioterapeuter", "art-butik"),
+            ("06:55", "Høng Erhvervsråd hædrer årets lokale iværksætter", "art-butik"),
+            ("22:05", "Kalundborg GB vinder lokalopgør mod Svebølle i serie 1", "art-sport"),
+            ("19:30", "Havnsø Strandpromenade udvides med ny badebro og sauna", "art-tudeaa")
+        ],
+        "nabolag_text": "Kalundborg By: Bymidten og havnepromenaden bindes tættere sammen med ny grøn aktivitetsrute."
+    }
+}
+
+cities_json = json.dumps(cities_data, ensure_ascii=False)
 
 html_content = f'''<!DOCTYPE html>
 <html lang="da">
@@ -20,7 +193,7 @@ html_content = f'''<!DOCTYPE html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SlagelseLokalt – Lokaljournalistik, der sætter fællesskabet først</title>
-  <meta name="description" content="Nyheder, erhverv, sport, kultur, debat og foreningsliv i Slagelse Kommune.">
+  <meta name="description" content="Nyheder, erhverv, sport, kultur, debat og foreningsliv i Slagelse Kommune og [By]Lokalt netværket.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -43,8 +216,6 @@ html_content = f'''<!DOCTYPE html>
       --site-accent-soft: #EBF7EE;
       --site-accent-light: #F4FAF5;
       --live-red: #D92D20;
-      --blue-accent: #0284C7;
-      --blue-soft: #F0F9FF;
 
       --font-display: 'Newsreader', Georgia, serif;
       --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -78,6 +249,7 @@ html_content = f'''<!DOCTYPE html>
       font-family: var(--font-body);
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      padding-bottom: env(safe-area-inset-bottom, 24px);
     }}
 
     a {{ color: inherit; text-decoration: none; cursor: pointer; }}
@@ -125,13 +297,13 @@ html_content = f'''<!DOCTYPE html>
       display: flex;
       justify-content: space-between;
       align-items: center;
-      height: 36px;
+      height: 38px;
       width: 100%;
     }}
     .site-network-left {{
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
       overflow-x: auto;
       white-space: nowrap;
       scrollbar-width: none;
@@ -148,31 +320,43 @@ html_content = f'''<!DOCTYPE html>
       letter-spacing: 0.03em;
       text-transform: uppercase;
       font-size: 10.5px;
+      margin-right: 4px;
     }}
     .site-network-dot {{
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: var(--site-accent);
+      display: inline-block;
+      margin-right: 4px;
     }}
-    .site-network-link {{
+    .site-network-btn {{
+      display: inline-flex;
+      align-items: center;
       color: #94A3B8;
-      padding: 2px 6px;
+      padding: 4px 8px;
       border-radius: 4px;
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 11.5px;
+      transition: all 0.15s;
+      cursor: pointer;
     }}
-    .site-network-link.is-current {{
+    .site-network-btn:hover {{
       color: #FFFFFF;
-      font-weight: 700;
-      background: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.12);
     }}
+    .site-network-btn.is-active {{
+      color: #FFFFFF;
+      background: rgba(255,255,255,0.22);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }}
+
     .site-network-right {{
       display: none;
       align-items: center;
       font-size: 11.5px;
       white-space: nowrap;
     }}
-    @media (min-width: 900px) {{
+    @media (min-width: 960px) {{
       .site-network-right {{ display: flex; }}
     }}
     .live-dot-pulse {{
@@ -191,26 +375,32 @@ html_content = f'''<!DOCTYPE html>
       100% {{ transform: scale(0.95); opacity: 0.8; }}
     }}
 
-    /* 2. STICKY HEADER */
+    /* 2. STICKY HEADER WITH DYNAMIC ACCENT */
     .site-header-wrapper {{
       background: var(--surface);
-      border-bottom: 1px solid var(--line);
+      border-bottom: 2px solid var(--site-accent);
       position: sticky;
       top: 0;
       z-index: 100;
       box-shadow: var(--shadow-sm);
       width: 100%;
+      transition: border-color 0.3s ease;
     }}
     .site-header-inner {{
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 60px;
+      height: 64px;
       width: 100%;
       gap: 10px;
     }}
     @media (min-width: 768px) {{
-      .site-header-inner {{ height: 68px; }}
+      .site-header-inner {{ height: 72px; }}
+    }}
+    .site-brand-container {{
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }}
     .site-brand-logo {{
       display: flex;
@@ -229,6 +419,7 @@ html_content = f'''<!DOCTYPE html>
       color: var(--site-accent);
       font-style: italic;
       margin-left: 1px;
+      transition: color 0.3s ease;
     }}
     .site-brand-tagline {{
       display: none;
@@ -239,6 +430,62 @@ html_content = f'''<!DOCTYPE html>
     }}
     @media (min-width: 1024px) {{
       .site-brand-tagline {{ display: block; }}
+    }}
+
+    /* CITY SWITCHER DROPDOWN BUTTON IN HEADER */
+    .site-city-picker-btn {{
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--site-accent);
+      background: var(--site-accent-soft);
+      border: 1px solid var(--site-accent);
+      padding: 4px 8px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }}
+    .site-city-picker-btn:hover {{
+      opacity: 0.9;
+    }}
+
+    /* DROPDOWN POPUP MENU */
+    .city-dropdown-menu {{
+      display: none;
+      position: absolute;
+      top: 60px;
+      left: 16px;
+      width: 280px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      padding: 8px;
+      z-index: 1000;
+      flex-direction: column;
+      gap: 2px;
+    }}
+    .city-dropdown-menu.is-open {{
+      display: flex;
+    }}
+    .city-dropdown-item {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s;
+    }}
+    .city-dropdown-item:hover {{
+      background: var(--surface-2);
+    }}
+    .city-dropdown-item.is-active {{
+      background: var(--site-accent-soft);
+      font-weight: 700;
     }}
 
     .site-header-primary-nav {{
@@ -301,28 +548,11 @@ html_content = f'''<!DOCTYPE html>
       padding: 7px 12px;
       border-radius: var(--radius-sm);
       white-space: nowrap;
-      transition: all 0.15s;
-      box-shadow: 0 1px 4px rgba(0, 112, 56, 0.2);
+      transition: all 0.25s ease;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
     }}
     .site-header-btn-stoet:hover {{
-      background: var(--site-accent-hover);
-    }}
-
-    .site-header-btn-tip-desktop {{
-      display: none;
-      align-items: center;
-      gap: 5px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--site-accent);
-      background: var(--site-accent-soft);
-      padding: 7px 12px;
-      border-radius: var(--radius-sm);
-      white-space: nowrap;
-      border: 1px solid rgba(0, 112, 56, 0.2);
-    }}
-    @media (min-width: 1080px) {{
-      .site-header-btn-tip-desktop {{ display: inline-flex; }}
+      opacity: 0.92;
     }}
 
     .site-hamburger-btn {{
@@ -372,11 +602,12 @@ html_content = f'''<!DOCTYPE html>
     .site-subnav-pill:hover, .site-subnav-pill.is-active {{
       color: #FFFFFF;
       background: var(--site-accent);
+      border-color: var(--site-accent);
     }}
     .site-subnav-pill.is-highlight {{
       color: var(--site-accent);
       background: var(--site-accent-soft);
-      border-color: rgba(0, 112, 56, 0.25);
+      border-color: var(--site-accent);
     }}
 
     /* 4. DRAWER MENU (MOBILE) */
@@ -393,7 +624,7 @@ html_content = f'''<!DOCTYPE html>
       position: fixed;
       top: 0;
       right: 0;
-      width: 290px;
+      width: 300px;
       max-width: 85%;
       height: 100%;
       background: var(--surface);
@@ -453,6 +684,7 @@ html_content = f'''<!DOCTYPE html>
       margin-bottom: 24px;
       box-shadow: var(--shadow-sm);
       border-left: 4px solid var(--site-accent);
+      transition: border-color 0.3s ease;
     }}
     @media (min-width: 640px) {{
       .section-header-box {{ padding: 28px 30px; }}
@@ -465,6 +697,7 @@ html_content = f'''<!DOCTYPE html>
       color: var(--site-accent);
       margin-bottom: 6px;
       display: block;
+      transition: color 0.3s ease;
     }}
     .section-title {{
       font-family: var(--font-display);
@@ -651,6 +884,7 @@ html_content = f'''<!DOCTYPE html>
       font-weight: 600;
       line-height: 1.4;
       color: var(--ink);
+      transition: color 0.15s;
     }}
     .site-wire-item:hover .site-wire-headline {{
       color: var(--site-accent);
@@ -692,6 +926,7 @@ html_content = f'''<!DOCTYPE html>
       color: var(--ink-2);
       border: 1px solid var(--line);
       cursor: pointer;
+      transition: all 0.15s;
     }}
     .site-nabolag-pill.is-active {{
       background: var(--site-accent);
@@ -752,6 +987,7 @@ html_content = f'''<!DOCTYPE html>
       text-transform: uppercase;
       color: var(--site-accent);
       margin-bottom: 6px;
+      transition: color 0.3s ease;
     }}
     .site-card-title {{
       font-family: var(--font-display);
@@ -761,6 +997,7 @@ html_content = f'''<!DOCTYPE html>
       letter-spacing: -0.015em;
       color: var(--ink);
       margin-bottom: 8px;
+      transition: color 0.15s;
     }}
     .site-card:hover .site-card-title {{
       color: var(--site-accent);
@@ -782,7 +1019,7 @@ html_content = f'''<!DOCTYPE html>
       border-top: 1px solid var(--line-subtle);
     }}
 
-    /* 4-GRID (MERE FRA SLAGELSE) */
+    /* 4-GRID (MERE FRA OMRÅDET) */
     .site-4grid {{
       display: grid;
       grid-template-columns: 1fr;
@@ -939,6 +1176,7 @@ html_content = f'''<!DOCTYPE html>
       font-weight: 800;
       color: var(--site-accent);
       margin-bottom: 10px;
+      transition: color 0.3s ease;
     }}
     .support-plan-price span {{ font-size: 12.5px; color: var(--ink-3); font-weight: 500; }}
     .custom-amt-grid {{
@@ -1007,96 +1245,158 @@ html_content = f'''<!DOCTYPE html>
       background: #FFFFFF;
     }}
 
-    /* ARTICLE DETAIL MODAL (CSS :target & JS READY) */
-    .article-modal {{
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.7);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
-      overflow-y: auto;
-      padding: 16px;
-    }}
-    .article-modal:target, .article-modal.is-open {{
-      display: block;
-    }}
-    .article-modal-card {{
-      max-width: 820px;
-      margin: 20px auto;
+    /* ========================================================= */
+    /* DEDIKEREDE ARTIKEL-LÆSEVISNINGER (FULD SCROLLBARHED)      */
+    /* ========================================================= */
+    .article-full-page {{
+      max-width: 860px;
+      margin: 0 auto 60px auto;
       background: var(--surface);
+      border: 1px solid var(--line);
       border-radius: var(--radius-xl);
-      padding: 24px 18px;
-      box-shadow: var(--shadow-lg);
+      padding: 26px 20px 80px 20px;
+      box-shadow: var(--shadow-sm);
+      scroll-margin-top: 80px;
       position: relative;
     }}
     @media (min-width: 640px) {{
-      .article-modal-card {{ padding: 40px; margin: 40px auto; }}
+      .article-full-page {{ padding: 44px 40px 100px 40px; }}
     }}
-    .article-modal-close {{
-      position: sticky;
-      top: 10px;
-      float: right;
-      background: var(--surface-2);
-      border: 1px solid var(--line);
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
+    .article-top-nav-bar {{
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 18px;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line-subtle);
+    }}
+    .article-back-link {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13.5px;
       font-weight: 700;
-      color: var(--ink);
-      z-index: 10;
+      color: var(--site-accent);
+      background: var(--site-accent-soft);
+      padding: 7px 14px;
+      border-radius: 999px;
+      transition: all 0.15s;
+    }}
+    .article-back-link:hover {{
+      opacity: 0.9;
+      transform: translateX(-2px);
     }}
     .article-heading {{
       font-family: var(--font-display);
       font-size: 26px;
       font-weight: 800;
-      line-height: 1.2;
+      line-height: 1.22;
       color: var(--ink);
-      margin: 12px 0;
+      margin: 12px 0 16px 0;
     }}
     @media (min-width: 640px) {{
-      .article-heading {{ font-size: 36px; }}
+      .article-heading {{ font-size: 38px; }}
     }}
     .article-lead {{
-      font-size: 16px;
+      font-size: 16.5px;
       font-weight: 500;
       color: var(--ink-2);
-      line-height: 1.55;
-      margin-bottom: 20px;
-      border-left: 3px solid var(--site-accent);
-      padding-left: 14px;
+      line-height: 1.6;
+      margin-bottom: 22px;
+      border-left: 3.5px solid var(--site-accent);
+      padding-left: 16px;
+      transition: border-color 0.3s ease;
+    }}
+    .article-byline-bar {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--ink-3);
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 24px;
     }}
     .article-hero-box {{
       height: 240px;
       border-radius: var(--radius-lg);
       overflow: hidden;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       position: relative;
     }}
     @media (min-width: 640px) {{
-      .article-hero-box {{ height: 400px; }}
+      .article-hero-box {{ height: 420px; }}
     }}
     .article-prose {{
-      font-size: 15.5px;
-      line-height: 1.7;
+      font-size: 16px;
+      line-height: 1.75;
       color: #27272A;
     }}
-    .article-prose p {{ margin-bottom: 16px; }}
+    .article-prose p {{ margin-bottom: 18px; }}
     .article-pullquote {{
       font-family: var(--font-display);
-      font-size: 20px;
+      font-size: 21px;
       font-style: italic;
       color: var(--ink);
       line-height: 1.45;
-      margin: 24px 0;
-      padding: 16px 20px;
+      margin: 28px 0;
+      padding: 18px 22px;
       background: var(--surface-2);
       border-left: 4px solid var(--site-accent);
       border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      transition: border-color 0.3s ease;
+    }}
+    .article-faktaboks {{
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin: 28px 0;
+    }}
+    .article-faktaboks-title {{
+      font-size: 13.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--site-accent);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }}
+    .article-bottom-actions {{
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }}
+
+    /* FLOATING 'TILBAGE' PILL KNAP DER ALTID KAN SES VED SCROLL */
+    .floating-back-btn {{
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0F172A;
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 999px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      z-index: 99;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }}
+    .floating-back-btn:hover {{
+      background: var(--site-accent);
+      transform: translateX(-50%) translateY(-2px);
     }}
 
     /* FOOTER */
@@ -1134,18 +1434,21 @@ html_content = f'''<!DOCTYPE html>
 </head>
 <body>
 
-  <!-- 1. TOP NETWORK STRIP -->
+  <!-- 1. TOP NETWORK STRIP WITH ALL CITIES -->
   <div class="site-network-bar">
     <div class="site-container site-network-inner">
       <div class="site-network-left">
-        <span class="site-network-badge"><span class="site-network-dot"></span> [By]Lokalt:</span>
-        <a href="#forside" class="site-network-link is-current">Slagelse</a>
-        <a onclick="alert('Skifter til KalundborgLokalt')" class="site-network-link">Kalundborg</a>
-        <a onclick="alert('Skifter til NæstvedLokalt')" class="site-network-link">Næstved</a>
-        <a onclick="alert('Skifter til HolbækLokalt')" class="site-network-link">Holbæk</a>
+        <span class="site-network-badge"><span class="site-network-dot" style="background:var(--site-accent);"></span> [By]Lokalt netværk:</span>
+        <button onclick="switchCity('slagelse')" id="net-btn-slagelse" class="site-network-btn is-active"><span class="site-network-dot" style="background:#007038;"></span> Slagelse</button>
+        <button onclick="switchCity('naestved')" id="net-btn-naestved" class="site-network-btn"><span class="site-network-dot" style="background:#1F5663;"></span> Næstved</button>
+        <button onclick="switchCity('holbaek')" id="net-btn-holbaek" class="site-network-btn"><span class="site-network-dot" style="background:#4F5B1E;"></span> Holbæk</button>
+        <button onclick="switchCity('ringsted')" id="net-btn-ringsted" class="site-network-btn"><span class="site-network-dot" style="background:#8A5A00;"></span> Ringsted</button>
+        <button onclick="switchCity('koege')" id="net-btn-koege" class="site-network-btn"><span class="site-network-dot" style="background:#24533A;"></span> Køge</button>
+        <button onclick="switchCity('roskilde')" id="net-btn-roskilde" class="site-network-btn"><span class="site-network-dot" style="background:#6A3553;"></span> Roskilde</button>
+        <button onclick="switchCity('kalundborg')" id="net-btn-kalundborg" class="site-network-btn"><span class="site-network-dot" style="background:#0284C7;"></span> Kalundborg</button>
       </div>
       <div class="site-network-right">
-        <a href="#art-storebaelt">
+        <a href="#art-storebaelt" id="net-ticker-text">
           <span class="live-dot-pulse"></span>
           <span><strong>LIVE:</strong> Storebæltsbroen mod Fyn – Oprydning i gang</span>
         </a>
@@ -1156,12 +1459,52 @@ html_content = f'''<!DOCTYPE html>
   <!-- 2. STICKY HEADER -->
   <header class="site-header-wrapper">
     <div class="site-container site-header-inner">
-      <div style="display:flex; align-items:center; gap:24px;">
+      <div class="site-brand-container">
         <div>
           <a href="#forside" class="site-brand-logo">
-            Slagelse<span class="site-brand-logo-accent">Lokalt</span>
+            <span id="site-logo-prefix">Slagelse</span><span class="site-brand-logo-accent">Lokalt</span>
           </a>
-          <span class="site-brand-tagline">Lokaljournalistik, der sætter fællesskabet først</span>
+          <span id="site-brand-tagline" class="site-brand-tagline">Lokaljournalistik, der sætter fællesskabet først</span>
+        </div>
+
+        <!-- City switcher dropdown in header -->
+        <div style="position:relative;">
+          <button onclick="toggleCityDropdown()" id="header-city-btn" class="site-city-picker-btn" title="Skift til en anden by/kommune">
+            <span id="header-city-name">Slagelse</span> ▾
+          </button>
+
+          <!-- Dropdown menu popup -->
+          <div id="city-dropdown" class="city-dropdown-menu">
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--ink-3); padding:4px 8px 6px 8px; border-bottom:1px solid var(--line);">Vælg by / kommune</div>
+            <div onclick="switchCity('slagelse')" class="city-dropdown-item is-active" id="drop-item-slagelse">
+              <span style="display:flex; align-items:center; gap:8px;"><span class="site-network-dot" style="background:#007038;"></span> SlagelseLokalt</span>
+              <span style="font-size:11.5px; color:var(--ink-3);">Slagelse</span>
+            </div>
+            <div onclick="switchCity('naestved')" class="city-dropdown-item" id="drop-item-naestved">
+              <span style="display:flex; align-items:center; gap:8px;"><span class="site-network-dot" style="background:#1F5663;"></span> NæstvedLokalt</span>
+              <span style="font-size:11.5px; color:var(--ink-3);">Næstved</span>
+            </div>
+            <div onclick="switchCity('holbaek')" class="city-dropdown-item" id="drop-item-holbaek">
+              <span style="display:flex; align-items:center; gap:8px;"><span class="site-network-dot" style="background:#4F5B1E;"></span> HolbækLokalt</span>
+              <span style="font-size:11.5px; color:var(--ink-3);">Holbæk</span>
+            </div>
+            <div onclick="switchCity('ringsted')" class="city-dropdown-item" id="drop-item-ringsted">
+              <span style="display:flex; align-items:center; gap:8px;"><span class="site-network-dot" style="background:#8A5A00;"></span> RingstedLokalt</span>
+              <span style="font-size:11.5px; color:var(--ink-3);">Ringsted</span>
+            </div>
+            <div onclick="switchCity('koege')" class="city-dropdown-item" id="drop-item-koege">
+              <span style="display:flex; align-items:center; gap:8px;"><span class="site-network-dot" style="background:#24533A;"></span> KøgeLokalt</span>
+              <span style="font-size:11.5px; color:var(--ink-3);">Køge</span>
+            </div>
+            <div onclick="switchCity('roskilde')" class="city-dropdown-item" id="drop-item-roskilde">
+              <span style="display:flex; align-items:center; gap:8px;"><span class="site-network-dot" style="background:#6A3553;"></span> RoskildeLokalt</span>
+              <span style="font-size:11.5px; color:var(--ink-3);">Roskilde</span>
+            </div>
+            <div onclick="switchCity('kalundborg')" class="city-dropdown-item" id="drop-item-kalundborg">
+              <span style="display:flex; align-items:center; gap:8px;"><span class="site-network-dot" style="background:#0284C7;"></span> KalundborgLokalt</span>
+              <span style="font-size:11.5px; color:var(--ink-3);">Kalundborg</span>
+            </div>
+          </div>
         </div>
 
         <!-- Desktop Navigation Links -->
@@ -1184,15 +1527,10 @@ html_content = f'''<!DOCTYPE html>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         </a>
 
-        <!-- Tip/indsend (desktop) -->
-        <a href="#indsend" class="site-header-btn-tip-desktop">
-          <span>✍️ Indsend historie</span>
-        </a>
-
-        <!-- Support compact button -->
-        <a href="#stoet" class="site-header-btn-stoet">
+        <!-- Support compact button with dynamic site name -->
+        <a href="#stoet" id="header-stoet-btn" class="site-header-btn-stoet">
           <span>❤️</span>
-          <span>Støt</span>
+          <span id="header-stoet-label">Støt Slagelse</span>
         </a>
 
         <!-- Mobile hamburger button -->
@@ -1222,9 +1560,26 @@ html_content = f'''<!DOCTYPE html>
   <div id="mobile-drawer" class="mobile-drawer-overlay" onclick="toggleMobileMenu()">
     <div class="mobile-drawer-content" onclick="event.stopPropagation()">
       <div class="mobile-drawer-header">
-        <div class="site-brand-logo" style="font-size:20px;">Slagelse<span class="site-brand-logo-accent">Lokalt</span></div>
+        <div class="site-brand-logo" style="font-size:20px;">
+          <span id="drawer-logo-prefix">Slagelse</span><span class="site-brand-logo-accent">Lokalt</span>
+        </div>
         <button onclick="toggleMobileMenu()" style="font-size:24px; color:var(--ink-3);">&times;</button>
       </div>
+
+      <!-- Vælg by sektion i mobilskuffen -->
+      <div style="background:var(--surface-2); padding:10px; border-radius:var(--radius-sm); border:1px solid var(--line);">
+        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;">Vælg by / netværk:</div>
+        <div style="display:flex; flex-wrap:wrap; gap:5px;">
+          <button onclick="switchCity('slagelse'); toggleMobileMenu()" class="site-network-btn" style="background:#fff; color:var(--ink);"><span class="site-network-dot" style="background:#007038;"></span> Slagelse</button>
+          <button onclick="switchCity('naestved'); toggleMobileMenu()" class="site-network-btn" style="background:#fff; color:var(--ink);"><span class="site-network-dot" style="background:#1F5663;"></span> Næstved</button>
+          <button onclick="switchCity('holbaek'); toggleMobileMenu()" class="site-network-btn" style="background:#fff; color:var(--ink);"><span class="site-network-dot" style="background:#4F5B1E;"></span> Holbæk</button>
+          <button onclick="switchCity('ringsted'); toggleMobileMenu()" class="site-network-btn" style="background:#fff; color:var(--ink);"><span class="site-network-dot" style="background:#8A5A00;"></span> Ringsted</button>
+          <button onclick="switchCity('koege'); toggleMobileMenu()" class="site-network-btn" style="background:#fff; color:var(--ink);"><span class="site-network-dot" style="background:#24533A;"></span> Køge</button>
+          <button onclick="switchCity('roskilde'); toggleMobileMenu()" class="site-network-btn" style="background:#fff; color:var(--ink);"><span class="site-network-dot" style="background:#6A3553;"></span> Roskilde</button>
+          <button onclick="switchCity('kalundborg'); toggleMobileMenu()" class="site-network-btn" style="background:#fff; color:var(--ink);"><span class="site-network-dot" style="background:#0284C7;"></span> Kalundborg</button>
+        </div>
+      </div>
+
       <ul class="mobile-drawer-links">
         <li><a href="#forside" onclick="toggleMobileMenu()" class="mobile-drawer-link">Forside <span>→</span></a></li>
         <li><a href="#nyheder" onclick="toggleMobileMenu()" class="mobile-drawer-link">Nyheder <span>→</span></a></li>
@@ -1235,7 +1590,7 @@ html_content = f'''<!DOCTYPE html>
         <li><a href="#debat" onclick="toggleMobileMenu()" class="mobile-drawer-link">Debat <span>→</span></a></li>
         <li><a href="#soeg" onclick="toggleMobileMenu()" class="mobile-drawer-link">Søg i artikler <span>🔍</span></a></li>
         <li><a href="#indsend" onclick="toggleMobileMenu()" class="mobile-drawer-link">Indsend historie <span>✍️</span></a></li>
-        <li><a href="#stoet" onclick="toggleMobileMenu()" class="mobile-drawer-link" style="color:var(--site-accent); font-weight:700;">Støt SlagelseLokalt <span>❤️</span></a></li>
+        <li><a href="#stoet" onclick="toggleMobileMenu()" class="mobile-drawer-link" style="color:var(--site-accent); font-weight:700;"><span id="drawer-stoet-label">Støt medlemskab</span> <span>❤️</span></a></li>
       </ul>
     </div>
   </div>
@@ -1254,15 +1609,15 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-hero-bg-layer card-img-cover img-storebaelt"></div>
           <div class="site-hero-gradient"></div>
           <div class="site-hero-content">
-            <span class="site-hero-kicker">TRAFIK · STOREBÆLT</span>
-            <h1 class="site-hero-title">Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld</h1>
-            <p class="site-hero-manchet">Et trafikuheld spærrer et spor på Storebæltsbroen. Bilister skal forvente 20-30 minutters ekstra rejsetid.</p>
+            <span id="hero-kicker" class="site-hero-kicker">TRAFIK · STOREBÆLT</span>
+            <h1 id="hero-title" class="site-hero-title">Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld</h1>
+            <p id="hero-manchet" class="site-hero-manchet">Et trafikuheld spærrer et spor på Storebæltsbroen. Bilister skal forvente 20-30 minutters ekstra rejsetid.</p>
             <div class="site-hero-actions-row">
               <span class="site-hero-btn-read">
                 <span>Læs artiklen</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               </span>
-              <span style="font-size:12px; font-weight:600; color:#CBD5E1;">2 t. siden</span>
+              <span id="hero-meta" style="font-size:12px; font-weight:600; color:#CBD5E1;">2 t. siden</span>
             </div>
           </div>
         </a>
@@ -1271,9 +1626,9 @@ html_content = f'''<!DOCTYPE html>
         <aside class="site-wire-card">
           <div class="site-wire-header">
             <span>Seneste nyt</span>
-            <span style="font-size:11.5px; font-weight:600; color:var(--site-accent);">Slagelse Kommune</span>
+            <span id="wire-kommune-name" style="font-size:11.5px; font-weight:700; color:var(--site-accent); transition:color 0.3s;">Slagelse Kommune</span>
           </div>
-          <div class="site-wire-list">
+          <div id="wire-list-container" class="site-wire-list">
             <a href="#art-byraad" class="site-wire-item">
               <span class="site-wire-time">08:12</span>
               <p class="site-wire-headline">Nyt flertal på rådhuset vil investere 45 millioner i bymidten</p>
@@ -1301,19 +1656,20 @@ html_content = f'''<!DOCTYPE html>
         <aside class="site-nabolag-card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <h2 style="font-family:var(--font-display); font-size:20px; font-weight:800;">Dit nabolag</h2>
-            <span style="font-size:11.5px; color:var(--ink-3);">Kort</span>
+            <span id="nabolag-kommune-tag" style="font-size:11.5px; color:var(--ink-3);">Slagelse Kommune</span>
           </div>
           <div class="site-nabolag-thumb">
             <div class="card-img-cover img-kort"></div>
           </div>
-          <div class="site-nabolag-pills">
-            <button onclick="setNabolag('Slagelse C', this)" class="site-nabolag-pill is-active">Slagelse C</button>
-            <button onclick="setNabolag('Korsør', this)" class="site-nabolag-pill">Korsør</button>
-            <button onclick="setNabolag('Skælskør', this)" class="site-nabolag-pill">Skælskør</button>
-            <button onclick="setNabolag('Dalmose', this)" class="site-nabolag-pill">Dalmose</button>
+          <div id="nabolag-pills-container" class="site-nabolag-pills">
+            <button onclick="setNabolagArea('Slagelse C', this)" class="site-nabolag-pill is-active">Slagelse C</button>
+            <button onclick="setNabolagArea('Korsør', this)" class="site-nabolag-pill">Korsør</button>
+            <button onclick="setNabolagArea('Skælskør', this)" class="site-nabolag-pill">Skælskør</button>
+            <button onclick="setNabolagArea('Dalmose', this)" class="site-nabolag-pill">Dalmose</button>
+            <button onclick="setNabolagArea('Vemmelev', this)" class="site-nabolag-pill">Vemmelev</button>
           </div>
           <div id="nabolag-box" style="font-size:13px; color:var(--ink-2); line-height:1.45; padding:10px; background:var(--surface-2); border-radius:var(--radius-sm);">
-            <strong>Slagelse C:</strong> 4 nye byggeprojekter godkendt i bymidten. Håndværkere er gået i gang ved Nytorv.
+            <strong>Slagelse C:</strong> 4 nye byggeprojekter godkendt i bymidten. Håndværkere er i gang ved Nytorv.
           </div>
         </aside>
       </div>
@@ -1327,7 +1683,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-body">
             <span class="site-card-kicker">BYUDVIKLING & POLITIK</span>
             <h3 class="site-card-title">Nyt flertal på rådhuset vil investere 45 millioner i bymidten</h3>
-            <p class="site-card-desc">Bredt flertal er enige om en historisk investering i Slagelses handelsliv, grønne pladser og gågader.</p>
+            <p class="site-card-desc">Bredt flertal er enige om en historisk investering i handelsliv, grønne pladser og gågader.</p>
             <div class="site-card-meta">
               <span>Thomas Bach</span>
               <span>4 t. siden</span>
@@ -1341,7 +1697,7 @@ html_content = f'''<!DOCTYPE html>
           </div>
           <div class="site-card-body">
             <span class="site-card-kicker">KRIMI & TRYGHED</span>
-            <h3 class="site-card-title">Flere sommerhuse udsat for indbrud ved Skælskør Næs</h3>
+            <h3 class="site-card-title">Flere sommerhuse udsat for indbrud ved kysten</h3>
             <p class="site-card-desc">Politiet opfordrer sommerhusejere og naboer til øget årvågenhed efter stribe indbrud i weekenden.</p>
             <div class="site-card-meta">
               <span>Mette Lindegaard</span>
@@ -1356,7 +1712,7 @@ html_content = f'''<!DOCTYPE html>
           </div>
           <div class="site-card-body">
             <span class="site-card-kicker">ERHVERV & HANDEL</span>
-            <h3 class="site-card-title">Ny butikskæde åbner på Schweizerpladsen</h3>
+            <h3 class="site-card-title">Ny butikskæde åbner: Vil puste liv i byens handelsliv</h3>
             <p class="site-card-desc">En nyskabende detailforretning med fokus på bæredygtighed slår dørene op til foråret.</p>
             <div class="site-card-meta">
               <span>Henrik Friis</span>
@@ -1370,9 +1726,9 @@ html_content = f'''<!DOCTYPE html>
       <div class="site-community-banner">
         <div>
           <span style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#A7F3D0; margin-bottom:6px; display:block;">FÆLLESSKABETS MEDIE</span>
-          <h2 class="site-community-title">Vær med til at præge SlagelseLokalt</h2>
-          <p class="site-community-desc">
-            Vores journalistik skabes i tæt samspil med hverdagen i Slagelse Kommune. Vi finansieres og formes af borgerne og de lokale virksomheder – og vi modtager altid gerne dine idéer, spørgsmål og historier.
+          <h2 id="community-banner-title" class="site-community-title">Vær med til at præge SlagelseLokalt</h2>
+          <p id="community-banner-desc" class="site-community-desc">
+            Vores journalistik skabes i tæt samspil med hverdagen i kommunen. Vi finansieres og formes af borgerne og de lokale virksomheder – og vi modtager altid gerne dine idéer, spørgsmål og historier.
           </p>
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:10px;">
@@ -1381,7 +1737,7 @@ html_content = f'''<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- 4-GRID (MERE FRA SLAGELSE) -->
+      <!-- 4-GRID (MERE FRA OMRÅDET) -->
       <div class="site-4grid">
         <a href="#art-sport" class="site-card">
           <div class="site-card-thumb" style="height:140px;">
@@ -1389,8 +1745,8 @@ html_content = f'''<!DOCTYPE html>
           </div>
           <div class="site-card-body">
             <span class="site-card-kicker">LOKALSPORT</span>
-            <h3 class="site-card-title" style="font-size:16px;">Slagelse B&I overtidssejr</h3>
-            <p class="site-card-desc" style="font-size:13px;">Scoring i 93. minut sikrede tre point foran 1.100 tilskuere på Harboe Arena.</p>
+            <h3 class="site-card-title" style="font-size:16px;">Dramatisk overtidssejr på hjemmebane</h3>
+            <p class="site-card-desc" style="font-size:13px;">Scoring i 93. minut sikrede tre point foran et ellevildt publikum.</p>
           </div>
         </a>
 
@@ -1400,8 +1756,8 @@ html_content = f'''<!DOCTYPE html>
           </div>
           <div class="site-card-body">
             <span class="site-card-kicker">NATUR & MILJØ</span>
-            <h3 class="site-card-title" style="font-size:16px;">Vådområde ved Tude Å</h3>
-            <p class="site-card-desc" style="font-size:13px;">140 hektar lavbundsjord omlægges for at mindske oversvømmelser og kvælstof.</p>
+            <h3 class="site-card-title" style="font-size:16px;">Nyt vådområde beskytter mod skybrud</h3>
+            <p class="site-card-desc" style="font-size:13px;">Lavbundsjord omlægges for at mindske oversvømmelser og kvælstofudledning.</p>
           </div>
         </a>
 
@@ -1411,8 +1767,8 @@ html_content = f'''<!DOCTYPE html>
           </div>
           <div class="site-card-body">
             <span class="site-card-kicker">DEBATINDLÆG</span>
-            <h3 class="site-card-title" style="font-size:16px;">"Bevar byens oaser"</h3>
-            <p class="site-card-desc" style="font-size:13px;">Lise Holm advarer mod for tæt bebyggelse ved de grønne arealer i Korsør.</p>
+            <h3 class="site-card-title" style="font-size:16px;">"Bevar byens grønne oaser"</h3>
+            <p class="site-card-desc" style="font-size:13px;">Borger advarer mod for tæt bebyggelse ved de kystnære grønne arealer.</p>
           </div>
         </a>
 
@@ -1432,14 +1788,14 @@ html_content = f'''<!DOCTYPE html>
       <div class="site-partners-box">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <span style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--ink-3);">Lokale støttepartnere</span>
-          <a href="#stoet" style="font-size:12.5px; font-weight:700; color:var(--site-accent);">Vil din virksomhed også støtte? Bliv partner her →</a>
+          <a href="#stoet" style="font-size:12.5px; font-weight:700; color:var(--site-accent); transition:color 0.3s;">Vil din virksomhed også støtte? Bliv partner her →</a>
         </div>
         <div class="site-partners-logos">
           <span class="site-partner-badge">Harboe Bryggeri</span>
           <span class="site-partner-badge">Sparekassen Sjælland-Fyn</span>
           <span class="site-partner-badge">VKST Landbrugsrådgivning</span>
-          <span class="site-partner-badge">Danbolig Slagelse</span>
-          <span class="site-partner-badge">SuperBrugsen Korsør</span>
+          <span class="site-partner-badge">Danbolig Erhverv</span>
+          <span class="site-partner-badge">SuperBrugsen</span>
         </div>
       </div>
     </section>
@@ -1450,7 +1806,7 @@ html_content = f'''<!DOCTYPE html>
     <section id="nyheder" class="content-section">
       <div class="section-header-box">
         <span class="section-kicker">SEKTION</span>
-        <h2 class="section-title">Nyheder fra Slagelse Kommune</h2>
+        <h2 id="section-nyheder-title" class="section-title">Nyheder fra Slagelse Kommune</h2>
         <p class="section-desc">Aktuelt overblik over politik, beredskab, infrastruktur og lokalsamfundet.</p>
       </div>
 
@@ -1461,7 +1817,7 @@ html_content = f'''<!DOCTYPE html>
             <span class="site-card-kicker">TRAFIK</span>
             <h3 class="site-card-title">Kødannelse på Storebæltsbroen i retning mod Fyn</h3>
             <p class="site-card-desc">Trafikuheld skabte mandag formiddag lange køer. Trafikken afvikles nu i ét spor.</p>
-            <div class="site-card-meta"><span>Korsør</span><span>I dag</span></div>
+            <div class="site-card-meta"><span>Trafik</span><span>I dag</span></div>
           </div>
         </a>
 
@@ -1469,9 +1825,9 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-bymidte"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">POLITIK</span>
-            <h3 class="site-card-title">45 millioner til fornyelse af Slagelse bymidte</h3>
+            <h3 class="site-card-title">45 millioner til fornyelse af bymidten</h3>
             <p class="site-card-desc">Nyt flertal på rådhuset investerer i handelslivet og gågaderne.</p>
-            <div class="site-card-meta"><span>Slagelse C</span><span>4 t. siden</span></div>
+            <div class="site-card-meta"><span>Rådhus</span><span>4 t. siden</span></div>
           </div>
         </a>
 
@@ -1479,9 +1835,9 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-sommerhus"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">KRIMI</span>
-            <h3 class="site-card-title">Sommerhusindbrud ved Skælskør Næs</h3>
+            <h3 class="site-card-title">Sommerhusindbrud ved kysten</h3>
             <p class="site-card-desc">Beboere og grundejerforening opfordres til øget årvågenhed.</p>
-            <div class="site-card-meta"><span>Skælskør</span><span>6 t. siden</span></div>
+            <div class="site-card-meta"><span>Politi</span><span>6 t. siden</span></div>
           </div>
         </a>
       </div>
@@ -1502,7 +1858,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-erhverv"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">DETAILHANDEL</span>
-            <h3 class="site-card-title">Ny butikskæde åbner på Schweizerpladsen</h3>
+            <h3 class="site-card-title">Ny butikskæde åbner på handelsstrøget</h3>
             <p class="site-card-desc">Genanvendelse og lokalt kunsthåndværk rykker ind i tomme butikslokaler.</p>
             <div class="site-card-meta"><span>Handel</span><span>I dag</span></div>
           </div>
@@ -1512,8 +1868,8 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-bymidte"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">LOGISTIK</span>
-            <h3 class="site-card-title">Erhvervspark ved E20 udvides markant</h3>
-            <p class="site-card-desc">Stor efterspørgsel på erhvervsjord ved motorvejsafkørsel 39.</p>
+            <h3 class="site-card-title">Erhvervspark ved motorvejen udvides markant</h3>
+            <p class="site-card-desc">Stor efterspørgsel på erhvervsjord tæt ved transportkorridorerne.</p>
             <div class="site-card-meta"><span>Erhverv</span><span>2 dage siden</span></div>
           </div>
         </a>
@@ -1522,7 +1878,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-sommerhus"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">TURISME</span>
-            <h3 class="site-card-title">Kystturismen i Skælskør mod ny rekord</h3>
+            <h3 class="site-card-title">Kystturismen melder om rekordhøj interesse</h3>
             <p class="site-card-desc">Restauranter og udlejere melder om stor interesse til højsæsonen.</p>
             <div class="site-card-meta"><span>Turisme</span><span>3 dage siden</span></div>
           </div>
@@ -1537,7 +1893,7 @@ html_content = f'''<!DOCTYPE html>
       <div class="section-header-box">
         <span class="section-kicker">SEKTION</span>
         <h2 class="section-title">Lokalsporten</h2>
-        <p class="section-desc">Fodbold, håndbold, atletik, svømning og breddeidræt i Slagelse, Korsør og Skælskør.</p>
+        <p class="section-desc">Fodbold, håndbold, atletik, svømning og breddeidræt i hele kommunen.</p>
       </div>
 
       <div class="site-middle-3cards-grid">
@@ -1545,9 +1901,9 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-fodbold"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">FODBOLD</span>
-            <h3 class="site-card-title">Slagelse B&I henter overtidssejr på Harboe Arena</h3>
-            <p class="site-card-desc">Mål i det 93. minut udløste jubel foran 1.100 tilskuere i topstriden.</p>
-            <div class="site-card-meta"><span>Harboe Arena</span><span>I går</span></div>
+            <h3 class="site-card-title">Dramatisk overtidssejr i topopgøret</h3>
+            <p class="site-card-desc">Mål i det 93. minut udløste jubel foran 1.100 tilskuere på hjemmebane.</p>
+            <div class="site-card-meta"><span>Sport</span><span>I går</span></div>
           </div>
         </a>
 
@@ -1555,8 +1911,8 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-natur"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">MOTION</span>
-            <h3 class="site-card-title">Slagelse Løbeklub klar til forårsløb</h3>
-            <p class="site-card-desc">Over 400 tilmeldte løbere gennem Slagelse Lystskov.</p>
+            <h3 class="site-card-title">Løbeklub klar til det store forårsløb</h3>
+            <p class="site-card-desc">Over 400 tilmeldte motionister i de lokale skove og stier.</p>
             <div class="site-card-meta"><span>Motion</span><span>Søndag</span></div>
           </div>
         </a>
@@ -1565,9 +1921,9 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-bymidte"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">SVØMNING</span>
-            <h3 class="site-card-title">Korsør Svømmeklub sætter fire klubrekorder</h3>
+            <h3 class="site-card-title">Svømmeklubben sætter fire nye klubrekorder</h3>
             <p class="site-card-desc">Guldmedaljer og personlige rekorder til de unge talenter.</p>
-            <div class="site-card-meta"><span>Korsør</span><span>3 dage siden</span></div>
+            <div class="site-card-meta"><span>Svømning</span><span>3 dage siden</span></div>
           </div>
         </a>
       </div>
@@ -1580,7 +1936,7 @@ html_content = f'''<!DOCTYPE html>
       <div class="section-header-box">
         <span class="section-kicker">SEKTION</span>
         <h2 class="section-title">Kultur & Oplevelser</h2>
-        <p class="section-desc">Koncerter, teater, udstillinger, biblioteker og historiske steder.</p>
+        <p class="section-desc">Koncerter, teater, udstillinger, biblioteker og historiske seværdigheder.</p>
       </div>
 
       <div class="site-middle-3cards-grid">
@@ -1588,9 +1944,9 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-bymidte"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">MUSIK & TEATER</span>
-            <h3 class="site-card-title">Musikhuset Slagelse afslører forårsprogram</h3>
+            <h3 class="site-card-title">Kulturhuset afslører stærkt forårsprogram</h3>
             <p class="site-card-desc">Pop, jazz og stand-up comedy gæster scenerne i byen.</p>
-            <div class="site-card-meta"><span>Musikhuset</span><span>I dag</span></div>
+            <div class="site-card-meta"><span>Kultur</span><span>I dag</span></div>
           </div>
         </a>
 
@@ -1598,9 +1954,9 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-sommerhus"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">HISTORIE</span>
-            <h3 class="site-card-title">Borreby Herreborg åbner historiske sale</h3>
-            <p class="site-card-desc">Offentlige rundvisninger viser Skælskørs unikke renæssancearv.</p>
-            <div class="site-card-meta"><span>Skælskør</span><span>2 dage siden</span></div>
+            <h3 class="site-card-title">Historiske herreborge åbner for offentligheden</h3>
+            <p class="site-card-desc">Rundvisninger viser områdets unikke renæssancearv og kunstværker.</p>
+            <div class="site-card-meta"><span>Historie</span><span>2 dage siden</span></div>
           </div>
         </a>
 
@@ -1608,8 +1964,8 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-debat"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">BØRN & FAMILIE</span>
-            <h3 class="site-card-title">Gratis workshops på bibliotekerne</h3>
-            <p class="site-card-desc">Kreative værksteder og højtlæsning i både Slagelse og Korsør.</p>
+            <h3 class="site-card-title">Gratis kreative workshops på bibliotekerne</h3>
+            <p class="site-card-desc">Kreative værksteder og højtlæsning for børn og unge.</p>
             <div class="site-card-meta"><span>Bibliotek</span><span>Vinterferie</span></div>
           </div>
         </a>
@@ -1633,7 +1989,7 @@ html_content = f'''<!DOCTYPE html>
             <span class="site-card-kicker">FRIVILLIGHED</span>
             <h3 class="site-card-title">120 frivillige hædret ved årets foreningsfest</h3>
             <p class="site-card-desc">Borgmesteren overrakte priser til de ildsjæle, der skaber fællesskab.</p>
-            <div class="site-card-meta"><span>Korsør Kulturhus</span><span>I går</span></div>
+            <div class="site-card-meta"><span>Foreningsfest</span><span>I går</span></div>
           </div>
         </a>
 
@@ -1641,9 +1997,9 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-natur"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">BORGERINITIATIV</span>
-            <h3 class="site-card-title">Naturvennerne samler 300 kg affald</h3>
-            <p class="site-card-desc">Lokale familier ryddede stierne langs Tude Å.</p>
-            <div class="site-card-meta"><span>Tude Å</span><span>Søndag</span></div>
+            <h3 class="site-card-title">Naturvennerne samler affald langs åen</h3>
+            <p class="site-card-desc">Lokale familier ryddede stierne og sluttede af med bålkaffe.</p>
+            <div class="site-card-meta"><span>Natur</span><span>Søndag</span></div>
           </div>
         </a>
 
@@ -1651,9 +2007,9 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-debat"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">HJÆLP HINANDEN</span>
-            <h3 class="site-card-title">Frivilligcenter Slagelse søger mentorer</h3>
+            <h3 class="site-card-title">Frivilligcentret søger nye lektiehjælpere</h3>
             <p class="site-card-desc">Hjælp unge godt videre med skolegang og fritidsliv.</p>
-            <div class="site-card-meta"><span>Slagelse C</span><span>4 dage siden</span></div>
+            <div class="site-card-meta"><span>Frivillig</span><span>4 dage siden</span></div>
           </div>
         </a>
       </div>
@@ -1666,7 +2022,7 @@ html_content = f'''<!DOCTYPE html>
       <div class="section-header-box">
         <span class="section-kicker">SEKTION</span>
         <h2 class="section-title">Debat & Holdninger</h2>
-        <p class="section-desc">Ordet er frit for alle borgere og foreninger i Slagelse Kommune.</p>
+        <p class="section-desc">Ordet er frit for alle borgere og foreninger i kommunen.</p>
       </div>
 
       <div class="site-middle-3cards-grid">
@@ -1676,7 +2032,7 @@ html_content = f'''<!DOCTYPE html>
             <span class="site-card-kicker">BORGERINDLÆG</span>
             <h3 class="site-card-title">"Vi skal bevare byens grønne åndehuller"</h3>
             <p class="site-card-desc">Lise Holm: Byggeri må ikke fjerne de sidste oaser langs kysten.</p>
-            <div class="site-card-meta"><span>Af Lise Holm</span><span>I dag</span></div>
+            <div class="site-card-meta"><span>Debat</span><span>I dag</span></div>
           </div>
         </a>
 
@@ -1686,7 +2042,7 @@ html_content = f'''<!DOCTYPE html>
             <span class="site-card-kicker">POLITISK REPLIK</span>
             <h3 class="site-card-title">"Investeringen i bymidten er nødvendig"</h3>
             <p class="site-card-desc">Byrådsmedlem Morten Nielsen om at styrke de fysiske handelsgader.</p>
-            <div class="site-card-meta"><span>Morten Nielsen (V)</span><span>I går</span></div>
+            <div class="site-card-meta"><span>Politik</span><span>I går</span></div>
           </div>
         </a>
 
@@ -1694,23 +2050,23 @@ html_content = f'''<!DOCTYPE html>
           <div class="site-card-thumb"><div class="card-img-cover img-storebaelt"></div></div>
           <div class="site-card-body">
             <span class="site-card-kicker">PENDLERDEBAT</span>
-            <h3 class="site-card-title">"Storebæltspendlerne overses i planerne"</h3>
+            <h3 class="site-card-title">"Pendlerne overses i transportplanerne"</h3>
             <p class="site-card-desc">Efterlysning af rimeligere bropas og bedre togforbindelser.</p>
-            <div class="site-card-meta"><span>Søren K. Møller</span><span>2 dage siden</span></div>
+            <div class="site-card-meta"><span>Pendler</span><span>2 dage siden</span></div>
           </div>
         </a>
       </div>
     </section>
 
     <!-- ============================================== -->
-    <!-- SEKTION 8: STØT SLAGELSE LOKALT                -->
+    <!-- SEKTION 8: STØT (DUAL SUPPORT MODEL)           -->
     <!-- ============================================== -->
     <section id="stoet" class="content-section">
       <div class="support-card-container">
         <div style="text-align:center; max-width:600px; margin:0 auto 24px auto;">
           <span class="section-kicker">FÆLLESSKAB & STØTTE</span>
-          <h2 style="font-family:var(--font-display); font-size:30px; font-weight:800; margin-bottom:8px;">Støt SlagelseLokalt</h2>
-          <p style="font-size:14.5px; color:var(--ink-2); line-height:1.5;">
+          <h2 id="support-section-title" style="font-family:var(--font-display); font-size:30px; font-weight:800; margin-bottom:8px;">Støt SlagelseLokalt</h2>
+          <p id="support-section-desc" style="font-size:14.5px; color:var(--ink-2); line-height:1.5;">
             Vi formes og finansieres af borgerne og erhvervslivet i Slagelse Kommune. Vælg en fast pakke eller støt med et valgfrit beløb.
           </p>
         </div>
@@ -1823,191 +2179,230 @@ html_content = f'''<!DOCTYPE html>
     <section id="soeg" class="content-section">
       <div class="search-container">
         <span class="section-kicker">ARKIV</span>
-        <h2 style="font-family:var(--font-display); font-size:28px; font-weight:800; margin-bottom:12px;">Søg i SlagelseLokalt</h2>
+        <h2 style="font-family:var(--font-display); font-size:28px; font-weight:800; margin-bottom:12px;">Søg i artikler</h2>
         <div style="position:relative; margin-bottom:16px;">
           <input type="text" id="search-input" oninput="runLiveSearch(this.value)" placeholder="Søg f.eks. Storebælt, byråd, erhverv, sport..." class="search-input-field">
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px;">
           <button onclick="setSearchTerm('Storebælt')" class="site-subnav-pill">Storebælt</button>
           <button onclick="setSearchTerm('Byråd')" class="site-subnav-pill">Byråd</button>
-          <button onclick="setSearchTerm('Skælskør')" class="site-subnav-pill">Skælskør</button>
+          <button onclick="setSearchTerm('Erhverv')" class="site-subnav-pill">Erhverv</button>
           <button onclick="setSearchTerm('Sport')" class="site-subnav-pill">Sport</button>
         </div>
         <div id="search-results-list" style="display:flex; flex-direction:column; gap:10px;"></div>
       </div>
     </section>
 
-  </main>
+    <!-- ========================================================= -->
+    <!-- SEKTION 11: DEDIKEREDE ARTIKLER (FULD SCROLLBARHED)       -->
+    <!-- ========================================================= -->
 
-  <!-- ============================================== -->
-  <!-- MODAL ARTIKELVISNINGER (CSS :TARGET OG JS)     -->
-  <!-- ============================================== -->
-  
-  <!-- ARTIKEL: STOREBÆLT -->
-  <div id="art-storebaelt" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
+    <!-- ARTIKEL: STOREBÆLT -->
+    <article id="art-storebaelt" class="article-full-page">
+      <div class="article-top-nav-bar">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <span style="font-size:12px; font-weight:700; color:var(--ink-3);">Trafik & Beredskab</span>
+      </div>
       <span class="section-kicker">TRAFIK · STOREBÆLT</span>
-      <h2 class="article-heading">Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld</h2>
+      <h1 class="article-heading">Kødannelse på Storebæltsbroen i retning mod Fyn efter trafikuheld</h1>
       <p class="article-lead">Et trafikuheld med to biler spærrer det ene spor på Storebæltsbroen. Bilister skal forvente ekstra rejsetid.</p>
-      <div style="font-size:12px; color:var(--ink-3); margin-bottom:16px;">Af Jonas Vestergaard · 2 t. siden</div>
+      <div class="article-byline-bar">
+        <div>Af <strong>Jonas Vestergaard</strong> · Lokaljournalist</div>
+        <div>Publiceret: I dag kl. 09:14 · 3 min. læsetid</div>
+      </div>
       <div class="article-hero-box"><div class="card-img-cover img-storebaelt"></div></div>
       <div class="article-prose">
-        <p>Vagtchefen ved Sydsjællands og Lolland-Falsters Politi oplyser, at uheldet skete omkring klokken 08.45 lige før højbroen i vestgående retning.</p>
-        <p>Ingen personer er kommet alvorligt til skade, men vragdele og spildt olie har gjort det nødvendigt midlertidigt at lukke det ene spor.</p>
-        <blockquote class="article-pullquote">"Vi forventer, at oprydningsarbejdet er afsluttet før middag, men der er fortsat kødannelse."</blockquote>
-        <p>Trafikanter opfordres til at køre forsigtigt og holde god afstand.</p>
+        <p>Vagtchefen ved Sydsjællands og Lolland-Falsters Politi oplyser, at uheldet skete omkring klokken 08.45 lige før højbroen i vestgående retning mod Fyn. Der er tale om et harmonikasammenstød med to personbiler under den tætte morgentrafik.</p>
+        <p>Ingen personer er kommet alvorligt til skade, men vragdele og en mindre olielækage har gjort det nødvendigt midlertidigt at lukke det højre spor, mens Falck og Vejdirektoratet arbejder på stedet.</p>
+        <blockquote class="article-pullquote">"Vi forventer, at oprydningsarbejdet er afsluttet før middag, men der er fortsat kødannelse tilbage mod Korsør."</blockquote>
+        <div class="article-faktaboks">
+          <div class="article-faktaboks-title">Fakta om Storebæltsbroen</div>
+          <ul style="padding-left:18px; font-size:13.5px; color:var(--ink-2); line-height:1.6;">
+            <li>Omkring 36.000 køretøjer passerer forbindelsen dagligt.</li>
+            <li>Aktuel status: 1 spor farbart i vestgående retning med 50 km/t hastighedsbegrænsning.</li>
+            <li>Trafikanter rådes til at følge P4 Trafik og Sund & Bælts hjemmeside.</li>
+          </ul>
+        </div>
+        <p>Politiet opfordrer alle bilister til at udvise tålmodighed, holde behørig afstand og undgå at kigge på uheldsstedet under forbikørsel.</p>
       </div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
+      <div class="article-bottom-actions">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <a href="#stoet" class="site-header-btn-stoet">Støt den lokale dækning</a>
       </div>
-    </div>
-  </div>
+    </article>
 
-  <!-- ARTIKEL: BYRÅD -->
-  <div id="art-byraad" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
+    <!-- ARTIKEL: BYRÅD -->
+    <article id="art-byraad" class="article-full-page">
+      <div class="article-top-nav-bar">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <span style="font-size:12px; font-weight:700; color:var(--ink-3);">Politik & Byudvikling</span>
+      </div>
       <span class="section-kicker">POLITIK & BYMIDTE</span>
-      <h2 class="article-heading">Nyt flertal på rådhuset vil investere 45 millioner i bymidten</h2>
-      <p class="article-lead">En historisk investering over de næste tre år skal skabe fornyelse af gågaderne og handelslivet i Slagelse.</p>
-      <div style="font-size:12px; color:var(--ink-3); margin-bottom:16px;">Af Thomas Bach · 4 t. siden</div>
+      <h1 class="article-heading">Nyt flertal på rådhuset vil investere 45 millioner i bymidten</h1>
+      <p class="article-lead">En historisk investering over de næste tre år skal skabe fornyelse af gågaderne og handelslivet i kommunen.</p>
+      <div class="article-byline-bar">
+        <div>Af <strong>Thomas Bach</strong> · Rådhusreporter</div>
+        <div>Publiceret: I dag kl. 08:12 · 4 min. læsetid</div>
+      </div>
       <div class="article-hero-box"><div class="card-img-cover img-bymidte"></div></div>
       <div class="article-prose">
-        <p>Aftalen omfatter omlægning af belægningen på Nytorv, nye grønne opholdsrum samt bedre belysning.</p>
-        <blockquote class="article-pullquote">"Vi vil have en levende bymidte med liv og handel frem for tomme lokaler."</blockquote>
+        <p>Efter måneders forhandlinger er et bredt flertal i byrådet blevet enige om en stor fornyelsespakke til bymidten. Målet er at modvirke butiksdød, skabe flere grønne opholdsarealer og gøre det mere attraktivt at handle lokalt.</p>
+        <p>Aftalen indeholder blandt andet midler til modernisering af belægningen på torvet, etablering af nye byhaver med bænke samt en markant opgradering af gadebelysningen.</p>
+        <blockquote class="article-pullquote">"Vi vil have en levende bymidte med liv, handel og kulturoplevelser frem for tomme facader."</blockquote>
+        <div class="article-faktaboks">
+          <div class="article-faktaboks-title">Hovedpunkter i bymidteplanen</div>
+          <ul style="padding-left:18px; font-size:13.5px; color:var(--ink-2); line-height:1.6;">
+            <li>Samlet budget: 45 mio. kr. over årene 2026-2028.</li>
+            <li>Nytorv og tilstødende gågader renoveres med natursten og træbeplantning.</li>
+            <li>Etablering af gratis korttidsparkering for at styrke detailhandlen.</li>
+          </ul>
+        </div>
+        <p>Arbejdet forventes igangsat til foråret og vil blive udført i etaper for at genere handelslivet mindst muligt.</p>
       </div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
+      <div class="article-bottom-actions">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <a href="#debat" class="site-header-btn-stoet">Deltag i debatten</a>
       </div>
-    </div>
-  </div>
+    </article>
 
-  <!-- ARTIKEL: SOMMERHUSE -->
-  <div id="art-sommerhuse" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
+    <!-- ARTIKEL: SOMMERHUSE -->
+    <article id="art-sommerhuse" class="article-full-page">
+      <div class="article-top-nav-bar">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <span style="font-size:12px; font-weight:700; color:var(--ink-3);">Krimi & Tryghed</span>
+      </div>
       <span class="section-kicker">KRIMI & TRYGHED</span>
-      <h2 class="article-heading">Flere sommerhuse udsat for indbrud ved Skælskør Næs</h2>
+      <h1 class="article-heading">Flere sommerhuse udsat for indbrud langs kysten</h1>
       <p class="article-lead">Beboere og grundejerforening opfordres til årvågenhed efter nattens indbrud i weekenden.</p>
-      <div style="font-size:12px; color:var(--ink-3); margin-bottom:16px;">Af Mette Lindegaard · 6 t. siden</div>
+      <div class="article-byline-bar">
+        <div>Af <strong>Mette Lindegaard</strong> · Kriminalreporter</div>
+        <div>Publiceret: I dag kl. 07:48 · 3 min. læsetid</div>
+      </div>
       <div class="article-hero-box"><div class="card-img-cover img-sommerhus"></div></div>
       <div class="article-prose">
-        <p>Tyvene er gået efter værktøj, designmøbler og elektronik i de ubeboede sommerhuse langs kysten.</p>
+        <p>Gerningsmændene har slået til mod mindst fire sommerhuse i weekenden. De er gået efter designmøbler, el-værktøj og elektronik, mens husene har stået tomme i vinterkulden.</p>
+        <p>Lokalpolitiet efterlyser vidner, der måtte have set mistænkelige varebiler i området sent fredag eller lørdag aften.</p>
+        <blockquote class="article-pullquote">"Vi opfordrer alle sommerhusejere til at tilmelde sig Nabohjælp og fjerne værdigenstande, når huset forlades."</blockquote>
+        <p>Grundejerforeningen overvejer nu i samarbejde med politiet at opsætte midlertidig tryghedskameraovervågning ved indfaldsvejene til sommerhusområdet.</p>
       </div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
+      <div class="article-bottom-actions">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <a href="#indsend" class="site-header-btn-stoet">Tip redaktionen</a>
       </div>
-    </div>
-  </div>
+    </article>
 
-  <!-- ARTIKEL: BUTIK -->
-  <div id="art-butik" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
+    <!-- ARTIKEL: BUTIK -->
+    <article id="art-butik" class="article-full-page">
+      <div class="article-top-nav-bar">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <span style="font-size:12px; font-weight:700; color:var(--ink-3);">Erhverv & Handel</span>
+      </div>
       <span class="section-kicker">ERHVERV & HANDEL</span>
-      <h2 class="article-heading">Ny butikskæde åbner på Schweizerpladsen til foråret</h2>
-      <p class="article-lead">Bæredygtig detail og lokalt håndværk skaber nyt liv og arbejdspladser i centrum af Slagelse.</p>
+      <h1 class="article-heading">Ny butikskæde åbner i centrum til foråret</h1>
+      <p class="article-lead">Bæredygtig detail og lokalt håndværk skaber nyt liv og arbejdspladser i handelsbyen.</p>
+      <div class="article-byline-bar">
+        <div>Af <strong>Henrik Friis</strong> · Erhvervsjournalist</div>
+        <div>Publiceret: I dag kl. 06:32 · 3 min. læsetid</div>
+      </div>
       <div class="article-hero-box"><div class="card-img-cover img-erhverv"></div></div>
       <div class="article-prose">
-        <p>Butikken rummer også en hyggelig kaffebar og vil afholde kreative workshops med lokale kunsthåndværkere.</p>
+        <p>Det tomme hjørnelokale på gågaden får nyt liv, når en innovativ detailbutik slår dørene op i marts. Konceptet kombinerer upcycling, genbrugskunst og lokalt producerede fødevarer.</p>
+        <p>Etableringen skaber 12 nye lokale arbejdspladser og vil desuden rumme en mindre kaffebar, hvor gæster kan mødes til kreative aftener og workshops.</p>
+        <blockquote class="article-pullquote">"Vi tror på det fysiske byliv. Mennesker vil gerne mærke varerne og have en personlig oplevelse."</blockquote>
       </div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
+      <div class="article-bottom-actions">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <a href="#erhverv" class="site-header-btn-stoet">Se mere erhverv</a>
       </div>
-    </div>
-  </div>
+    </article>
 
-  <!-- ARTIKEL: SPORT -->
-  <div id="art-sport" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
+    <!-- ARTIKEL: SPORT -->
+    <article id="art-sport" class="article-full-page">
+      <div class="article-top-nav-bar">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <span style="font-size:12px; font-weight:700; color:var(--ink-3);">Lokalsport</span>
+      </div>
       <span class="section-kicker">LOKALSPORT</span>
-      <h2 class="article-heading">Slagelse B&I henter dramatisk overtidssejr på Harboe Arena</h2>
-      <p class="article-lead">Mål i 93. minut udløste jubel foran 1.100 tilskuere.</p>
+      <h1 class="article-heading">Dramatisk overtidssejr i topopgøret på hjemmebane</h1>
+      <p class="article-lead">Mål i det 93. minut udløste jubel foran et tætpakket publikum.</p>
+      <div class="article-byline-bar">
+        <div>Af <strong>Martin Simonsen</strong> · Sportsreporter</div>
+        <div>Publiceret: I går kl. 22:15 · 3 min. læsetid</div>
+      </div>
       <div class="article-hero-box"><div class="card-img-cover img-fodbold"></div></div>
       <div class="article-prose">
-        <p>Slagelse fastholder sin topplacering efter en hæsblæsende fight mod gæsterne.</p>
+        <p>Det lignede længe en pointdeling efter en hårdt spillet kamp med chancer i begge ender. Men dybt inde i overtiden steg hjemmeholdets anfører til vejrs efter et hjørnespark og headede bolden i netmaskerne til 2-1.</p>
+        <p>Træneren roste efterfølgende spillernes vilje og takkede publikum for den enorme lydkulisse, der bar holdet frem i de afgørende minutter.</p>
       </div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
+      <div class="article-bottom-actions">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <a href="#sport" class="site-header-btn-stoet">Flere sportsnyheder</a>
       </div>
-    </div>
-  </div>
+    </article>
 
-  <!-- ARTIKEL: TUDE Å -->
-  <div id="art-tudeaa" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
+    <!-- ARTIKEL: TUDE Å -->
+    <article id="art-tudeaa" class="article-full-page">
+      <div class="article-top-nav-bar">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <span style="font-size:12px; font-weight:700; color:var(--ink-3);">Natur & Miljø</span>
+      </div>
       <span class="section-kicker">NATUR & MILJØ</span>
-      <h2 class="article-heading">Nyt vådområdeprojekt ved Tude Å beskytter mod oversvømmelser</h2>
-      <p class="article-lead">140 hektar lavbundsjord omlægges i historisk samarbejde mellem kommune og lodsejere.</p>
+      <h1 class="article-heading">Nyt vådområdeprojekt beskytter mod oversvømmelser</h1>
+      <p class="article-lead">Lavbundsjord omlægges i historisk samarbejde mellem kommune og lodsejere.</p>
+      <div class="article-byline-bar">
+        <div>Af <strong>Astrid Lorentzen</strong> · Miljøreporter</div>
+        <div>Publiceret: I går kl. 16:30 · 4 min. læsetid</div>
+      </div>
       <div class="article-hero-box"><div class="card-img-cover img-natur"></div></div>
       <div class="article-prose">
-        <p>Projektet fjerner kvælstof og skaber samtidig nye rekreative stier for områdets borgere.</p>
+        <p>Et stort vådområdeprojekt genslynger nu åen og skaber 140 hektar vådområde. Projektet fjerner mere end 12 tons kvælstof årligt og beskytter samtidig de omkringliggende marker mod oversvømmelser ved kraftige skybrud.</p>
+        <p>Der etableres desuden nye stier og fugletårne, så naturelskere og skoleklasser kan få glæde af det rige dyreliv.</p>
       </div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
+      <div class="article-bottom-actions">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <a href="#forside" class="site-header-btn-stoet">Gå til Forsiden</a>
       </div>
-    </div>
-  </div>
+    </article>
 
-  <!-- ARTIKEL: DEBAT -->
-  <div id="art-debat" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
+    <!-- ARTIKEL: DEBAT -->
+    <article id="art-debat" class="article-full-page">
+      <div class="article-top-nav-bar">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <span style="font-size:12px; font-weight:700; color:var(--ink-3);">Debat & Holdninger</span>
+      </div>
       <span class="section-kicker">DEBATINDLÆG</span>
-      <h2 class="article-heading">"Vi må og skal bevare de grønne åndehuller i Slagelse Kommune"</h2>
-      <p class="article-lead">Debatindlæg af Lise Holm, borger i Korsør: Hvorfor vi ikke må ofre byens oaser.</p>
+      <h1 class="article-heading">"Vi må og skal bevare de grønne åndehuller i kommunen"</h1>
+      <p class="article-lead">Debatindlæg af lokal borger: Hvorfor vi ikke må ofre byens oaser til fordel for hurtige parkeringspladser eller betonbyggeri.</p>
+      <div class="article-byline-bar">
+        <div>Af <strong>Lise Holm</strong> · Borger og debattør</div>
+        <div>Publiceret: I dag kl. 10:00 · 3 min. læsetid</div>
+      </div>
       <div class="article-hero-box"><div class="card-img-cover img-debat"></div></div>
       <div class="article-prose">
-        <p>Når vi planlægger fremtidens kommune, må målet ikke kun være mursten og tal, men også livskvalitet og natur.</p>
+        <p>Hver dag møder jeg medborgere, der nyder de grønne åndehuller langs kysten og i parkerne. Det slår mig igen og igen, hvor uvurderlige disse oaser er for vores trivsel, sundhed og fællesskab.</p>
+        <p>Når vi udvikler fremtidens byer, må vi ikke kun lade os styre af kvadratmeter og kortsigtet profit. Lad os passe på det grønne, som gør vores kommune til et dejligt sted at leve.</p>
       </div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
+      <div class="article-bottom-actions">
+        <a href="#forside" class="article-back-link">← Tilbage til Forsiden</a>
+        <a href="#indsend" class="site-header-btn-stoet">Skriv et debatindlæg</a>
       </div>
-    </div>
-  </div>
+    </article>
 
-  <!-- ARTIKEL: FORENINGSLIV -->
-  <div id="art-foreningsliv" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
-      <span class="section-kicker">FORENINGSLIV</span>
-      <h2 class="article-heading">120 frivillige hædret ved årets foreningsfest i Korsør</h2>
-      <p class="article-lead">Ildsjæle fra idræt, spejdere og ældreklubber hyldet for deres indsats for fællesskabet.</p>
-      <div class="article-hero-box"><div class="card-img-cover img-bymidte"></div></div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ARTIKEL: KULTUR -->
-  <div id="art-kultur" class="article-modal">
-    <div class="article-modal-card">
-      <a href="#forside" class="article-modal-close" title="Luk">&times;</a>
-      <span class="section-kicker">KULTUR</span>
-      <h2 class="article-heading">Musikhuset Slagelse løfter sløret for et stærkt forårsprogram</h2>
-      <p class="article-lead">Fra intime koncerter på Badeanstalten til store teateropsætninger i Musikhuset.</p>
-      <div class="article-hero-box"><div class="card-img-cover img-bymidte"></div></div>
-      <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--line);">
-        <a href="#forside" class="site-community-btn" style="background:var(--site-accent); color:#fff;">← Tilbage til oversigten</a>
-      </div>
-    </div>
-  </div>
+  </main>
 
   <!-- 5. FOOTER -->
   <footer class="site-footer">
     <div class="site-container">
       <div class="site-footer-grid">
         <div>
-          <div class="site-footer-brand">Slagelse<span style="color:#34D399; font-style:italic;">Lokalt</span></div>
-          <p style="font-size:13.5px; line-height:1.5; color:#94A3B8; margin-bottom:14px;">
+          <div class="site-footer-brand">
+            <span id="footer-logo-prefix">Slagelse</span><span style="color:#34D399; font-style:italic;">Lokalt</span>
+          </div>
+          <p id="footer-tagline" style="font-size:13.5px; line-height:1.5; color:#94A3B8; margin-bottom:14px;">
             Lokaljournalistik, der sætter fællesskabet først. Skabt i tæt dialog med borgere og lokalt erhvervsliv i Slagelse Kommune.
           </p>
           <div style="font-size:12.5px; color:#CBD5E1;">
-            📍 Nytorv 8, 4200 Slagelse · ✉️ redaktion@slagelselokalt.dk
+            📍 Lokalkontor i <span id="footer-city-label">Slagelse</span> · ✉️ redaktion@lokalmedie.dk
           </div>
         </div>
         <div>
@@ -2023,12 +2418,15 @@ html_content = f'''<!DOCTYPE html>
           </ul>
         </div>
         <div>
-          <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#fff; margin-bottom:10px;">Områder</div>
+          <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:#fff; margin-bottom:10px;">Netværkssites</div>
           <ul class="site-footer-links">
-            <li><a href="#forside">Slagelse by</a></li>
-            <li><a href="#forside">Korsør & Halsskov</a></li>
-            <li><a href="#forside">Skælskør & Agersø</a></li>
-            <li><a href="#forside">Dalmose & Flakkebjerg</a></li>
+            <li><a onclick="switchCity('slagelse')">SlagelseLokalt</a></li>
+            <li><a onclick="switchCity('naestved')">NæstvedLokalt</a></li>
+            <li><a onclick="switchCity('holbaek')">HolbækLokalt</a></li>
+            <li><a onclick="switchCity('ringsted')">RingstedLokalt</a></li>
+            <li><a onclick="switchCity('koege')">KøgeLokalt</a></li>
+            <li><a onclick="switchCity('roskilde')">RoskildeLokalt</a></li>
+            <li><a onclick="switchCity('kalundborg')">KalundborgLokalt</a></li>
           </ul>
         </div>
         <div>
@@ -2042,32 +2440,148 @@ html_content = f'''<!DOCTYPE html>
         </div>
       </div>
       <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:16px; font-size:12px; color:#64748B; text-align:center;">
-        &copy; 2026 SlagelseLokalt · En del af [By]Lokalt netværket i Danmark.
+        &copy; 2026 <span id="footer-copy-name">SlagelseLokalt</span> · En del af [By]Lokalt netværket i Danmark.
       </div>
     </div>
   </footer>
 
-  <!-- SCRIPT FOR PROGRESSIVE ENHANCEMENT (NÅR JS ER TIL STEDE) -->
+  <!-- 6. INTERAKTIVE SCRIPTS & DYNAMISK BYSKIFTE -->
   <script>
-    function toggleMobileMenu() {{
-      const d = document.getElementById('mobile-drawer');
-      if (d) d.classList.toggle('is-open');
+    const CITIES_DATA = {cities_json};
+    let currentCityKey = 'slagelse';
+
+    function toggleCityDropdown() {{
+      const menu = document.getElementById('city-dropdown');
+      if (menu) menu.classList.toggle('is-open');
     }}
 
-    const nabolagData = {{
-      'Slagelse C': '4 nye projekter godkendt i bymidten. Håndværkere er gået i gang ved Nytorv.',
-      'Korsør': 'Storebæltstrafikken afvikles i ét spor mod Vest. Ny skater- og multihal planlægges.',
-      'Skælskør': 'Øget patruljering efter sommerhusindbrud ved Skælskør Næs.',
-      'Dalmose': 'Lokalrådet inviterer til borgermøde om forbedret kollektiv bustransport.'
-    }};
+    // Luk dropdown ved klik udenfor
+    document.addEventListener('click', (e) => {{
+      const btn = document.getElementById('header-city-btn');
+      const menu = document.getElementById('city-dropdown');
+      if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {{
+        menu.classList.remove('is-open');
+      }}
+    }});
 
-    function setNabolag(area, btn) {{
+    function switchCity(cityKey) {{
+      const data = CITIES_DATA[cityKey];
+      if (!data) return;
+      currentCityKey = cityKey;
+
+      // 1. Skift CSS farvetema dynamisk
+      document.documentElement.style.setProperty('--site-accent', data.accent);
+      document.documentElement.style.setProperty('--site-accent-soft', data.accent_soft);
+
+      // 2. Opdater logo og taglines
+      const logoPrefix = document.getElementById('site-logo-prefix');
+      const drawerLogo = document.getElementById('drawer-logo-prefix');
+      const footerLogo = document.getElementById('footer-logo-prefix');
+      if (logoPrefix) logoPrefix.innerText = data.prefix;
+      if (drawerLogo) drawerLogo.innerText = data.prefix;
+      if (footerLogo) footerLogo.innerText = data.prefix;
+
+      const headerTagline = document.getElementById('site-brand-tagline');
+      const footerTagline = document.getElementById('footer-tagline');
+      if (headerTagline) headerTagline.innerText = data.tagline;
+      if (footerTagline) footerTagline.innerText = data.tagline + ' · Dækning i ' + data.kommune + '.';
+
+      // 3. Opdater header-knap og dropdown-status
+      const headerCityName = document.getElementById('header-city-name');
+      if (headerCityName) headerCityName.innerText = data.by;
+
+      const dropdown = document.getElementById('city-dropdown');
+      if (dropdown) dropdown.classList.remove('is-open');
+
+      document.querySelectorAll('.city-dropdown-item').forEach(el => el.classList.remove('is-active'));
+      const activeDropItem = document.getElementById('drop-item-' + cityKey);
+      if (activeDropItem) activeDropItem.classList.add('is-active');
+
+      // 4. Opdater topbar netværksknapper
+      document.querySelectorAll('.site-network-btn').forEach(btn => btn.classList.remove('is-active'));
+      const activeNetBtn = document.getElementById('net-btn-' + cityKey);
+      if (activeNetBtn) activeNetBtn.classList.add('is-active');
+
+      // 5. Opdater Støt-knap labels
+      const headerStoetLabel = document.getElementById('header-stoet-label');
+      const drawerStoetLabel = document.getElementById('drawer-stoet-label');
+      if (headerStoetLabel) headerStoetLabel.innerText = 'Støt ' + data.by;
+      if (drawerStoetLabel) drawerStoetLabel.innerText = 'Støt ' + data.navn;
+
+      // 6. Opdater Forside Hero-kort
+      const heroKicker = document.getElementById('hero-kicker');
+      const heroTitle = document.getElementById('hero-title');
+      const heroManchet = document.getElementById('hero-manchet');
+      const heroMeta = document.getElementById('hero-meta');
+      if (heroKicker) heroKicker.innerText = data.hero_kicker;
+      if (heroTitle) heroTitle.innerText = data.hero_title;
+      if (heroManchet) heroManchet.innerText = data.hero_manchet;
+      if (heroMeta) heroMeta.innerText = data.hero_meta;
+
+      // 7. Opdater Wire / Seneste nyt
+      const wireKommune = document.getElementById('wire-kommune-name');
+      if (wireKommune) wireKommune.innerText = data.kommune;
+
+      const wireContainer = document.getElementById('wire-list-container');
+      if (wireContainer && data.wire) {{
+        wireContainer.innerHTML = data.wire.map(item => `
+          <a href="#${{item[2]}}" class="site-wire-item">
+            <span class="site-wire-time">${{item[0]}}</span>
+            <p class="site-wire-headline">${{item[1]}}</p>
+          </a>
+        `).join('');
+      }}
+
+      // 8. Opdater Dit Nabolag
+      const nabolagKommune = document.getElementById('nabolag-kommune-tag');
+      if (nabolagKommune) nabolagKommune.innerText = data.kommune;
+
+      const nabolagPillsContainer = document.getElementById('nabolag-pills-container');
+      if (nabolagPillsContainer && data.omraader) {{
+        nabolagPillsContainer.innerHTML = data.omraader.map((area, idx) => `
+          <button onclick="setNabolagArea('${{area}}', this)" class="site-nabolag-pill ${{idx === 0 ? 'is-active' : ''}}">${{area}}</button>
+        `).join('');
+      }}
+      const nabolagBox = document.getElementById('nabolag-box');
+      if (nabolagBox) nabolagBox.innerHTML = `<strong>${{data.omraader[0]}}:</strong> ${{data.nabolag_text}}`;
+
+      // 9. Opdater Fællesskabsbanner & Støttekort
+      const commTitle = document.getElementById('community-banner-title');
+      if (commTitle) commTitle.innerText = 'Vær med til at præge ' + data.navn;
+
+      const suppTitle = document.getElementById('support-section-title');
+      const suppDesc = document.getElementById('support-section-desc');
+      if (suppTitle) suppTitle.innerText = 'Støt ' + data.navn;
+      if (suppDesc) suppDesc.innerText = `Vi formes og finansieres af borgerne og erhvervslivet i ${{data.kommune}}. Vælg en fast pakke eller støt med et valgfrit beløb.`;
+
+      const nyhederTitle = document.getElementById('section-nyheder-title');
+      if (nyhederTitle) nyhederTitle.innerText = 'Nyheder fra ' + data.kommune;
+
+      const footerCopy = document.getElementById('footer-copy-name');
+      const footerCityLabel = document.getElementById('footer-city-label');
+      if (footerCopy) footerCopy.innerText = data.navn;
+      if (footerCityLabel) footerCityLabel.innerText = data.by;
+
+      updateSubmitText();
+
+      try {{
+        localStorage.setItem('valgt_by', cityKey);
+      }} catch (e) {{}}
+    }}
+
+    function setNabolagArea(area, btn) {{
       document.querySelectorAll('.site-nabolag-pill').forEach(b => b.classList.remove('is-active'));
       if (btn) btn.classList.add('is-active');
       const box = document.getElementById('nabolag-box');
-      if (box && nabolagData[area]) {{
-        box.innerHTML = '<strong>' + area + ':</strong> ' + nabolagData[area];
+      const currentCity = CITIES_DATA[currentCityKey];
+      if (box && currentCity) {{
+        box.innerHTML = `<strong>${{area}}:</strong> Aktuelle projekter, byggeplaner og lokale aktiviteter i ${{area}} (${{currentCity.kommune}}).`;
       }}
+    }}
+
+    function toggleMobileMenu() {{
+      const d = document.getElementById('mobile-drawer');
+      if (d) d.classList.toggle('is-open');
     }}
 
     // Støttemodel logic
@@ -2139,27 +2653,31 @@ html_content = f'''<!DOCTYPE html>
 
     function updateSubmitText() {{
       const btn = document.getElementById('btn-submit-support');
+      const currentCity = CITIES_DATA[currentCityKey];
+      const cityName = currentCity ? currentCity.navn : 'SlagelseLokalt';
       if (supportMode === 'fast') {{
-        btn.innerText = 'Støt med ' + planName + ' (' + planPrice + ' kr. / md)';
+        btn.innerText = `Støt ${{cityName}} med ${{planName}} (${{planPrice}} kr. / md)`;
       }} else {{
         const ft = customFreq === 'monthly' ? 'pr. md.' : 'engang';
-        btn.innerText = 'Støt med ' + customAmount + ' kr. (' + ft + ')';
+        btn.innerText = `Støt ${{cityName}} med ${{customAmount}} kr. (${{ft}})`;
       }}
     }}
 
     function submitSupport() {{
+      const currentCity = CITIES_DATA[currentCityKey];
+      const cityName = currentCity ? currentCity.navn : 'SlagelseLokalt';
       if (supportMode === 'fast') {{
-        alert('Tusind tak! Dit medlemskab med ' + planName + ' (' + planPrice + ' kr./md) er nu oprettet. Tak fordi du bakker op om SlagelseLokalt!');
+        alert(`Tusind tak! Dit medlemskab med ${{planName}} (${{planPrice}} kr./md) er nu oprettet. Tak fordi du bakker op om ${{cityName}}!`);
       }} else {{
         const ft = customFreq === 'monthly' ? 'hver måned' : 'som engangsbidrag';
-        alert('Tusind tak! Dit bidrag på ' + customAmount + ' kr. (' + ft + ') er modtaget. Du gør en direkte forskel for lokaljournalistikken!');
+        alert(`Tusind tak! Dit bidrag på ${{customAmount}} kr. (${{ft}}) er modtaget. Du gør en direkte forskel for lokaljournalistikken i ${{currentCity.kommune}}!`);
       }}
     }}
 
     function submitTip() {{
       const title = document.getElementById('tip-title').value;
       const name = document.getElementById('tip-name').value;
-      alert('Mange tak, ' + name + '! Din henvendelse "' + title + '" er modtaget hos redaktionen.');
+      alert(`Mange tak, ${{name}}! Din henvendelse "${{title}}" er modtaget hos redaktionen.`);
     }}
 
     // Søgemaskine
@@ -2170,9 +2688,7 @@ html_content = f'''<!DOCTYPE html>
       {{ id: 'art-butik', title: 'Ny butikskæde åbner på Schweizerpladsen til foråret', cat: 'Erhverv' }},
       {{ id: 'art-sport', title: 'Slagelse B&I overtidssejr på Harboe Arena', cat: 'Sport' }},
       {{ id: 'art-tudeaa', title: 'Nyt vådområdeprojekt ved Tude Å beskytter mod oversvømmelser', cat: 'Natur' }},
-      {{ id: 'art-debat', title: 'Debat: "Vi må bevare de grønne åndehuller i kommunen"', cat: 'Debat' }},
-      {{ id: 'art-foreningsliv', title: '120 frivillige hædret ved årets foreningsfest i Korsør', cat: 'Foreningsliv' }},
-      {{ id: 'art-kultur', title: 'Musikhuset Slagelse løfter sløret for forårsprogram', cat: 'Kultur' }}
+      {{ id: 'art-debat', title: 'Debat: "Vi må bevare de grønne åndehuller i kommunen"', cat: 'Debat' }}
     ];
 
     function runLiveSearch(query) {{
@@ -2203,6 +2719,12 @@ html_content = f'''<!DOCTYPE html>
 
     window.addEventListener('DOMContentLoaded', () => {{
       runLiveSearch('');
+      try {{
+        const saved = localStorage.getItem('valgt_by');
+        if (saved && CITIES_DATA[saved]) {{
+          switchCity(saved);
+        }}
+      }} catch (e) {{}}
     }});
   </script>
 </body>
@@ -2212,4 +2734,4 @@ html_content = f'''<!DOCTYPE html>
 with open('nyhedssite.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print(f"nyhedssite.html generated. Size: {len(html_content):,} bytes")
+print(f"nyhedssite.html updated with dedicated full scrollable articles and city switching. Size: {len(html_content):,} bytes")
