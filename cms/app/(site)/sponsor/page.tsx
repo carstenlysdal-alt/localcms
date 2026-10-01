@@ -4,6 +4,8 @@ import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { Handshake, Award, ShieldCheck, Check, FileText } from "lucide-react";
 import { SponsorBriefForm } from "./SponsorBriefForm";
 
+import Link from "next/link";
+
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getCurrentSite();
   return {
@@ -21,9 +23,24 @@ export default async function SponsorPortalPage() {
         <Breadcrumbs
           items={[
             { label: "Forside", href: "/" },
+            { label: "Bliv en del af journalistikken", href: "/bliv-en-del-af-journalistikken" },
             { label: "Sponsor & Erhverv" },
           ]}
         />
+
+        <div style={{ marginBottom: "16px" }}>
+          <Link
+            href="/bliv-en-del-af-journalistikken?spor=erhverv"
+            style={{
+              fontSize: "13px",
+              color: "var(--site-accent)",
+              fontWeight: "600",
+              textDecoration: "none",
+            }}
+          >
+            ← En del af &quot;Bliv en del af journalistikken&quot;
+          </Link>
+        </div>
 
         <header className="site-page-header" style={{ marginBottom: "32px" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#ecfdf5", color: "#065f46", padding: "4px 12px", borderRadius: "9999px", fontSize: "12px", fontWeight: "700", marginBottom: "12px" }}>

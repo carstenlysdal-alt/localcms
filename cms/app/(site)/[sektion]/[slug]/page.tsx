@@ -21,7 +21,8 @@ import { NewsletterSignup } from "@/components/site/NewsletterSignup";
 import { SiteBlockRenderer, normalizeHtml } from "@/components/site/blocks/SiteBlockRenderer";
 import { parseBlocks } from "@/lib/blocks/schema";
 import { db } from "@/lib/db";
-import { AlertCircle } from "lucide-react";
+import { BookmarkButton } from "@/components/site/BookmarkButton";
+import { AlertCircle, ChevronLeft, Share2, MoreHorizontal } from "lucide-react";
 import { MetricTracker } from "@/components/site/MetricTracker";
 
 export async function generateMetadata({
@@ -386,10 +387,90 @@ export default async function SectionOrArticlePage({
         <div className="site-article-layout">
           {/* Hovedspalte */}
           <div className="site-article-main">
-            {/* 1. Brødkrumme */}
-            <Breadcrumbs items={breadcrumbItems} />
+            {/* Mobil topbar med tilbage-pil og handlinger jf. Mock Screen 3 */}
+            <div
+              className="site-article-mobile-topbar site-mobile-only"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "16px",
+              }}
+            >
+              <Link
+                href={`/${summary.sektion.slug}`}
+                className="site-article-back-link"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  color: "var(--ink)",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                }}
+              >
+                <ChevronLeft size={20} />
+                <span>Tilbage</span>
+              </Link>
 
-            {/* 2. Mærkningsboks (hvis ikke Uafhængig) */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <BookmarkButton
+                  id={article.id}
+                  titel={article.titel}
+                  href={summary.href}
+                  sektion={summary.sektion.navn}
+                />
+                <button
+                  type="button"
+                  aria-label="Del artikel"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--ink-3)",
+                    cursor: "pointer",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <Share2 size={18} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Flere handlinger"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--ink-3)",
+                    cursor: "pointer",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop Brødkrumme */}
+            <div className="site-desktop-only">
+              <Breadcrumbs items={breadcrumbItems} />
+            </div>
+
+            {/* Kicker over H1 jf. Mock Screen 3 */}
+            <div className="site-kicker" style={{ margin: "14px 0 10px 0" }}>
+              <span className="site-kicker-accent">
+                {(summary.sektion.navn).toUpperCase()}
+              </span>
+              <span className="site-kicker-dot">·</span>
+              <span className="site-kicker-meta">
+                {(primaryArea?.navn || summary.undersektion?.navn || site.kommune).toUpperCase()}
+              </span>
+            </div>
+
+            {/* Mærkningsboks (hvis ikke Uafhængig) */}
             {article.indholdstype !== "Uafhængig" && (
               <MarkingBox
                 indholdstype={article.indholdstype}
@@ -397,10 +478,10 @@ export default async function SectionOrArticlePage({
               />
             )}
 
-            {/* 3. H1 */}
+            {/* H1 */}
             <h1 className="site-article-h1">{article.titel}</h1>
 
-            {/* 4. Manchet */}
+            {/* Manchet */}
             {article.manchet && (
               <div
                 className="site-article-manchet"
@@ -408,17 +489,71 @@ export default async function SectionOrArticlePage({
               />
             )}
 
-            {/* 5. Byline */}
-            <Byline
-              forfatter={article.forfatter}
-              publiceretTid={article.publiceretTid ?? new Date()}
-              opdateretTid={article.opdateretTid}
-            />
+            {/* Byline-række med desktop handlinger til højre jf. Mock Screen 3 */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "16px",
+                margin: "20px 0 24px 0",
+              }}
+            >
+              <Byline
+                forfatter={article.forfatter}
+                publiceretTid={article.publiceretTid ?? new Date()}
+                opdateretTid={article.opdateretTid}
+              />
 
-            {/* 6. Billede (16:9) med billedtekst og kredit */}
+              <div
+                className="site-desktop-only"
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <BookmarkButton
+                  id={article.id}
+                  titel={article.titel}
+                  href={summary.href}
+                  sektion={summary.sektion.navn}
+                />
+                <button
+                  type="button"
+                  aria-label="Del artikel"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--ink-3)",
+                    cursor: "pointer",
+                    padding: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: "6px",
+                  }}
+                >
+                  <Share2 size={18} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Flere handlinger"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--ink-3)",
+                    cursor: "pointer",
+                    padding: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: "6px",
+                  }}
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Billede (16:9) med billedtekst og kredit */}
             {article.coverMedia && (
               <figure className="site-article-cover">
-                <div className="site-article-cover-box">
+                <div className="site-article-cover-box" style={{ position: "relative" }}>
                   <Image
                     src={article.coverMedia.url}
                     alt={article.coverMedia.altTekst || article.titel}
@@ -432,7 +567,7 @@ export default async function SectionOrArticlePage({
                   <figcaption className="site-article-caption">
                     {article.coverMedia.billedtekst && <span>{article.coverMedia.billedtekst}</span>}
                     {article.coverMedia.ophavsperson && (
-                      <span className="site-article-credit">Foto: {article.coverMedia.ophavsperson}</span>
+                      <span className="site-article-credit">Arkivfoto: {article.coverMedia.ophavsperson}</span>
                     )}
                   </figcaption>
                 )}
@@ -445,11 +580,10 @@ export default async function SectionOrArticlePage({
                 className="site-article-corrections-box"
                 role="note"
                 style={{
-                  background: "var(--paper)",
+                  background: "var(--surface)",
                   border: "1px solid var(--line)",
-                  borderLeft: "4px solid var(--site-accent)",
                   padding: "16px 20px",
-                  borderRadius: "0 var(--radius-card) var(--radius-card) 0",
+                  borderRadius: "var(--radius-card)",
                   marginBottom: "24px",
                 }}
               >
@@ -501,17 +635,17 @@ export default async function SectionOrArticlePage({
               </div>
             )}
 
-            {/* 11. Relaterede artikler */}
+            {/* 11. Relaterede artikler jf. Mock Screen 3 */}
             {relaterede.length > 0 && (
               <section className="site-related-section" style={{ marginTop: "48px" }}>
-                <h3 className="site-zone-heading">
-                  Mere fra {summary.omraade?.navn || summary.sektion.navn}
+                <h3 className="site-news-section-title" style={{ marginBottom: "18px" }}>
+                  Relaterede historier
                 </h3>
                 <div className="site-cards-grid-3">
                   {relaterede.map((rel) => (
                     <ArticleCard
                       key={rel.id}
-                      variant="kompakt"
+                      variant="standard"
                       article={{
                         titel: rel.titel,
                         href: rel.href,

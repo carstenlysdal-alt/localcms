@@ -269,6 +269,23 @@ export default async function SectionPage({
                 />
               </div>
             )}
+
+            {/* Erhvervs kontakt- og inspirationscallout */}
+            {section.slug === "erhverv" && (
+              <div className="site-commercial-callout">
+                <div>
+                  <h3 className="site-commercial-callout-title">
+                    Vil du i kontakt med lokale virksomheder?
+                  </h3>
+                  <p className="site-commercial-callout-desc">
+                    Find jobmuligheder, virksomhedsprofiler og inspiration fra det lokale erhvervsliv i {site.kommune}.
+                  </p>
+                </div>
+                <Link href="/om-mediet/kontakt" className="site-commercial-callout-action">
+                  Kontakt redaktionen →
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Sidespalte (desktop >= 1024px) */}

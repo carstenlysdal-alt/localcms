@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MapPin } from "lucide-react";
+import { MapPin, Plus, Check } from "lucide-react";
 
 type SubcategoryItem = {
   id: string;
@@ -37,6 +38,7 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [following, setFollowing] = useState(false);
 
   function handleAreaChange(newAreaSlug: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -57,10 +59,21 @@ export function SectionHeader({
 
   return (
     <div className="site-section-header">
-      <div className="site-section-header-top">
+      <div className="site-section-header-top" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 className="site-section-title">{sektionNavn}</h1>
-          {beskrivelse && <p className="site-section-desc">{beskrivelse}</p>}
+          <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+            <h1 className="site-section-title" style={{ margin: 0 }}>{sektionNavn}</h1>
+            <button
+              type="button"
+              className="site-follow-topic-btn"
+              onClick={() => setFollowing(!following)}
+              aria-label={following ? `Følger ${sektionNavn}` : `Følg ${sektionNavn}`}
+            >
+              {following ? <Check size={14} /> : <Plus size={14} />}
+              <span>{following ? "Følger emne" : "Følg emne"}</span>
+            </button>
+          </div>
+          {beskrivelse && <p className="site-section-desc" style={{ marginTop: "6px" }}>{beskrivelse}</p>}
         </div>
 
         {/* Områdefilter */}
@@ -87,7 +100,7 @@ export function SectionHeader({
         )}
       </div>
 
-      {/* Undersektionsbar med piller */}
+      {/* Undersektionsbar med piller jf. Mock Screen 4 */}
       {undersektioner.length > 0 && (
         <div className="site-subnav-pills-wrapper">
           <ul className="site-subnav-pills">
@@ -97,7 +110,7 @@ export function SectionHeader({
                 className={`site-pill ${!aktivUndersektionSlug ? "is-active" : ""}`}
                 aria-current={!aktivUndersektionSlug ? "page" : undefined}
               >
-                Alle
+                Seneste
               </Link>
             </li>
             {undersektioner.map((sub) => {

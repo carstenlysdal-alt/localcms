@@ -1,30 +1,37 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import {
   Radio,
   Trophy,
   Flame,
-  Landmark,
   ShieldCheck,
-  Mic,
   Calendar,
-  Sparkles,
-  HelpCircle,
+  Handshake,
   FileText,
+  Award,
 } from "lucide-react";
 import { MeddelerPortalClient } from "../meddeler/MeddelerPortalClient";
+import { SponsorBriefForm } from "../sponsor/SponsorBriefForm";
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getCurrentSite();
   return {
-    title: `Bliv en del af journalistikken — Tip redaktionen & Meddelerplatformen | ${site.navn}`,
-    description: `Bliv en del af journalistikken for ${site.navn}. Tip redaktionen, send en akut hændelse, rapporter fra din sportsklub eller indsend din historie.`,
+    title: `Bliv en del af journalistikken — ${site.navn}`,
+    description: `Bliv en del af journalistikken for ${site.navn}. Tip redaktionen, rapportér lokale begivenheder eller indgå et gennemsigtigt lokalt erhvervspartnerskab.`,
   };
 }
 
-export default async function BlivEnDelAfJournalistikkenPage() {
+export default async function BlivEnDelAfJournalistikkenPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const site = await getCurrentSite();
+  const params = await searchParams;
+  const isErhverv = params?.spor === "erhverv";
 
   return (
     <div className="site-page-container" style={{ padding: "28px 0 64px 0" }}>
@@ -37,23 +44,23 @@ export default async function BlivEnDelAfJournalistikkenPage() {
         />
 
         {/* Hero sektion */}
-        <header className="site-page-header" style={{ marginBottom: "32px" }}>
+        <header className="site-page-header" style={{ marginBottom: "28px" }}>
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              background: "rgba(158, 61, 27, 0.1)",
-              color: "var(--site-accent, #9E3D1B)",
+              background: "var(--site-accent-soft)",
+              color: "var(--site-accent)",
               padding: "5px 14px",
-              borderRadius: "9999px",
+              borderRadius: "var(--radius-pill)",
               fontSize: "12.5px",
               fontWeight: "700",
               marginBottom: "14px",
             }}
           >
             <Radio size={15} />
-            <span>Lokalt kildenetværk & borgerjournalistik</span>
+            <span>Fællesskab & Engagement</span>
           </div>
 
           <h1
@@ -78,187 +85,318 @@ export default async function BlivEnDelAfJournalistikkenPage() {
               margin: 0,
             }}
           >
-            Ingen kender lokalsamfundet bedre end dem, der selv bor, arbejder og færdes her.
-            Vores meddelerplatform giver dig en direkte vej ind til redaktionen på {site.navn}.
-            Tip os om en sag, rapportér en akut hændelse, beret fra din sportsklub eller indsend
-            din egen historie via tekst, tale og billeder.
+            Lokaljournalistik er et fælles anliggende. Uanset om du er borger med et tip fra hverdagen,
+            en forening med en god historie eller en lokal virksomhed, der vil styrke lokalområdet,
+            har du en direkte vej ind i avisen.
           </p>
         </header>
 
-        {/* 4 primære spor for indberetning */}
-        <div
+        {/* To-spors fanevælger: For borgere vs For virksomheder & sponsorer */}
+        <nav
+          aria-label="Vælg spor"
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: "16px",
+            display: "flex",
+            gap: "12px",
+            borderBottom: "2px solid var(--line)",
             marginBottom: "36px",
+            paddingBottom: "0",
           }}
         >
-          <div
+          <Link
+            href="/bliv-en-del-af-journalistikken?spor=borger"
             style={{
-              background: "var(--surface)",
-              border: "1px solid var(--line)",
-              padding: "20px",
-              borderRadius: "var(--radius-card)",
-              boxShadow: "var(--shadow-card)",
+              padding: "12px 20px",
+              fontFamily: "var(--font-sans)",
+              fontSize: "15px",
+              fontWeight: "700",
+              textDecoration: "none",
+              color: !isErhverv ? "var(--site-accent)" : "var(--ink-2)",
+              borderBottom: !isErhverv ? "3px solid var(--site-accent)" : "3px solid transparent",
+              marginBottom: "-2px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.15s ease",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontWeight: "700",
-                fontSize: "15px",
-                marginBottom: "8px",
-                color: "var(--ink)",
-              }}
-            >
-              <Radio size={18} style={{ color: "var(--site-accent, #9E3D1B)" }} />
-              Tip redaktionen
-            </div>
-            <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
-              Har du set eller hørt noget, redaktionen bør undersøge? Fuld kildebeskyttelse og fortrolighed.
-            </p>
-          </div>
+            <Radio size={16} />
+            <span>For borgere & meddelere</span>
+          </Link>
 
-          <div
+          <Link
+            href="/bliv-en-del-af-journalistikken?spor=erhverv"
             style={{
-              background: "var(--surface)",
-              border: "1px solid var(--line)",
-              padding: "20px",
-              borderRadius: "var(--radius-card)",
-              boxShadow: "var(--shadow-card)",
+              padding: "12px 20px",
+              fontFamily: "var(--font-sans)",
+              fontSize: "15px",
+              fontWeight: "700",
+              textDecoration: "none",
+              color: isErhverv ? "var(--site-accent)" : "var(--ink-2)",
+              borderBottom: isErhverv ? "3px solid var(--site-accent)" : "3px solid transparent",
+              marginBottom: "-2px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.15s ease",
             }}
           >
+            <Handshake size={16} />
+            <span>For virksomheder & sponsorer</span>
+          </Link>
+        </nav>
+
+        {/* 1. SPOR: BORGERJOURNALISTIK & MEDDELER */}
+        {!isErhverv && (
+          <div>
+            {/* 4 primære spor for indberetning */}
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontWeight: "700",
-                fontSize: "15px",
-                marginBottom: "8px",
-                color: "var(--ink)",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: "16px",
+                marginBottom: "36px",
               }}
             >
-              <Flame size={18} style={{ color: "#dc2626" }} />
-              Akutte hændelser
-            </div>
-            <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
-              Uheld, vejrspærringer, beredskab eller markant vejr i dit lokalområde. Du er på stedet.
-            </p>
-          </div>
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--line)",
+                  padding: "20px",
+                  borderRadius: "var(--radius-card)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontWeight: "700",
+                    fontSize: "15px",
+                    marginBottom: "8px",
+                    color: "var(--ink)",
+                  }}
+                >
+                  <Radio size={18} style={{ color: "var(--site-accent)" }} />
+                  Tip redaktionen
+                </div>
+                <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
+                  Har du set eller hørt noget, redaktionen bør undersøge? Fuld kildebeskyttelse og fortrolighed.
+                </p>
+              </div>
 
-          <div
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--line)",
-              padding: "20px",
-              borderRadius: "var(--radius-card)",
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--line)",
+                  padding: "20px",
+                  borderRadius: "var(--radius-card)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontWeight: "700",
+                    fontSize: "15px",
+                    marginBottom: "8px",
+                    color: "var(--ink)",
+                  }}
+                >
+                  <Flame size={18} style={{ color: "var(--site-accent)" }} />
+                  Akutte hændelser
+                </div>
+                <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
+                  Uheld, vejrspærringer, beredskab eller markant vejr i dit lokalområde. Du er på stedet.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--line)",
+                  padding: "20px",
+                  borderRadius: "var(--radius-card)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontWeight: "700",
+                    fontSize: "15px",
+                    marginBottom: "8px",
+                    color: "var(--ink)",
+                  }}
+                >
+                  <Trophy size={18} style={{ color: "var(--site-accent)" }} />
+                  Sport & Foreningsliv
+                </div>
+                <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
+                  Kampreferater, oprykninger, resultater, stævner og generalforsamlinger fra lokale klubber.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--line)",
+                  padding: "20px",
+                  borderRadius: "var(--radius-card)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    fontWeight: "700",
+                    fontSize: "15px",
+                    marginBottom: "8px",
+                    color: "var(--ink)",
+                  }}
+                >
+                  <Calendar size={18} style={{ color: "var(--site-accent)" }} />
+                  Arrangementer & Nyt
+                </div>
+                <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
+                  Få byens koncerter, bylaugsmøder, loppemarkeder og foredrag med i den lokale kalender.
+                </p>
+              </div>
+            </div>
+
+            {/* Meddeler platform interaktiv klient */}
+            <Suspense
+              fallback={
+                <div style={{ padding: "40px 0", textAlign: "center", color: "var(--ink-3)" }}>
+                  Indlæser meddelerpanel...
+                </div>
+              }
+            >
+              <MeddelerPortalClient kommuneNavn={site.kommune} />
+            </Suspense>
+
+            {/* Sådan arbejder redaktionen */}
+            <section
+              style={{
+                marginTop: "48px",
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--radius-card)",
+                padding: "28px 24px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+                <ShieldCheck size={20} style={{ color: "var(--site-accent)" }} />
+                <h2 style={{ fontFamily: "var(--font-serif)", fontSize: "22px", margin: 0, color: "var(--ink)" }}>
+                  Sådan behandler redaktionen dit tip og din historie
+                </h2>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "20px",
+                  marginTop: "16px",
+                }}
+              >
+                <div>
+                  <h3 style={{ fontSize: "14.5px", fontWeight: "700", color: "var(--ink)", margin: "0 0 6px 0" }}>
+                    1. Kildebeskyttelse og anonymitet
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.5" }}>
+                    Du kan altid vælge at tippe os fortroligt. Redaktionen værner om kildebeskyttelse i henhold til medieansvarsloven.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 style={{ fontSize: "14.5px", fontWeight: "700", color: "var(--ink)", margin: "0 0 6px 0" }}>
+                    2. Redaktionel vurdering
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.5" }}>
+                    Alle indberetninger gennemgås af journalister. Vi faktatjekker oplysninger og kontakter berørte parter for en balanceret dækning.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 style={{ fontSize: "14.5px", fontWeight: "700", color: "var(--ink)", margin: "0 0 6px 0" }}>
+                    3. Din personlige nøglekode
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.5" }}>
+                    Når du indsender, modtager du en nøglekode. Den giver dig adgang til at følge status på sagen i dit eget meddelerpanel.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* 2. SPOR: LOKALE VIRKSOMHEDER & SPONSORER */}
+        {isErhverv && (
+          <div>
+            {/* Principper for partnerindhold */}
             <div
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontWeight: "700",
-                fontSize: "15px",
-                marginBottom: "8px",
-                color: "var(--ink)",
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--radius-card)",
+                padding: "24px 28px",
+                marginBottom: "32px",
               }}
             >
-              <Trophy size={18} style={{ color: "#2563eb" }} />
-              Sport & Foreningsliv
-            </div>
-            <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
-              Kampreferater, oprykninger, resultater, stævner og generalforsamlinger fra lokale klubber.
-            </p>
-          </div>
-
-          <div
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--line)",
-              padding: "20px",
-              borderRadius: "var(--radius-card)",
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                fontWeight: "700",
-                fontSize: "15px",
-                marginBottom: "8px",
-                color: "var(--ink)",
-              }}
-            >
-              <Calendar size={18} style={{ color: "#16a34a" }} />
-              Arrangementer & Nyt
-            </div>
-            <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
-              Få byens koncerter, bylaugsmøder, loppemarkeder og foredrag med i den lokale kalender.
-            </p>
-          </div>
-        </div>
-
-        {/* Meddeler platform interaktiv klient */}
-        <MeddelerPortalClient kommuneNavn={site.kommune} />
-
-        {/* Sådan arbejder redaktionen / Vejledning */}
-        <section
-          style={{
-            marginTop: "48px",
-            background: "var(--surface)",
-            border: "1px solid var(--line)",
-            borderRadius: "var(--radius-card)",
-            padding: "32px 28px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-            <ShieldCheck size={22} style={{ color: "var(--site-accent, #9E3D1B)" }} />
-            <h2 style={{ fontFamily: "var(--font-serif)", fontSize: "24px", margin: 0, color: "var(--ink)" }}>
-              Sådan behandler redaktionen dit tip og din historie
-            </h2>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "20px", marginTop: "16px" }}>
-            <div>
-              <h3 style={{ fontSize: "15px", fontWeight: "700", color: "var(--ink)", margin: "0 0 6px 0" }}>
-                1. Kildebeskyttelse og anonymitet
-              </h3>
-              <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.5" }}>
-                Du kan altid vælge at tippe os fortroligt. Redaktionen værner om kildebeskyttelse i henhold
-                til medieansvarsloven og de presseetiske regler.
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                <ShieldCheck size={20} style={{ color: "var(--site-accent)" }} />
+                <h2 style={{ margin: 0, fontSize: "18px", fontFamily: "var(--font-serif)", color: "var(--ink)" }}>
+                  Gennemsigtigt lokalt partnerskab & sponsorindhold
+                </h2>
+              </div>
+              <p style={{ fontSize: "14px", color: "var(--ink-2)", margin: "0 0 14px 0", lineHeight: "1.5" }}>
+                Stærke lokale virksomheder er en vital del af livet i {site.kommune}. Vi tilbyder transparente formater,
+                hvor din virksomhed kan fortælle historier og formidle ekspertise med fuld troværdighed:
               </p>
+              <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.6" }}>
+                <li>Alt partnerindhold mærkes synligt i toppen med <strong>◆ FINANSIERET AF [Virksomhedsnavn]</strong>.</li>
+                <li>Partneren godkender fakta, tal og citater, mens den journalistiske tone forbliver sober og læsevenlig.</li>
+                <li>Historierne integreres naturligt i sitets sektioner (Erhverv, Kultur, Bolig) og på forsiden.</li>
+              </ul>
             </div>
 
-            <div>
-              <h3 style={{ fontSize: "15px", fontWeight: "700", color: "var(--ink)", margin: "0 0 6px 0" }}>
-                2. Redaktionel vurdering
-              </h3>
-              <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.5" }}>
-                Alle indberetninger gennemgås af redaktionen. Vi faktatjekker oplysninger, kontakter berørte
-                parter og sikrer en sober, balanceret dækning af sagen.
-              </p>
+            {/* Samarbejdsformater */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: "16px",
+                marginBottom: "36px",
+              }}
+            >
+              <div style={{ background: "var(--surface)", border: "1px solid var(--line)", padding: "20px", borderRadius: "var(--radius-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "700", marginBottom: "8px", color: "var(--ink)" }}>
+                  <FileText size={18} style={{ color: "var(--site-accent)" }} />
+                  Sponsionsartikel
+                </div>
+                <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
+                  En dybdegående artikel om din virksomheds udvikling, medarbejdere eller samfundsengagement.
+                </p>
+              </div>
+
+              <div style={{ background: "var(--surface)", border: "1px solid var(--line)", padding: "20px", borderRadius: "var(--radius-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "700", marginBottom: "8px", color: "var(--ink)" }}>
+                  <Award size={18} style={{ color: "var(--site-accent)" }} />
+                  Fyrtårnspartnerskab
+                </div>
+                <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.45" }}>
+                  Helårligt samarbejde med fast synlighed i bunden af sitet, native artikler og nyhedsbrev.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h3 style={{ fontSize: "15px", fontWeight: "700", color: "var(--ink)", margin: "0 0 6px 0" }}>
-                3. Din personlige nøglekode
-              </h3>
-              <p style={{ margin: 0, fontSize: "13.5px", color: "var(--ink-2)", lineHeight: "1.5" }}>
-                Når du indsender, modtager du en unik adgangskode. Den giver dig adgang til dit eget
-                meddelerpanel, hvor du kan følge status på din sag og tilføje flere oplysninger.
-              </p>
-            </div>
+            {/* Sponsor brief formular */}
+            <SponsorBriefForm siteNavn={site.navn} />
           </div>
-        </section>
+        )}
       </div>
     </div>
   );

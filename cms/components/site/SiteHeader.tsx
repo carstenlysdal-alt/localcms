@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, Heart, MapPin, ChevronDown, Check, Radio } from "lucide-react";
+import { Search, Heart, MapPin, ChevronDown, Check, User, Bookmark } from "lucide-react";
 import { ALL_NETWORK_SITES, type NetworkSiteSummary } from "@/lib/network-sites";
-import { AiToolBar } from "@/components/site/AiToolBar";
 
 type CategoryItem = {
   id: string;
@@ -103,145 +102,112 @@ export function SiteHeader({
         </div>
       )}
 
-      {/* AI Library Toolbar (Q&A, Interview, Sponsor, Meddeler, Indsend) */}
-      <AiToolBar />
-
       {/* Topbar */}
       <div className="site-header-topbar">
         <div className="site-container site-header-inner">
           <div className="site-header-brand">
-            <div className="site-brand-container">
-              <Link href="/" className="site-brand-link" aria-label={`${siteNavn} forside`}>
-                <span className="site-brand-logo">
-                  {siteNavn.endsWith("Lokalt") ? (
-                    <>
-                      <span>{siteNavn.replace(/Lokalt$/, "")}</span>
-                      <span className="site-brand-logo-accent">Lokalt</span>
-                    </>
-                  ) : (
-                    siteNavn
-                  )}
-                </span>
-              </Link>
-
-              {/* By-vælger dropdown knap direkte i headeren */}
-              <div className="site-city-dropdown-wrapper" ref={dropdownRef}>
-                <button
-                  type="button"
-                  className="site-city-dropdown-toggle"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  aria-expanded={dropdownOpen}
-                  aria-label="Vælg by eller medie"
-                >
-                  <MapPin size={13} className="site-city-pin" />
-                  <span className="site-city-current">{currentSite?.by || "Skift by"}</span>
-                  <ChevronDown size={13} className={`site-city-chevron ${dropdownOpen ? "is-open" : ""}`} />
-                </button>
-
-                {dropdownOpen && (
-                  <div className="site-city-menu" role="menu">
-                    <div className="site-city-menu-header">
-                      <span className="site-city-menu-title">[By]Lokalt netværket</span>
-                      <span className="site-city-menu-desc">Vælg et lokalt nyhedsmedie:</span>
-                    </div>
-                    <div className="site-city-menu-list">
-                      {networkSites.map((s) => {
-                        const isActive = s.domaene === currentDomaene;
-                        return (
-                          <a
-                            key={s.domaene}
-                            href={`/api/site/switch?site=${s.domaene}&redirect=${encodeURIComponent(pathname)}`}
-                            className={`site-city-menu-item ${isActive ? "is-active" : ""}`}
-                            role="menuitem"
-                          >
-                            <span
-                              className="site-city-item-dot"
-                              style={{ backgroundColor: s.accent }}
-                            />
-                            <div className="site-city-item-details">
-                              <span className="site-city-item-name">{s.navn}</span>
-                              <span className="site-city-item-meta">{s.by} Kommune · {s.domaene}</span>
-                            </div>
-                            {isActive ? (
-                              <span className="site-city-active-tag">
-                                <Check size={10} style={{ display: "inline", marginRight: "3px" }} />
-                                Aktiv
-                              </span>
-                            ) : (
-                              <span className="site-city-switch-arrow">→</span>
-                            )}
-                          </a>
-                        );
-                      })}
-                    </div>
-                  </div>
+            <Link href="/" className="site-brand-link" aria-label={`${siteNavn} forside`}>
+              <span className="site-brand-logo">
+                {siteNavn.endsWith("Lokalt") ? (
+                  <>
+                    <span>{siteNavn.replace(/Lokalt$/, "")}</span>
+                    <span className="site-brand-logo-accent">Lokalt</span>
+                  </>
+                ) : (
+                  siteNavn
                 )}
-              </div>
-            </div>
+              </span>
+            </Link>
 
-            {tagline && <span className="site-brand-tagline">{tagline}</span>}
+            {/* Primære kategorier inline til højre for logoet jf. nyeste mockup */}
+            <nav className="site-header-primary-nav site-desktop-only" aria-label="Hovedkategorier">
+              <ul className="site-header-primary-list">
+                {categories.map((cat) => {
+                  const isActive = activeSectionSlug === cat.slug;
+                  return (
+                    <li key={cat.id}>
+                      <Link
+                        href={`/${cat.slug}`}
+                        className={`site-header-primary-link ${isActive ? "is-active" : ""}`}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        {cat.navn}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
           </div>
 
           <div className="site-header-actions">
-            <Link href="/soeg" className="site-header-action-btn" aria-label="Søg på sitet">
-              <Search size={18} />
+            {/* Desktop Søg */}
+            <Link href="/soeg" className="site-header-action-btn site-desktop-only" aria-label="Søg på sitet">
+              <Search size={16} />
               <span className="site-action-label">Søg</span>
             </Link>
 
-            <Link href="/tip-os" className="site-header-btn-tip" aria-label="Tip redaktionen">
-              <Radio size={14} className="site-header-btn-tip-icon" />
-              <span>Tip os</span>
+            {/* Desktop Indsend historie (solid terrakotta pill) */}
+            <Link href="/indsend" className="site-header-btn-solid site-desktop-only" aria-label="Indsend historie">
+              <span>Indsend historie</span>
             </Link>
 
-            <Link href="/bliv-stoette" className="site-header-btn-support site-action-desktop-only" title="Bliv støtte">
-              <Heart size={15} />
+            {/* Desktop Støt (solid terrakotta pill med hjerte) */}
+            <Link href="/bliv-stoette" className="site-header-btn-solid site-desktop-only" title="Bliv støtte">
+              <Heart size={14} fill="currentColor" />
               <span>Støt</span>
+            </Link>
+
+            {/* Desktop Bogmærker / Gemte */}
+            <Link href="/gemte" className="site-header-icon-btn site-desktop-only" aria-label="Gemte artikler" title="Gemte artikler">
+              <Bookmark size={18} />
+            </Link>
+
+            {/* Desktop Profil / Konto */}
+            <Link href="/login" className="site-header-icon-btn site-desktop-only" aria-label="Min konto" title="Min konto">
+              <User size={18} />
+            </Link>
+
+            {/* Desktop Slogan til højre jf. mockup */}
+            <div className="site-header-slogan site-desktop-only" aria-hidden="true">
+              <span>Uafhængig lokaljournalistik,</span>
+              <span>der sætter fællesskabet først</span>
+            </div>
+
+            {/* Mobil Søg icon */}
+            <Link href="/soeg" className="site-header-mobile-icon-btn site-mobile-only" aria-label="Søg">
+              <Search size={20} />
+            </Link>
+
+            {/* Mobil Profil/Konto icon */}
+            <Link href="/login" className="site-header-mobile-profile-btn site-mobile-only" aria-label="Min konto">
+              <User size={19} />
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Sektionsbar (under topbaren) */}
-      <nav className="site-header-nav" aria-label="Hovedsektioner">
-        <div className="site-container site-header-nav-container">
-          <ul className="site-nav-list">
-            <li>
+      {/* Mobil sekundær navigation (vandret scroll med kategorier) */}
+      <nav className="site-header-mobile-nav site-mobile-only" aria-label="Kategorier mobil">
+        <div className="site-header-mobile-scroll">
+          {categories.map((cat) => {
+            const isActive = activeSectionSlug === cat.slug;
+            return (
               <Link
-                href="/"
-                className={`site-nav-link ${pathname === "/" ? "is-active" : ""}`}
-                aria-current={pathname === "/" ? "page" : undefined}
+                key={cat.id}
+                href={`/${cat.slug}`}
+                className={`site-header-mobile-link ${isActive ? "is-active" : ""}`}
               >
-                Forside
+                {cat.navn}
               </Link>
-            </li>
-            {categories.map((cat) => {
-              const isActive = activeSectionSlug === cat.slug;
-              return (
-                <li key={cat.id}>
-                  <Link
-                    href={`/${cat.slug}`}
-                    className={`site-nav-link ${isActive ? "is-active" : ""}`}
-                    aria-current={isActive ? "page" : undefined}
-                  >
-                    {cat.navn}
-                  </Link>
-                </li>
-              );
-            })}
-            <li className="site-nav-item-community">
-              <Link
-                href="/bliv-en-del-af-journalistikken"
-                className={`site-nav-link site-nav-link-community ${
-                  pathname.startsWith("/bliv-en-del-af-journalistikken") || pathname.startsWith("/meddeler")
-                    ? "is-active"
-                    : ""
-                }`}
-              >
-                <span className="site-nav-community-badge">Deltag</span>
-                <span>Bliv en del af journalistikken</span>
-              </Link>
-            </li>
-          </ul>
+            );
+          })}
+          <Link
+            href="/bliv-en-del-af-journalistikken"
+            className="site-header-mobile-link"
+          >
+            Mere
+          </Link>
         </div>
       </nav>
     </header>

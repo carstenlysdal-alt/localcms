@@ -1,6 +1,6 @@
 ---
 name: lokalt-medieplatform
-description: Byggeplan og regler for Lysdals CMS og den offentlige nyhedsfrontend til netværket "[By]Lokalt" (første site SlagelseLokalt) i /Users/Lysdal/GITS/Local2027. Brug dette skill ALTID, når du skal bygge, ændre, teste eller reviewe noget i Local2027/cms — forside, sektions- og undersektionssider, artikelside, mærkning, kortsystem, navigation, kalender, guide, indsendelse, støtteaftaler, supporterdashboard, forsidestyring, site-konfiguration, multi-site, datamodel eller designsystem. Trigger også ved "byg forsiden", "lav sektionssiden", "fortsæt med CMS'et", "næste fase", "SlagelseLokalt", "Lysdals CMS", "produktkataloget", "DESIGN.md" eller når brugeren henviser til konceptdokumenterne 01-10. Læs skillet FØR du skriver kode.
+description: Byggeplan og regler for Lysdals CMS og den offentlige nyhedsfrontend til netværket "[By]Lokalt" (første site SlagelseLokalt) i dette repo (overtager og erstatter det forældede Local2027). Brug dette skill ALTID, når du skal bygge, ændre, teste eller reviewe noget i cms/ — forside, sektions- og undersektionssider, artikelside, mærkning, kortsystem, navigation, kalender, guide, indsendelse, støtteaftaler, supporterdashboard, forsidestyring, site-konfiguration, multi-site, datamodel eller designsystem. Trigger også ved "byg forsiden", "lav sektionssiden", "fortsæt med CMS'et", "næste fase", "SlagelseLokalt", "Lysdals CMS", "produktkataloget", "DESIGN.md" eller når brugeren henviser til konceptdokumenterne 01-10. Læs skillet FØR du skriver kode.
 ---
 
 # Lysdals CMS + [By]Lokalt — byggeplan
@@ -24,7 +24,7 @@ Sitet er **primært et nyhedssite med sektioner og undersektioner.** Kalender, g
 | 9 | `files/01` §6, §8-9 · `files/09` §2 · `files/08` §3 | Taksonomi, støttepakker, mærkning, AI-regler, netværk |
 | 10 | `files/10-inspirationsanalyse-migogaalborg.md` | Hvad der er taget med fra referencen, og hvad der er fravalgt |
 
-Alle stier er relative til `/Users/Lysdal/GITS/Local2027/`. Læs ikke hele 01-09 på én gang. Slå op, når en opgave kræver det.
+Alle stier er relative til repo-roden (`localcms`). Læs ikke hele 01-09 på én gang. Slå op, når en opgave kræver det.
 
 ## 2. Ti regler, der aldrig brydes
 
@@ -58,7 +58,7 @@ Gå ikke videre til næste fase, før brugeren har set den forrige, medmindre br
 ## 4. Kør projektet
 
 ```bash
-cd /Users/Lysdal/GITS/Local2027/cms
+cd cms
 npm install
 npx prisma db push
 npm run seed

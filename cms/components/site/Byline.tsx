@@ -25,7 +25,7 @@ export function Byline({ forfatter, publiceretTid, opdateretTid }: BylineProps) 
 
   return (
     <div className="site-byline">
-      {forfatter?.profilbilledeUrl && (
+      {forfatter?.profilbilledeUrl ? (
         <div className="site-byline-avatar">
           <Image
             src={forfatter.profilbilledeUrl}
@@ -34,6 +34,18 @@ export function Byline({ forfatter, publiceretTid, opdateretTid }: BylineProps) 
             height={44}
             className="site-byline-avatar-img"
           />
+        </div>
+      ) : (
+        <div
+          className="site-avatar-badge"
+          style={{ width: "38px", height: "38px", fontSize: "13px", fontWeight: "700", flexShrink: 0 }}
+        >
+          {forfatter?.navn
+            ? forfatter.navn
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+            : "SL"}
         </div>
       )}
 

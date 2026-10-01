@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Layers, Bookmark, Heart } from "lucide-react";
+import { Home, Clock, LayoutGrid, Bookmark, MoreHorizontal } from "lucide-react";
 import { SectionSheet } from "./SectionSheet";
 
 type CategoryItem = {
@@ -30,8 +30,8 @@ export function BottomNav({ categories, areas, siteNavn }: BottomNavProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const isHome = pathname === "/";
+  const isLatest = pathname.startsWith("/nyheder");
   const isSaved = pathname.startsWith("/gemte");
-  const isSupport = pathname.startsWith("/bliv-stoette") || pathname.startsWith("/stoet");
 
   return (
     <>
@@ -42,7 +42,16 @@ export function BottomNav({ categories, areas, siteNavn }: BottomNavProps) {
           aria-current={isHome ? "page" : undefined}
         >
           <Home size={20} />
-          <span>Forside</span>
+          <span>Hjem</span>
+        </Link>
+
+        <Link
+          href="/nyheder"
+          className={`site-bottom-nav-item ${isLatest ? "is-active" : ""}`}
+          aria-current={isLatest ? "page" : undefined}
+        >
+          <Clock size={20} />
+          <span>Seneste</span>
         </Link>
 
         <button
@@ -50,10 +59,10 @@ export function BottomNav({ categories, areas, siteNavn }: BottomNavProps) {
           className={`site-bottom-nav-item ${sheetOpen ? "is-active" : ""}`}
           onClick={() => setSheetOpen(true)}
           aria-expanded={sheetOpen}
-          aria-label="Åbn sektioner og emner"
+          aria-label="Åbn emner og sektioner"
         >
-          <Layers size={20} />
-          <span>Sektioner</span>
+          <LayoutGrid size={20} />
+          <span>Emner</span>
         </button>
 
         <Link
@@ -65,14 +74,16 @@ export function BottomNav({ categories, areas, siteNavn }: BottomNavProps) {
           <span>Gemte</span>
         </Link>
 
-        <Link
-          href="/bliv-stoette"
-          className={`site-bottom-nav-item ${isSupport ? "is-active" : ""}`}
-          aria-current={isSupport ? "page" : undefined}
+        <button
+          type="button"
+          className="site-bottom-nav-item"
+          onClick={() => setSheetOpen(true)}
+          aria-expanded={sheetOpen}
+          aria-label="Mere information og netværk"
         >
-          <Heart size={20} />
-          <span>Støt</span>
-        </Link>
+          <MoreHorizontal size={20} />
+          <span>Mere</span>
+        </button>
       </nav>
 
       <SectionSheet

@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { getCurrentSite } from "@/lib/site";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 
 export async function registerMeddeler(formData: {
   navn: string;
@@ -245,7 +246,7 @@ export async function answerMeddelerFollowUp(
     const updatedTekst = `${sag.tekst}\n\n[SVAR PÅ SPØRGSMÅL: "${questionText}"]:\n${answerText.trim()}`;
 
     // Opdater opfølgningsstatus i JSON
-    let followUps = Array.isArray(sag.opfoelgning) ? [...(sag.opfoelgning as Array<any>)] : [];
+    let followUps = Array.isArray(sag.opfoelgning) ? [...(sag.opfoelgning as Array<Record<string, unknown>>)] : [];
     followUps = followUps.map((f) => {
       if (f.question === questionText || f.id === questionText) {
         return { ...f, answered: true, answer: answerText.trim() };
@@ -257,7 +258,7 @@ export async function answerMeddelerFollowUp(
       where: { id: sagId },
       data: {
         tekst: updatedTekst,
-        opfoelgning: followUps,
+        opfoelgning: followUps as unknown as Prisma.InputJsonValue,
         status: sag.status === "Ny" ? "UnderBehandling" : sag.status,
       },
     });

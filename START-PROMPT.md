@@ -1,10 +1,10 @@
 # Startprompt — kopiér teksten mellem stregerne ind i den nye model
 
-Åbn den nye session med arbejdsmappen `/Users/Lysdal/GITS/Local2027`. Skillet ligger i `.agents/skills/lokalt-medieplatform/` (og er linket ind i `.claude/skills/`).
+Åbn den nye session med arbejdsmappen `localcms`. Skillet ligger i `.agents/skills/lokalt-medieplatform/` (og er linket ind i `.claude/skills/`).
 
 ---
 
-Du skal bygge videre på mit projekt i `/Users/Lysdal/GITS/Local2027`: Lysdals CMS (Next.js 16 i `cms/`) og den offentlige nyhedsfrontend til mit netværk af lokale nyhedsmedier, "[By]Lokalt". Første site er **SlagelseLokalt** (`slagelselokalt.dk`). Svar mig på dansk, og skriv alle UI-tekster på dansk.
+Du skal bygge videre på mit projekt i dette repo (`localcms` — som overtager og fuldstændig erstatter det forældede `Local2027`): Lysdals CMS (Next.js 16 i `cms/`) og den offentlige nyhedsfrontend til mit netværk af lokale nyhedsmedier, "[By]Lokalt". Første site er **SlagelseLokalt** (`slagelselokalt.dk`). Svar mig på dansk, og skriv alle UI-tekster på dansk.
 
 **Start sådan:**
 

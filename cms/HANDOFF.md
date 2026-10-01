@@ -1,7 +1,8 @@
 # HANDOFF — Lysdals CMS fundament og [By]Lokalt Nyhedsfrontend
 
 > **Status:** Fase 1 (Fundament: F-01 til F-08) og Fase 2 (Nyhedskernen: P-01 til P-10, K-01 til K-16) er fuldt implementeret og testet.
-> **Dato:** 2026-09-29. **Repo:** `/Users/Lysdal/GITS/Local2027/cms/` (Next.js 16).
+> **Dato:** 2026-10-01. **Repo:** `localcms` (Next.js 16).
+> **Vigtigt:** Dette repository (`localcms`) er det **eneste førende og opdaterede repo**. Det tidligere `Local2027` er forældet og erstattet af dette.
 
 Denne fil er overleveringsloggen. Læs den FØR du bygger videre — den indeholder
 alle beslutninger, Next 16-faldgruber, præcis hvad der er gjort, og de næste trin.
