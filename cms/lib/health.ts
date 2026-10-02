@@ -45,7 +45,12 @@ function healthRedis(url: string): Promise<PingClient> {
     const Redis = (mod as unknown as { default: new (u: string, o: Record<string, unknown>) => PingClient }).default;
     const client = new Redis(url, { lazyConnect: false, connectTimeout: 1500, maxRetriesPerRequest: 1, enableOfflineQueue: false, family: 0, retryStrategy: (n: number) => Math.min(n * 250, 3000) });
     client.on("error", () => undefined);
-    return client;
+    // Vent kort på forbindelsen: uden offline-kø fejler en ping ellers på den allerførste kontrol efter opstart.
+    return new Promise<PingClient>((resolve) => {
+      const done = () => resolve(client);
+      client.on("ready", done);
+      setTimeout(done, 1500);
+    });
   }));
 }
 
