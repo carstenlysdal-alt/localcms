@@ -109,7 +109,7 @@ function cleanup() {
 
 const child = spawn(
   process.execPath,
-  ["--import", "tsx", "--import", join(root, "tests/helpers/isolated-db.mjs"), "--experimental-test-module-mocks", "--test", ...testFiles(process.argv.slice(2))],
+  ["--require", join(root, "tests/helpers/test-env-stubs.js"), "--import", "tsx", "--import", join(root, "tests/helpers/isolated-db.mjs"), "--experimental-test-module-mocks", "--test", ...testFiles(process.argv.slice(2))],
   {
     cwd: root,
     stdio: "inherit",

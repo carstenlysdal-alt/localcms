@@ -1,8 +1,8 @@
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import Link from "next/link";
-import { Radio } from "lucide-react";
+import { ExternalLink, Radio } from "lucide-react";
 import { MeddelerListClient } from "./MeddelerListClient";
+import { Page, PageHeader } from "@/components/ui/Page";
 import { NoAccess } from "@/components/admin/no-access";
 import { PAGE_PERMISSIONS, canViewSourceDetails, HIDDEN_CONTACT } from "@/lib/redaktion-access";
 
@@ -30,25 +30,17 @@ export default async function RedaktionMeddelerPage() {
   ]);
 
   return (
-    <main className="admin-main">
-      <div className="page-heading">
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Radio size={26} style={{ color: "#d97706" }} />
-            <h1 style={{ margin: 0 }}>Meddeler-netværket</h1>
-          </div>
-          <p className="text-muted" style={{ marginTop: "4px" }}>
-            Lokale kontaktpersoner, foreningssekretærer og beredskabskilder. Se registrerede meddelere og konvertér indberettede sager til artikler.
-          </p>
-        </div>
-
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+    <Page>
+      <PageHeader
+        icon={<Radio size={22} />}
+        title="Meddeler-netværket"
+        subtitle="Lokale kontaktpersoner, foreningssekretærer og beredskabskilder. Se registrerede meddelere og konvertér indberettede sager til artikler."
+        actions={
           <a href="/meddeler" target="_blank" rel="noreferrer" className="btn btn-secondary">
-            Se offentlig tilmelding ↗
+            Se offentlig tilmelding <ExternalLink size={14} aria-hidden="true" /><span className="sr-only"> (åbner i ny fane)</span>
           </a>
-        </div>
-      </div>
-
+        }
+      />
       <MeddelerListClient
         meddelere={meddelere.map((m) => (showSources ? m : {
           // Uden SOURCE_VIEW_CONFIDENTIAL sendes kontaktoplysninger og portal-link aldrig til klienten (heller ikke skjult i UI).
@@ -61,6 +53,6 @@ export default async function RedaktionMeddelerPage() {
         }))}
         sager={sager.map((s) => (showSources ? s : { ...s, meddeler: { id: s.meddeler.id, navn: s.meddeler.navn, organisation: s.meddeler.organisation, kontakt: HIDDEN_CONTACT } as typeof s.meddeler }))}
       />
-    </main>
+    </Page>
   );
 }

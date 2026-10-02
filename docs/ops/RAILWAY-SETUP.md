@@ -72,6 +72,20 @@ Servicen vælger by ud fra `Host` (`getCurrentSite()`); ukendt vært giver 404. 
 5. Valgfrit: `?instans=<id>` for én by, `?ai=0` for kun deterministisk forslag. Ruten tillader 6 kørsler/min i alt.
 6. Test manuelt: `railway run -s cron-frontpage -- sh -c 'echo "$CRON_SECRET" | wc -c'` viser kun længden; selve kaldet ses i servicens logs.
 
+### 4b. Cron: planlagt publicering (`/api/cron/publish-scheduled`)
+
+Ruten flytter artikler i status **Planlagt** med `planlagtTid <= nu` til **Publiceret** (revision med actor `scheduler`, `publiceretTid`, CDN-purge). Den rører aldrig andre statusser, er idempotent (betinget opdatering) og kører i små batches (standard 20, `?batch=<n>` op til 100). Artikler der ikke opfylder publiceringskravene (mærkning, AI-brug registreret, kilde verificeret) springes over og forbliver Planlagt — de rapporteres i svaret (`skipped`).
+
+**Status: slået fra, indtil servicen nedenfor oprettes.** Uden en cron-service publiceres planlagte artikler ikke af sig selv (redaktøren kan stadig publicere manuelt).
+
+1. *New -> Empty Service* (eller Docker Image `curlimages/curl`), navn `cron-publish`.
+2. Variabler: `CRON_SECRET=${{lysdalcms.CRON_SECRET}}`, `APP_PORT=${{lysdalcms.PORT}}` (samme hemmelighed som `cron-frontpage`; min. 16 tegn — ellers svarer ruten 503).
+3. *Settings -> Deploy -> Custom Start Command*:
+   `sh -c 'curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" "http://lysdalcms.railway.internal:$APP_PORT/api/cron/publish-scheduled"'`
+4. *Settings -> Cron Schedule*: `*/5 * * * *` (UTC; hvert 5. minut). Ruten tillader 30 kørsler/min i alt og 20 mislykkede auth-forsøg/min pr. IP.
+5. Valgfrit: `?instans=<id>` for én by. Svaret er `{ ok, checked, published:[{id,instansId,slug}], skipped:[{id,instansId,reason}] }`.
+6. Efter deploy: kør `npm run roles:sync` (eller `railway run -s lysdalcms npm run roles:sync`) så den nye rettighed `article.ai.use` når eksisterende roller.
+
 ## 5. Uploads (Railway Volume)
 
 Filsystemet er flygtigt: `public/uploads` forsvinder ved redeploy. Brug en Volume:
@@ -134,7 +148,8 @@ railway run -s Postgres -- sh -c 'pg_restore --no-owner --clean --if-exists -d "
 - Trafikken til borgerne bør tages af Cloudflare-cache (anonym HTML, feeds, sitemaps, OG-billeder) — det er både DDoS-værn og den vigtigste omkostningsreduktion.
 - Staging-miljøet fordobler grundforbruget; sæt det i dvale/slet det, når det ikke bruges.
 - `DATABASE_PUBLIC_URL` (TCP-proxy) giver egress-omkostning ved dumps; brug den kun til drift.
-- Anthropic-omkostninger er separate og styres af `ANTHROPIC_API_KEY` (sæt forbrugsloft hos Anthropic).
+- Anthropic-omkostninger er separate og styres af `ANTHROPIC_API_KEY` (sæt forbrugsloft hos Anthropic). AI-operatøren (`/api/operator`) kan lave op til 9 modelkald pr. besked; ratelimit er 30 beskeder pr. 10 min pr. bruger.
+- **Efter deploy af AI-operatøren:** kør `railway ssh -s lysdalcms` og `npm run roles:sync` én gang, så rollerne Ansvarshavende redaktør og Redaktionsleder får rettigheden `operator.use` (uden den ser ingen operatøren; ingen nye miljøvariabler). Migrationen `operator_log` (tabellen `OperatorAction`) køres automatisk af `start:railway`.
 
 ## 11. Mistet adgangskode og brugere
 

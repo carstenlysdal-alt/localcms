@@ -31,8 +31,11 @@ import { ShareButton } from "@/components/site/ShareButton";
 import { buildPageMetadata, analyzeQuery } from "@/lib/seo/meta";
 import { resolveSeoConfig } from "@/lib/seo/config";
 import { articleGraph, articleImageUrl, creditLabel, sectionCollection } from "@/lib/seo/jsonld";
-import { encodeSegment, articlePath, siteBase } from "@/lib/seo/url";
-import { fitTitle, stripHtml } from "@/lib/seo/escape";
+import { absoluteUrl, encodeSegment, articlePath, siteBase } from "@/lib/seo/url";
+import { stripHtml } from "@/lib/seo/escape";
+import { resolveArticleSeo } from "@/lib/seo/article-seo";
+import { findArticleRedirect } from "@/lib/slug-redirect";
+import { blocksPlainText } from "@/lib/blocks/text";
 
 // Dedupér DB-opslag mellem generateMetadata og selve siden (samme request).
 const loadSection = cache(async (instansId: string, sektion: string) =>
@@ -85,25 +88,45 @@ export async function generateMetadata({
   // Ellers tjek artikel (kun på sin egen sektion-sti)
   const articleData = await loadArticle(site.id, sektion, slug);
   if (articleData) {
-    const { article, summary } = articleData;
-    const cover = article.coverMedia;
-    const version = article.opdateretTid?.getTime();
+    const { article, summary, articleMeta, metaMedia } = articleData;
+    const seo = resolveArticleSeo({
+      base,
+      titel: article.titel,
+      manchet: article.manchet,
+      seoTitel: article.seoTitel,
+      seoBeskrivelse: article.seoBeskrivelse,
+      slug: article.slug,
+      sprog: article.sprog,
+      sektion: summary.sektion,
+      meta: articleMeta,
+      cover: article.coverMedia,
+      ogMedia: metaMedia.og,
+      twitterMedia: metaMedia.twitter,
+      version: article.opdateretTid?.getTime(),
+    });
     return buildPageMetadata({
       site,
       path: articlePath(summary.sektion.slug, article.slug),
-      title: fitTitle(article.seoTitel || article.titel, 60),
-      ogTitle: stripHtml(article.titel),
+      title: seo.title,
+      ogTitle: seo.og.title,
       description: article.seoBeskrivelse || article.manchet,
+      ogDescription: seo.og.description,
       type: "article",
-      image: {
-        url: articleImageUrl(base, article.slug, "og", version),
-        alt: cover?.altTekst || stripHtml(article.titel),
-        width: 1200,
-        height: 630,
-      },
+      noindex: seo.noindex,
+      nofollow: seo.nofollow,
+      canonicalUrl: seo.isCanonicalOverride ? seo.canonical : undefined,
+      locale: seo.locale,
+      keywords: seo.keywords,
+      newsKeywords: seo.newsKeywords,
+      unavailableAfter: seo.unavailableAfter,
+      standout: seo.standout,
+      languages: seo.languages,
+      image: seo.og.image,
+      twitter: { card: seo.twitter.card, title: seo.twitter.title, description: seo.twitter.description, image: seo.twitter.image },
       article: {
         publishedTime: article.publiceretTid,
-        modifiedTime: article.opdateretTid,
+        modifiedTime: articleMeta.sistSubstantielOpdateringTid ?? article.opdateretTid,
+        expirationTime: articleMeta.udloebTid,
         authorUrls: article.forfatter?.slug ? [`${base}/forfatter/${encodeSegment(article.forfatter.slug)}`] : undefined,
         section: summary.sektion.navn,
         tags: [...article.tags.map((t) => t.navn)],
@@ -374,10 +397,14 @@ export default async function SectionOrArticlePage({
   const articleData = await loadArticle(site.id, sektion, slug);
 
   if (!articleData) {
+    // Ændret slug/sektion på en publiceret artikel: permanent omdirigering til den nuværende URL (ingen løkker, tenant-afgrænset).
+    // Bemærk: Next.js' permanentRedirect svarer 308 (permanent, bevarer metoden) — for GET-sider ens med 301 for søgemaskiner.
+    const redirectTo = await findArticleRedirect(site.id, sektion, slug);
+    if (redirectTo) permanentRedirect(redirectTo);
     notFound();
   }
 
-  const { article, summary, relaterede } = articleData;
+  const { article, summary, relaterede, articleMeta, metaMedia, creditAuthors } = articleData;
   const blocks = parseBlocks(article.blocks);
   const primaryArea = article.geoTags[0] ?? null;
 
@@ -428,7 +455,15 @@ export default async function SectionOrArticlePage({
     {
       titel: article.titel,
       manchet: article.manchet,
+      seoTitel: article.seoTitel,
       seoBeskrivelse: article.seoBeskrivelse,
+      bodyText: blocksPlainText(blocks),
+      meta: {
+        ...articleMeta,
+        keywords: articleMeta.keywords,
+        medforfattere: articleMeta.medforfattere.map((c) => ({ ...c, slug: creditAuthors.find((x) => x.id === c.authorId)?.slug ?? null })),
+        ogImageUrl: metaMedia.og ? absoluteUrl(siteBase(site), metaMedia.og.url) : null,
+      },
       slug: article.slug,
       indholdstype: article.indholdstype,
       marking: summary.marking,

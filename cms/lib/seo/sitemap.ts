@@ -63,6 +63,8 @@ export type NewsEntry = {
   loc: string;
   title: string;
   publishedAt: Date;
+  /** Google News `news:keywords` (kommasepareret, højst 10). */
+  keywords?: string[];
 };
 
 export function newsSitemapXml(publicationName: string, entries: NewsEntry[], language = "da"): string {
@@ -74,7 +76,7 @@ export function newsSitemapXml(publicationName: string, entries: NewsEntry[], la
     <news:news>
       <news:publication><news:name>${escapeXml(publicationName)}</news:name><news:language>${escapeXml(language)}</news:language></news:publication>
       <news:publication_date>${isoWithOffset(e.publishedAt)}</news:publication_date>
-      <news:title>${escapeXml(e.title)}</news:title>
+      <news:title>${escapeXml(e.title)}</news:title>${e.keywords && e.keywords.length ? `\n      <news:keywords>${escapeXml(e.keywords.slice(0, 10).join(", "))}</news:keywords>` : ""}
     </news:news>
   </url>`,
     )

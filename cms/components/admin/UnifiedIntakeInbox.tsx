@@ -9,16 +9,17 @@ import {
   Radio,
   MessageSquare,
   CheckCircle2,
-  Clock,
-  Sparkles,
   ExternalLink,
   ChevronDown,
-  ChevronUp,
   FilePlus,
   Copy,
   Check,
   Loader2,
 } from "lucide-react";
+import { Badge, StatusChip, type BadgeTone } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Notice } from "@/components/ui/Layout";
 import {
   convertQaToArticle,
   convertInterviewToArticle,
@@ -53,6 +54,14 @@ interface UnifiedIntakeInboxProps {
   items: IntakeItem[];
 }
 
+const CHANNEL_META: Record<IntakeItem["channel"], { label: string; tone: BadgeTone; icon: typeof Inbox }> = {
+  qa: { label: "Kilde-Q&A", tone: "planned", icon: Inbox },
+  interview: { label: "AI-interview", tone: "draft", icon: Mic },
+  sponsor: { label: "Sponsor / partner", tone: "success", icon: Handshake },
+  meddeler: { label: "Meddeler-sag", tone: "review", icon: Radio },
+  submission: { label: "Borgerindlæg", tone: "neutral", icon: MessageSquare },
+};
+
 export function UnifiedIntakeInbox({ items }: UnifiedIntakeInboxProps) {
   const [activeChannel, setActiveChannel] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -60,20 +69,19 @@ export function UnifiedIntakeInbox({ items }: UnifiedIntakeInboxProps) {
   const [isPending, startTransition] = useTransition();
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<{ id: string; text: string } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<{ id: string; text: string } | null>(null);
 
   const channels = [
     { key: "all", label: "Alle kanaler", count: items.length },
-    { key: "qa", label: "Kilde-Q&A", icon: Inbox, count: items.filter((i) => i.channel === "qa").length },
-    { key: "interview", label: "AI-Interview", icon: Mic, count: items.filter((i) => i.channel === "interview").length },
-    { key: "sponsor", label: "Sponsor & Briefs", icon: Handshake, count: items.filter((i) => i.channel === "sponsor").length },
-    { key: "meddeler", label: "Meddeler-sager", icon: Radio, count: items.filter((i) => i.channel === "meddeler").length },
-    { key: "submission", label: "Borgerindlæg", icon: MessageSquare, count: items.filter((i) => i.channel === "submission").length },
+    ...(Object.keys(CHANNEL_META) as Array<IntakeItem["channel"]>).map((key) => ({
+      key,
+      label: CHANNEL_META[key].label,
+      icon: CHANNEL_META[key].icon,
+      count: items.filter((i) => i.channel === key).length,
+    })),
   ];
 
-  const filteredItems = items.filter((i) => {
-    if (activeChannel !== "all" && i.channel !== activeChannel) return false;
-    return true;
-  });
+  const filteredItems = items.filter((i) => activeChannel === "all" || i.channel === activeChannel);
 
   const handleCopyLink = (token: string, channel: string) => {
     let url = "";
@@ -91,6 +99,7 @@ export function UnifiedIntakeInbox({ items }: UnifiedIntakeInboxProps) {
 
   const handleConvert = (item: IntakeItem) => {
     setLoadingItemId(item.id);
+    setErrorMessage(null);
     startTransition(async () => {
       let res: { success: boolean; articleId?: string; message?: string; error?: string } = { success: false };
 
@@ -103,299 +112,100 @@ export function UnifiedIntakeInbox({ items }: UnifiedIntakeInboxProps) {
       setLoadingItemId(null);
 
       if (res.success) {
-        setActionMessage({
-          id: item.id,
-          text: res.message || "Artikel oprettet som kladde!",
-        });
+        setActionMessage({ id: item.id, text: res.message || "Artikel oprettet som kladde!" });
       } else {
-        alert(res.error || "Kunne ikke oprette artikel.");
+        setErrorMessage({ id: item.id, text: res.error || "Kunne ikke oprette artikel." });
       }
     });
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {/* Kanal filter-tabs */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", borderBottom: "1px solid var(--color-border, #e2e8f0)", paddingBottom: "12px" }}>
+    <div className="ui-stack ui-gap-md">
+      <div className="ui-chips" role="group" aria-label="Filtrér på kanal">
         {channels.map((ch) => {
-          const isActive = activeChannel === ch.key;
-          const Icon = ch.icon;
+          const Icon = "icon" in ch ? ch.icon : null;
           return (
-            <button
-              key={ch.key}
-              type="button"
-              onClick={() => setActiveChannel(ch.key)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 14px",
-                borderRadius: "var(--radius-pill, 9999px)",
-                fontSize: "13px",
-                fontWeight: isActive ? "700" : "500",
-                background: isActive ? "var(--color-primary, #9E3D1B)" : "var(--color-surface, #ffffff)",
-                color: isActive ? "#ffffff" : "var(--color-text, #1e293b)",
-                border: "1px solid",
-                borderColor: isActive ? "transparent" : "var(--color-border, #cbd5e1)",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-            >
-              {Icon && <Icon size={14} />}
-              <span>{ch.label}</span>
-              <span
-                style={{
-                  background: isActive ? "rgba(255, 255, 255, 0.25)" : "#f1f5f9",
-                  color: isActive ? "#ffffff" : "#475569",
-                  padding: "1px 6px",
-                  borderRadius: "10px",
-                  fontSize: "11px",
-                  fontWeight: "700",
-                }}
-              >
-                {ch.count}
-              </span>
+            <button key={ch.key} type="button" className="ui-chip" aria-pressed={activeChannel === ch.key} onClick={() => setActiveChannel(ch.key)}>
+              {Icon ? <Icon size={14} aria-hidden="true" /> : null}
+              {ch.label}
+              <span className="ui-chip-count">{ch.count}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Liste over indkomne henvendelser */}
       {filteredItems.length === 0 ? (
-        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "48px 24px", textAlign: "center" }}>
-          <Inbox size={36} style={{ color: "#94a3b8", margin: "0 auto 12px auto" }} />
-          <p style={{ margin: 0, fontSize: "15px", color: "#64748b" }}>Ingen henvendelser fundet i denne kanal.</p>
-        </div>
+        <EmptyState icon={<Inbox size={22} />} title="Ingen henvendelser" description="Der er ingen henvendelser i denne kanal lige nu." />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <ul className="ui-list" aria-label="Henvendelser">
           {filteredItems.map((item) => {
             const isExpanded = expandedId === item.id;
             const isConverting = loadingItemId === item.id;
             const hasArticle = !!item.articleId || !!item.article;
             const isNew = isNewIntakeStatus(item.status);
+            const meta = CHANNEL_META[item.channel];
+            const ChannelIcon = meta.icon;
+            const contact = item.senderContact;
 
             return (
-              <div
-                key={`${item.channel}-${item.id}`}
-                style={{
-                  background: "#ffffff",
-                  border: `1px solid ${isNew ? "#bfdbfe" : "#e2e8f0"}`,
-                  borderRadius: "10px",
-                  padding: "18px 20px",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
-                  transition: "box-shadow 0.15s ease",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-                  <div style={{ flex: "1 1 360px" }}>
-                    {/* Badges række */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
-                      {/* Kanal badge */}
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: "700",
-                          textTransform: "uppercase",
-                          padding: "2px 8px",
-                          borderRadius: "4px",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          ...(item.channel === "qa" && { background: "#e0e7ff", color: "#3730a3" }),
-                          ...(item.channel === "interview" && { background: "#ede9fe", color: "#5b21b6" }),
-                          ...(item.channel === "sponsor" && { background: "#ecfdf5", color: "#065f46" }),
-                          ...(item.channel === "meddeler" && { background: "#fef3c7", color: "#92400e" }),
-                          ...(item.channel === "submission" && { background: "#f1f5f9", color: "#334155" }),
-                        }}
-                      >
-                        {item.channel === "qa" && <Inbox size={12} />}
-                        {item.channel === "interview" && <Mic size={12} />}
-                        {item.channel === "sponsor" && <Handshake size={12} />}
-                        {item.channel === "meddeler" && <Radio size={12} />}
-                        {item.channel === "submission" && <MessageSquare size={12} />}
-                        {item.channel === "qa" && "Kilde-Q&A"}
-                        {item.channel === "interview" && "AI-Interview"}
-                        {item.channel === "sponsor" && "Sponsor / Partner"}
-                        {item.channel === "meddeler" && "Meddeler-sag"}
-                        {item.channel === "submission" && "Borgerindlæg"}
-                      </span>
-
-                      {/* Status badge */}
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: "700",
-                          padding: "2px 8px",
-                          borderRadius: "9999px",
-                          background: hasArticle ? "#dcfce7" : isNew ? "#eff6ff" : "#f1f5f9",
-                          color: hasArticle ? "#166534" : isNew ? "#1d4ed8" : "#475569",
-                        }}
-                      >
-                        {hasArticle ? "Artikel oprettet" : item.status}
-                      </span>
-
-                      <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-                        {new Date(item.createdAt).toLocaleDateString("da-DK", {
-                          day: "numeric",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-
-                    <h3 style={{ margin: "0 0 6px 0", fontSize: "17px", fontWeight: "700", color: "#0f172a" }}>
-                      {item.title}
-                    </h3>
-
-                    <div style={{ fontSize: "13px", color: "#475569", display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                      <span>Afsender: <strong>{item.senderName}</strong> {item.senderRole ? `(${item.senderRole})` : ""}</span>
-                      {item.senderContact && <span>Kontakt: <a href={`mailto:${item.senderContact}`} style={{ color: "var(--color-primary, #9E3D1B)" }}>{item.senderContact}</a></span>}
-                    </div>
-
-                    {item.summary && (
-                      <p style={{ margin: "8px 0 0 0", fontSize: "13.5px", color: "#334155", lineHeight: "1.4" }}>
-                        {item.summary}
+              <li key={`${item.channel}-${item.id}`}>
+                <Card as="article" padding="sm" className={isNew ? "intake-new" : undefined} aria-label={item.title}>
+                  <div className="intake-row">
+                    <div className="intake-main">
+                      <div className="intake-badges">
+                        <Badge tone={meta.tone} icon={<ChannelIcon size={12} />}>{meta.label}</Badge>
+                        {hasArticle ? <Badge tone="success" dot>Artikel oprettet</Badge> : <StatusChip status={item.status} />}
+                        <time className="ui-small ui-muted" dateTime={new Date(item.createdAt).toISOString()}>
+                          {new Date(item.createdAt).toLocaleDateString("da-DK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        </time>
+                      </div>
+                      <h3 className="intake-title">{item.title}</h3>
+                      <p className="intake-sender">
+                        <span>Afsender: <strong>{item.senderName}</strong>{item.senderRole ? ` (${item.senderRole})` : ""}</span>
+                        {contact ? (
+                          <span>Kontakt: {contact.includes("@") ? <a className="ui-link" href={`mailto:${contact}`}>{contact}</a> : <span className="ui-muted">{contact}</span>}</span>
+                        ) : null}
                       </p>
-                    )}
-                  </div>
+                      {item.summary ? <p className="intake-summary">{item.summary}</p> : null}
+                    </div>
 
-                  {/* Handlingstaster */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                    {/* Kopier kildelink knap */}
-                    {item.token && (
-                      <button
-                        type="button"
-                        onClick={() => handleCopyLink(item.token!, item.channel)}
-                        title="Kopier det direkte link, som kilden eller partneren bruger"
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "5px",
-                          padding: "6px 12px",
-                          background: "#f8fafc",
-                          border: "1px solid #cbd5e1",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          fontWeight: "600",
-                          color: "#334155",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {copiedToken === item.token ? (
-                          <>
-                            <Check size={13} style={{ color: "#16a34a" }} />
-                            <span>Kopieret!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={13} />
-                            <span>Kildelink</span>
-                          </>
-                        )}
+                    <div className="ui-actions">
+                      {item.token ? (
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleCopyLink(item.token!, item.channel)} title="Kopier det direkte link, som kilden eller partneren bruger">
+                          {copiedToken === item.token ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                          <span role="status">{copiedToken === item.token ? "Kopieret" : "Kildelink"}</span>
+                        </button>
+                      ) : null}
+                      <button type="button" className="btn btn-ghost btn-sm" aria-expanded={isExpanded} aria-controls={`intake-${item.id}`} onClick={() => setExpandedId(isExpanded ? null : item.id)}>
+                        <ChevronDown size={14} aria-hidden="true" className={isExpanded ? "intake-chevron is-open" : "intake-chevron"} />
+                        {isExpanded ? "Skjul detaljer" : "Vis detaljer"}
                       </button>
-                    )}
-
-                    {/* Detalje toggle */}
-                    <button
-                      type="button"
-                      onClick={() => setExpandedId(isExpanded ? null : item.id)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        padding: "6px 10px",
-                        background: "transparent",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        color: "#64748b",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      <span>{isExpanded ? "Luk" : "Vis detaljer"}</span>
-                    </button>
-
-                    {/* Opret artikel / Åbn artikel knap */}
-                    {hasArticle ? (
-                      <Link
-                        href={`/redaktion/artikler/${item.articleId || item.article?.id}`}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "6px 14px",
-                          background: "#f0fdf4",
-                          border: "1px solid #bbf7d0",
-                          color: "#166534",
-                          borderRadius: "6px",
-                          fontSize: "12.5px",
-                          fontWeight: "700",
-                          textDecoration: "none",
-                        }}
-                      >
-                        <ExternalLink size={13} />
-                        <span>Åbn artikelkladde</span>
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleConvert(item)}
-                        disabled={isConverting}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "6px 14px",
-                          background: "var(--color-primary, #9E3D1B)",
-                          color: "#ffffff",
-                          border: "none",
-                          borderRadius: "6px",
-                          fontSize: "12.5px",
-                          fontWeight: "700",
-                          cursor: "pointer",
-                          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                        }}
-                      >
-                        {isConverting ? (
-                          <>
-                            <Loader2 size={13} className="animate-spin" />
-                            <span>Opretter...</span>
-                          </>
-                        ) : (
-                          <>
-                            <FilePlus size={13} />
-                            <span>Opret artikel</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Succesbesked efter oprettelse */}
-                {actionMessage?.id === item.id && (
-                  <div style={{ marginTop: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "8px 12px", borderRadius: "6px", fontSize: "12.5px", color: "#166534", display: "flex", alignItems: "center", gap: "6px" }}>
-                    <CheckCircle2 size={14} />
-                    <span>{actionMessage.text}</span>
-                  </div>
-                )}
-
-                {/* Udvidet detalje sektion */}
-                {isExpanded && item.details && (
-                  <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid #f1f5f9", fontSize: "13px" }}>
-                    <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                      <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", color: "#334155", lineHeight: "1.45" }}>
-                        {JSON.stringify(item.details, null, 2)}
-                      </pre>
+                      {hasArticle ? (
+                        <Link className="btn btn-secondary btn-sm" href={`/redaktion/artikler/${item.articleId || item.article?.id}`}>
+                          <ExternalLink size={14} aria-hidden="true" /> Åbn artikelkladde
+                        </Link>
+                      ) : (
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => handleConvert(item)} disabled={isConverting || isPending}>
+                          {isConverting ? <Loader2 size={14} className="ui-spin" aria-hidden="true" /> : <FilePlus size={14} aria-hidden="true" />}
+                          {isConverting ? "Opretter…" : "Opret artikel"}
+                        </button>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
+
+                  {actionMessage?.id === item.id ? (
+                    <Notice tone="success" className="intake-notice"><span className="ui-row ui-gap-sm"><CheckCircle2 size={14} aria-hidden="true" />{actionMessage.text}</span></Notice>
+                  ) : null}
+                  {errorMessage?.id === item.id ? <Notice tone="danger" className="intake-notice">{errorMessage.text}</Notice> : null}
+
+                  <div id={`intake-${item.id}`} role="region" aria-label={`Detaljer for ${item.title}`} hidden={!isExpanded || !item.details} className="intake-details">
+                    <pre>{JSON.stringify(item.details, null, 2)}</pre>
+                  </div>
+                </Card>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

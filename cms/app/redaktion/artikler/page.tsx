@@ -1,117 +1,176 @@
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
-import { Prisma } from "@prisma/client";
-import { ArticleTable } from "@/components/admin/article-table";
-import { auth } from "@/lib/auth";
+import { Plus, Search, LayoutGrid, List as ListIcon } from "lucide-react";
+import "@/styles/cms-editor.css";
+import { ArticleCardList } from "@/components/editor/article-list";
+import { ArticleEditor } from "@/components/editor/article-editor";
+import { ArticleCorrections } from "@/components/editor/article-corrections";
+import { AiDock } from "@/components/editor/ai-dock";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { can, PERMISSIONS } from "@/lib/permissions";
+import { can, canEditArticle, PERMISSIONS } from "@/lib/permissions";
 import { searchOr } from "@/lib/search";
+import { getNetworkLinks } from "@/lib/site";
+import { ALL_STATUSES, buildWhere, listHref, parseListParams, type ListTab } from "@/lib/editor/list-query";
+import { loadArticleValue, loadEditorOptions } from "@/lib/editor/load";
 
-const tabs = ["Alle", "Publiceret", "Planlagt", "Meninger", "Debat"] as const;
+const PRIMARY_TABS: ListTab[] = ["Alle", "Planlagt", "Publiceret", "Kladder"];
+const EXTRA_TABS: ListTab[] = ["Meninger", "Debat"];
+const MAX_ROWS = 200;
 
 export default async function ArticlesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const session = await auth();
-  if (!session?.user) return null;
-  const params = await searchParams;
-  const tab = tabs.includes(params.tab as (typeof tabs)[number]) ? params.tab as string : "Alle";
-  const query = typeof params.q === "string" ? params.q.trim() : "";
-  const status = typeof params.status === "string" ? params.status : "";
-  const type = typeof params.type === "string" ? params.type : "";
-  const sort = params.sort === "aeldste" ? "asc" : "desc";
-  const filterBreaking = params.breaking === "1";
-  const filterPinned = params.pinned === "1";
-  const filterSponsored = params.sponsored === "1";
+  const user = await getAuthorizedUser();
+  if (!user) return null;
+  const p = parseListParams(await searchParams);
 
-  const where: Prisma.ArticleWhereInput = {
-    instansId: session.user.instansId,
-    ...(query ? { OR: searchOr<Prisma.ArticleWhereInput>(["titel"], query) } : {}),
-    ...(status ? { status } : tab === "Publiceret" ? { status: "Publiceret" } : tab === "Planlagt" ? { status: "Planlagt" } : {}),
-    ...(type ? { indholdstype: type } : filterSponsored ? { indholdstype: "Sponsoreret" } : tab === "Debat" ? { kategori: { slug: "debat" } } : tab === "Meninger" ? { indholdstype: "Brugerindsendt" } : {}),
-    ...(filterBreaking ? { breaking: true } : {}),
-    ...(filterPinned ? { pinned: true } : {}),
-  };
+  const where = buildWhere(p, user.instansId, (fields, q) => searchOr(fields, q));
+  const [rows, authors, instance, network, options] = await Promise.all([
+    db.article.findMany({
+      where,
+      include: { forfatter: true, coverMedia: true, kategori: { select: { id: true, navn: true } } },
+      orderBy: { opdateretTid: p.sort },
+      take: MAX_ROWS,
+    }),
+    db.author.findMany({ where: { instansId: user.instansId }, orderBy: { navn: "asc" }, select: { id: true, navn: true } }),
+    db.instance.findUnique({ where: { id: user.instansId }, select: { navn: true, domaene: true } }),
+    getNetworkLinks(),
+    loadEditorOptions(user),
+  ]);
 
-  const articles = await db.article.findMany({
-    where,
-    include: { forfatter: true, coverMedia: true },
-    orderBy: { opdateretTid: sort },
-  });
+  const canCreate = can(user, PERMISSIONS.ARTICLE_CREATE);
+  const canManage = can(user, PERMISSIONS.FRONTPAGE_EDIT);
+  const city = (instance?.navn ?? "").replace(/Lokalt$/i, "") || "Din by";
+  const base = { ...p, id: "" };
+  const hrefFor = (id: string) => listHref(p, { id });
+  const closeHref = listHref(base);
 
-  const breaking = articles.filter((a) => a.breaking);
-  const pinned = articles.filter((a) => a.pinned && !a.breaking);
-  const rest = articles.filter((a) => !a.breaking && !a.pinned);
-  const canCreate = can(session.user, PERMISSIONS.ARTICLE_CREATE);
-  const canManage = can(session.user, PERMISSIONS.FRONTPAGE_EDIT);
+  // Valgt artikel (højre panel).
+  const selected = p.id ? await loadArticleValue(user, p.id) : null;
+  const selectedAllowed = selected ? canEditArticle(user, selected.row) : false;
+  const corrections = selected && selectedAllowed ? await db.correction.findMany({ where: { articleId: selected.row.id, instansId: user.instansId, fjernetTid: null }, orderBy: { dato: "desc" } }) : [];
+  const chatHistory = selected && selectedAllowed
+    ? await db.chatMessage.findMany({ where: { sessionId: `artikel-${selected.row.id}`, instansId: user.instansId }, orderBy: { createdAt: "asc" }, take: 40 })
+    : [];
 
-  function filterHref(extra: Record<string, string>) {
-    const p = new URLSearchParams();
-    if (tab !== "Alle") p.set("tab", tab);
-    if (query) p.set("q", query);
-    if (status) p.set("status", status);
-    if (type) p.set("type", type);
-    if (sort === "asc") p.set("sort", "aeldste");
-    Object.entries(extra).forEach(([k, v]) => v ? p.set(k, v) : p.delete(k));
-    const s = p.toString();
-    return `/redaktion/artikler${s ? `?${s}` : ""}`;
-  }
+  const breaking = rows.filter((a) => a.breaking);
+  const pinned = rows.filter((a) => a.pinned && !a.breaking);
+  const rest = rows.filter((a) => !a.breaking && !a.pinned);
+  const groups = [
+    { key: "breaking", label: "Hastenyheder", rows: breaking },
+    { key: "pinned", label: "Fastgjort", rows: pinned },
+    { key: "rest", label: "Alle historier", rows: rest },
+  ].filter((g) => g.rows.length > 0);
 
-  return (
-    <main className="admin-main">
-      <div className="page-heading">
-        <div>
-          <h1>Publiceringsoversigt</h1>
-          <p className="text-muted">{articles.length} historier i den aktuelle visning</p>
-        </div>
-        {canCreate && <Link className="btn btn-primary" href="/redaktion/artikler/ny"><Plus size={17} /> Ny artikel</Link>}
+  const detail = selected ? (
+    selectedAllowed ? (
+      <ArticleEditor
+        key={selected.row.id}
+        article={selected.value}
+        options={options.options}
+        flags={options.flags}
+        site={options.site}
+        transitions={selected.transitions}
+        mode="panel"
+        closeHref={closeHref}
+        hasUnverifiedSource={typeof (selected.row.marking as { uverificeretKilde?: unknown } | null)?.uverificeretKilde === "boolean"}
+      >
+        <ArticleCorrections articleId={selected.row.id} corrections={corrections} canRemove={can(user, PERMISSIONS.ARTICLE_PUBLISH) || can(user, PERMISSIONS.ARTICLE_EDIT_ALL)} />
+      </ArticleEditor>
+    ) : (
+      <div className="cms-empty-detail">
+        <h2>Ingen redigeringsadgang</h2>
+        <p>Du kan kun redigere dine egne artikler.</p>
+        <Link className="cms-btn cms-btn-secondary" href={closeHref} scroll={false}>Til listen</Link>
       </div>
+    )
+  ) : p.id ? (
+    <div className="cms-empty-detail"><h2>Artiklen findes ikke</h2><Link className="cms-btn cms-btn-secondary" href={closeHref} scroll={false}>Til listen</Link></div>
+  ) : (
+    <div className="cms-empty-detail"><h2>Vælg en artikel</h2><p>Åbn en historie i listen for at redigere den her — eller opret en ny.</p>{canCreate && <Link className="cms-btn cms-btn-primary" href="/redaktion/artikler/ny"><Plus size={16} aria-hidden="true" /> Ny artikel</Link>}</div>
+  );
 
-      <nav className="tabs" aria-label="Artikelvisninger">
-        {tabs.map((item) => (
-          <Link key={item} className={tab === item ? "active" : ""} href={item === "Alle" ? "/redaktion/artikler" : `/redaktion/artikler?tab=${encodeURIComponent(item)}`}>
-            {item}
-          </Link>
-        ))}
-      </nav>
-
-      <form className="filter-bar">
-        <label className="search-field"><Search size={17} /><input name="q" defaultValue={query} placeholder="Søg på titel" /></label>
-        <select className="input" name="status" defaultValue={status}>
-          <option value="">Alle statusser</option>
-          {["Idé", "Udkast", "Godkendelse", "Planlagt", "Publiceret", "Arkiveret"].map((s) => <option key={s}>{s}</option>)}
-        </select>
-        <select className="input" name="sort" defaultValue={sort === "asc" ? "aeldste" : "nyeste"}>
-          <option value="nyeste">Nyeste først</option>
-          <option value="aeldste">Ældste først</option>
-        </select>
-        <button className="btn btn-secondary">Filtrér</button>
-      </form>
-
-      {canManage && (
-        <div className="quick-filters">
-          <Link className={`quick-filter ${filterBreaking ? "active" : ""}`} href={filterHref({ breaking: filterBreaking ? "" : "1" })}>
-            Breaking
-          </Link>
-          <Link className={`quick-filter ${filterSponsored ? "active" : ""}`} href={filterHref({ sponsored: filterSponsored ? "" : "1" })}>
-            Sponsoreret
-          </Link>
-          <Link className={`quick-filter ${filterPinned ? "active" : ""}`} href={filterHref({ pinned: filterPinned ? "" : "1" })}>
-            Fastgjort
-          </Link>
+  const workspace = (
+    <main className="cms-ws cms-page" data-open={selected || p.id ? "true" : "false"}>
+      <section className="cms-ws-list" aria-label="Artikler">
+        <div className="cms-ws-head">
+          <div>
+            <h1>Artikler</h1>
+            <p className="cms-muted">{rows.length}{rows.length === MAX_ROWS ? "+" : ""} historier i visningen</p>
+          </div>
+          {canCreate && <Link className="cms-btn cms-btn-primary" href="/redaktion/artikler/ny"><Plus size={16} aria-hidden="true" /> Ny artikel</Link>}
         </div>
-      )}
 
-      <section className="article-group">
-        <h2>HASTENYHEDER <span>{breaking.length}</span></h2>
-        <ArticleTable articles={breaking} canManageFrontpage={canManage} />
+        <nav className="cms-tabs" aria-label="Artikelvisninger">
+          {PRIMARY_TABS.map((t) => (
+            <Link key={t} className="cms-tab" aria-current={p.tab === t ? "page" : undefined} href={listHref({ ...base, tab: t, status: "" })} scroll={false}>{t}</Link>
+          ))}
+          <span className="cms-tab-sep" aria-hidden="true" />
+          {network.map((n) => {
+            const own = n.domaene === instance?.domaene;
+            return own ? (
+              <span key={n.domaene} className="cms-tab is-city" aria-current="true"><span className="cms-city-dot" data-city={slugifyCity(n.by)} aria-hidden="true" /> {n.by}</span>
+            ) : (
+              <a key={n.domaene} className="cms-tab is-city" href={`${n.origin}/redaktion/artikler`} rel="noopener noreferrer" title={`Skift til ${n.by} (egen login)`}><span className="cms-city-dot" data-city={slugifyCity(n.by)} aria-hidden="true" /> {n.by}</a>
+            );
+          })}
+        </nav>
+
+        <form className="cms-filters" action="/redaktion/artikler" method="get">
+          {p.tab !== "Alle" && <input type="hidden" name="tab" value={p.tab} />}
+          <label className="cms-search"><Search size={16} aria-hidden="true" /><input name="q" defaultValue={p.q} placeholder="Søg på titel" aria-label="Søg på titel" /></label>
+          <select className="cms-select" name="status" defaultValue={p.status} aria-label="Status">
+            <option value="">Alle statusser</option>
+            {ALL_STATUSES.map((s) => <option key={s}>{s}</option>)}
+          </select>
+          <select className="cms-select" name="forfatter" defaultValue={p.forfatter} aria-label="Forfatter">
+            <option value="">Alle forfattere</option>
+            {authors.map((a) => <option key={a.id} value={a.id}>{a.navn}</option>)}
+          </select>
+          <select className="cms-select" name="sort" defaultValue={p.sort === "asc" ? "aeldste" : "nyeste"} aria-label="Sortering">
+            <option value="nyeste">Nyeste først</option>
+            <option value="aeldste">Ældste først</option>
+          </select>
+          {p.view === "gitter" && <input type="hidden" name="view" value="gitter" />}
+          <button className="cms-btn cms-btn-secondary">Filtrér</button>
+          <span className="cms-view-toggle" role="group" aria-label="Visning">
+            <Link className="cms-icon-btn" aria-pressed={p.view === "liste"} aria-label="Liste" href={listHref({ ...p, view: "liste" })} scroll={false}><ListIcon size={16} aria-hidden="true" /></Link>
+            <Link className="cms-icon-btn" aria-pressed={p.view === "gitter"} aria-label="Gitter" href={listHref({ ...p, view: "gitter" })} scroll={false}><LayoutGrid size={16} aria-hidden="true" /></Link>
+          </span>
+        </form>
+
+        <div className="cms-quick">
+          {EXTRA_TABS.map((t) => <Link key={t} className="cms-chip-btn" aria-pressed={p.tab === t} href={listHref({ ...base, tab: p.tab === t ? "Alle" : t })} scroll={false}>{t}</Link>)}
+          {canManage && (
+            <>
+              <Link className="cms-chip-btn" aria-pressed={p.breaking} href={listHref({ ...base, breaking: !p.breaking })} scroll={false}>Breaking</Link>
+              <Link className="cms-chip-btn" aria-pressed={p.sponsored} href={listHref({ ...base, sponsored: !p.sponsored })} scroll={false}>Sponsoreret</Link>
+              <Link className="cms-chip-btn" aria-pressed={p.pinned} href={listHref({ ...base, pinned: !p.pinned })} scroll={false}>Fastgjort</Link>
+            </>
+          )}
+        </div>
+
+        {groups.length === 0 && <div className="cms-empty">Ingen historier i denne visning.</div>}
+        {groups.map((g) => (
+          <div key={g.key} className="cms-group">
+            <h2 className="cms-group-title">{g.label} <span>{g.rows.length}</span></h2>
+            <ArticleCardList rows={g.rows} selectedId={p.id} hrefFor={hrefFor} city={city} view={p.view} canManageFrontpage={canManage} />
+          </div>
+        ))}
       </section>
-      <section className="article-group">
-        <h2>FASTGJORT <span>{pinned.length}</span></h2>
-        <ArticleTable articles={pinned} canManageFrontpage={canManage} />
-      </section>
-      <section className="article-group">
-        <h2>ALLE HISTORIER <span>{rest.length}</span></h2>
-        <ArticleTable articles={rest} canManageFrontpage={canManage} />
-      </section>
+
+      <section className="cms-ws-detail" aria-label="Redigering">{detail}</section>
     </main>
   );
+
+  if (selected && selectedAllowed) {
+    return (
+      <AiDock sessionId={`artikel-${selected.row.id}`} initialMessages={chatHistory.map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))}>
+        {workspace}
+      </AiDock>
+    );
+  }
+  return workspace;
+}
+
+function slugifyCity(by: string): string {
+  return by.toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "oe").replace(/å/g, "aa").replace(/[^a-z0-9]+/g, "");
 }

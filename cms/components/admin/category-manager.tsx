@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { FolderTree, Plus, Edit2, Trash2, CornerDownRight, Check, AlertCircle } from "lucide-react";
-import { saveCategory, deleteCategory, type CategoryActionState } from "@/app/redaktion/sektioner/actions";
+import { useRouter } from "next/navigation";
+import { CornerDownRight, FolderTree, ListPlus, Pencil, Plus, Trash2 } from "lucide-react";
+import { saveCategory, deleteCategory, createDefaultSections, type CategoryActionState } from "@/app/redaktion/sektioner/actions";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { Dialog, Sheet } from "@/components/ui/Dialog";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Field, Notice } from "@/components/ui/Layout";
 
-interface CategoryItem {
+type CategoryBase = {
   id: string;
   navn: string;
   slug: string;
@@ -13,60 +19,46 @@ interface CategoryItem {
   iNavigation: boolean;
   parentId: string | null;
   articlesCount: number;
-  children: Array<{
-    id: string;
-    navn: string;
-    slug: string;
-    beskrivelse: string | null;
-    sortering: number;
-    iNavigation: boolean;
-    parentId: string | null;
-    articlesCount: number;
-  }>;
+};
+
+interface CategoryItem extends CategoryBase {
+  children: CategoryBase[];
 }
 
-export function CategoryManager({ categories }: { categories: CategoryItem[] }) {
+export type DefaultSection = { navn: string; slug: string; sortering?: number; children?: Array<{ navn: string; slug: string; sortering?: number }> };
+
+const articleCount = (n: number) => `${n} ${n === 1 ? "artikel" : "artikler"}`;
+
+/**
+ * Sektioner og undersektioner: liste i kort (ingen træk-rækkefølge — der findes ingen reorder-action; rækkefølgen styres af
+ * feltet "Sorteringsorden"). Redigér/opret i et sidepanel (Sheet); sletning bekræftes i en Dialog i stedet for window.confirm.
+ */
+export function CategoryManager({ categories, defaultSections = null }: { categories: CategoryItem[]; defaultSections?: DefaultSection[] | null }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [editingCat, setEditingCat] = useState<Partial<CategoryItem> | null>(null);
+  const [toDelete, setToDelete] = useState<{ id: string; navn: string } | null>(null);
   const [actionState, setActionState] = useState<CategoryActionState>({});
 
-  const handleOpenCreate = (parentId: string | null = null) => {
+  const openCreate = (parentId: string | null = null) => {
     setActionState({});
-    setEditingCat({
-      id: undefined,
-      navn: "",
-      slug: "",
-      beskrivelse: "",
-      sortering: 0,
-      iNavigation: true,
-      parentId,
-    });
+    setEditingCat({ id: undefined, navn: "", slug: "", beskrivelse: "", sortering: 0, iNavigation: true, parentId });
   };
 
-  const handleOpenEdit = (item: {
-    id: string;
-    navn: string;
-    slug: string;
-    beskrivelse: string | null;
-    sortering: number;
-    iNavigation: boolean;
-    parentId: string | null;
-  }) => {
+  const openEdit = (item: CategoryBase) => {
     setActionState({});
-    setEditingCat({
-      ...item,
-    });
+    setEditingCat({ ...item });
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (!confirm(`Er du sikker på, at du vil slette sektionen "${name}"?`)) return;
+  const confirmDelete = () => {
+    if (!toDelete) return;
+    const { id } = toDelete;
+    setToDelete(null);
     setActionState({});
     startTransition(async () => {
       const res = await deleteCategory(id);
       setActionState(res);
-      if (res.success) {
-        setEditingCat(null);
-      }
+      if (res.success) setEditingCat(null);
     });
   };
 
@@ -75,326 +67,181 @@ export function CategoryManager({ categories }: { categories: CategoryItem[] }) 
     startTransition(async () => {
       const res = await saveCategory(editingCat?.id ?? null, {}, formData);
       setActionState(res);
-      if (res.success) {
-        setEditingCat(null);
-      }
+      if (res.success) setEditingCat(null);
     });
   };
 
+  // "Opret standardsektioner": opretter de topsektioner der mangler (saveCategory); undersektioner kræver forælderens id og
+  // oprettes ved næste klik, når listen er opdateret. Findes ingen standardstruktur (lib/default-sections.ts), er knappen slået fra.
+  const missingTop = (defaultSections ?? []).filter((d) => !categories.some((c) => c.slug === d.slug));
+  const missingChildren = (defaultSections ?? []).flatMap((d) => {
+    const parent = categories.find((c) => c.slug === d.slug);
+    return parent ? (d.children ?? []).filter((ch) => !parent.children.some((x) => x.slug === ch.slug)).map((ch) => ({ ...ch, parentId: parent.id })) : [];
+  });
+  const defaultsDone = defaultSections !== null && missingTop.length === 0 && missingChildren.length === 0;
+
+  const createDefaults = () => {
+    setActionState({});
+    startTransition(async () => {
+      const res = await createDefaultSections();
+      setActionState(res);
+      router.refresh();
+    });
+  };
+
+  const sheetTitle = editingCat?.id ? "Redigér sektion" : editingCat?.parentId ? "Opret undersektion" : "Opret hovedsektion";
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: editingCat ? "1fr 380px" : "1fr", gap: "24px", alignItems: "start" }}>
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <div>
-            <h2 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>
-              Sektioner og undersektioner ({categories.length} hovedsektioner)
-            </h2>
-            <p style={{ fontSize: "13px", color: "var(--color-neutral-600)", margin: "4px 0 0 0" }}>
-              To-niveau taksonomi jf. Del 2 §1. Editoren kan vælge både sektion og undersektion.
-            </p>
-          </div>
+    <div className="ui-stack ui-gap-md">
+      <div className="ui-row ui-justify-between ui-gap-md">
+        <div>
+          <h2 className="ui-section-title">Sektioner og undersektioner</h2>
+          <p className="ui-section-text">{categories.length} {categories.length === 1 ? "hovedsektion" : "hovedsektioner"} · to niveauer. Redaktøren kan vælge både sektion og undersektion på en artikel.</p>
+        </div>
+        <div className="ui-actions">
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={() => handleOpenCreate(null)}
-            style={{ display: "flex", alignItems: "center", gap: "6px" }}
+            className="btn btn-secondary"
+            disabled={defaultSections === null || defaultsDone || isPending}
+            aria-describedby="default-sections-hint"
+            onClick={createDefaults}
           >
-            <Plus size={16} /> Ny hovedsektion
+            <ListPlus size={16} aria-hidden="true" /> Opret standardsektioner
           </button>
-        </div>
-
-        {actionState.error && (
-          <div className="dialog inline-dialog" style={{ marginBottom: "16px", borderColor: "var(--color-error-400)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--color-error-600)" }}>
-              <AlertCircle size={16} />
-              <strong>Fejl: {actionState.error}</strong>
-            </div>
-          </div>
-        )}
-
-        {actionState.success && (
-          <div className="notice-success" style={{ marginBottom: "16px" }}>
-            <Check size={16} /> {actionState.success}
-          </div>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {categories.map((parent) => (
-            <div
-              key={parent.id}
-              style={{
-                background: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-md)",
-                overflow: "hidden",
-              }}
-            >
-              {/* Hovedsektion Header */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 16px",
-                  background: "var(--color-neutral-50)",
-                  borderBottom: parent.children.length > 0 ? "1px solid var(--color-border)" : "none",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <FolderTree size={18} style={{ color: "var(--color-accent-600)" }} />
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <strong style={{ fontSize: "15px" }}>{parent.navn}</strong>
-                      <code style={{ fontSize: "12px", background: "var(--color-neutral-200)", padding: "1px 6px", borderRadius: "4px" }}>
-                        /{parent.slug}
-                      </code>
-                      {parent.iNavigation ? (
-                        <span className="badge badge-live" style={{ fontSize: "10px" }}>I navigation</span>
-                      ) : (
-                        <span className="badge" style={{ fontSize: "10px", background: "var(--color-neutral-200)", color: "var(--color-neutral-700)" }}>Skjult i menu</span>
-                      )}
-                    </div>
-                    {parent.beskrivelse && (
-                      <div style={{ fontSize: "12px", color: "var(--color-neutral-600)", marginTop: "2px" }}>
-                        {parent.beskrivelse}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <span style={{ fontSize: "12px", color: "var(--color-neutral-500)" }}>
-                    Sort: {parent.sortering} • {parent.articlesCount} {parent.articlesCount === 1 ? "artikel" : "artikler"}
-                  </span>
-                  <div style={{ display: "flex", gap: "6px" }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      title="Tilføj undersektion"
-                      onClick={() => handleOpenCreate(parent.id)}
-                      style={{ padding: "4px 8px", fontSize: "12px" }}
-                    >
-                      <Plus size={13} /> Undersektion
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      title="Rediger sektion"
-                      onClick={() => handleOpenEdit(parent)}
-                      style={{ padding: "4px 8px" }}
-                    >
-                      <Edit2 size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      title="Slet sektion"
-                      disabled={isPending || parent.children.length > 0 || parent.articlesCount > 0}
-                      onClick={() => handleDelete(parent.id, parent.navn)}
-                      style={{ padding: "4px 8px", color: "var(--color-error-600)" }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Undersektioner */}
-              {parent.children.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {parent.children.map((sub, idx) => (
-                    <div
-                      key={sub.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "10px 16px 10px 36px",
-                        borderBottom: idx === parent.children.length - 1 ? "none" : "1px solid var(--color-border-subtle, #eee)",
-                        background: "#fff",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <CornerDownRight size={14} style={{ color: "var(--color-neutral-400)" }} />
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontSize: "14px", fontWeight: "500" }}>{sub.navn}</span>
-                            <code style={{ fontSize: "11px", color: "var(--color-neutral-600)" }}>
-                              /{parent.slug}/{sub.slug}
-                            </code>
-                          </div>
-                          {sub.beskrivelse && (
-                            <div style={{ fontSize: "11px", color: "var(--color-neutral-500)" }}>
-                              {sub.beskrivelse}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ fontSize: "11px", color: "var(--color-neutral-500)" }}>
-                          Sort: {sub.sortering} • {sub.articlesCount} {sub.articlesCount === 1 ? "artikel" : "artikler"}
-                        </span>
-                        <div style={{ display: "flex", gap: "4px" }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            title="Rediger undersektion"
-                            onClick={() => handleOpenEdit(sub)}
-                            style={{ padding: "3px 6px" }}
-                          >
-                            <Edit2 size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            title="Slet undersektion"
-                            disabled={isPending || sub.articlesCount > 0}
-                            onClick={() => handleDelete(sub.id, sub.navn)}
-                            style={{ padding: "3px 6px", color: "var(--color-error-600)" }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+          <button type="button" className="btn btn-primary" onClick={() => openCreate(null)}><Plus size={16} aria-hidden="true" /> Ny hovedsektion</button>
         </div>
       </div>
+      <p id="default-sections-hint" className="ui-section-text">
+        {defaultSections === null
+          ? "Standardstrukturen er ikke indlæst endnu. Bed i mellemtiden AI-operatøren: \"Opret sektionerne Nyheder, Politik, Erhverv, 112 og Kultur\"."
+          : defaultsDone ? "Standardsektionerne findes allerede." : `Opretter ${missingTop.length} topsektioner og ${missingChildren.length} undersektioner, der mangler.`}
+      </p>
 
-      {/* Redigering / Oprettelse Panel */}
-      {editingCat && (
-        <div
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            padding: "20px",
-            position: "sticky",
-            top: "20px",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3 style={{ fontSize: "15px", fontWeight: "600", margin: 0 }}>
-              {editingCat.id ? "Rediger sektion" : editingCat.parentId ? "Opret undersektion" : "Opret hovedsektion"}
-            </h3>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setEditingCat(null)}
-              style={{ fontSize: "11px", padding: "2px 8px" }}
-            >
-              Luk
-            </button>
-          </div>
+      {actionState.error ? <Notice tone="danger" title="Det lykkedes ikke">{actionState.error}</Notice> : null}
+      {actionState.success ? <Notice tone="success">{actionState.success}</Notice> : null}
 
-          <form action={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            <div className="field">
-              <label htmlFor="navn">Navn</label>
-              <input
-                className="input"
-                id="navn"
-                name="navn"
-                defaultValue={editingCat.navn ?? ""}
-                required
-                placeholder="fx Erhverv eller Iværksættere"
-              />
-            </div>
+      {categories.length === 0 ? (
+        <EmptyState
+          icon={<FolderTree size={22} />}
+          title="Ingen sektioner endnu"
+          description="Sektioner er forsidens og navigationens rygrad. Opret den første, fx Nyheder eller Erhverv."
+          action={<button type="button" className="btn btn-primary" onClick={() => openCreate(null)}><Plus size={16} aria-hidden="true" /> Ny hovedsektion</button>}
+        />
+      ) : (
+        <ul className="ui-list cat-tree">
+          {categories.map((parent) => (
+            <li key={parent.id}>
+              <Card padding="none" as="article" aria-label={parent.navn}>
+                <div className="cat-row">
+                  <FolderTree size={18} aria-hidden="true" className="cat-icon" />
+                  <div className="cat-main">
+                    <div className="ui-row ui-gap-sm">
+                      <strong>{parent.navn}</strong>
+                      <code className="cat-slug">/{parent.slug}</code>
+                      {parent.iNavigation ? <Badge tone="success">I navigation</Badge> : <Badge tone="neutral">Skjult i menu</Badge>}
+                    </div>
+                    {parent.beskrivelse ? <p className="cat-desc">{parent.beskrivelse}</p> : null}
+                    <p className="cat-meta">Sortering {parent.sortering} · {articleCount(parent.articlesCount)}</p>
+                  </div>
+                  <div className="ui-toolbar">
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => openCreate(parent.id)}><Plus size={14} aria-hidden="true" /> Undersektion</button>
+                    <button type="button" className="btn btn-secondary btn-sm" aria-label={`Redigér ${parent.navn}`} onClick={() => openEdit(parent)}><Pencil size={14} aria-hidden="true" /></button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm cat-delete"
+                      aria-label={`Slet ${parent.navn}`}
+                      title={parent.children.length > 0 ? "Slet først undersektionerne" : parent.articlesCount > 0 ? "Flyt først artiklerne" : "Slet sektion"}
+                      disabled={isPending || parent.children.length > 0 || parent.articlesCount > 0}
+                      onClick={() => setToDelete({ id: parent.id, navn: parent.navn })}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+                {parent.children.length > 0 ? (
+                  <ul className="cat-children">
+                    {parent.children.map((sub) => (
+                      <li key={sub.id} className="cat-row cat-sub">
+                        <CornerDownRight size={16} aria-hidden="true" className="cat-icon" />
+                        <div className="cat-main">
+                          <div className="ui-row ui-gap-sm">
+                            <span className="cat-subname">{sub.navn}</span>
+                            <code className="cat-slug">/{parent.slug}/{sub.slug}</code>
+                          </div>
+                          {sub.beskrivelse ? <p className="cat-desc">{sub.beskrivelse}</p> : null}
+                          <p className="cat-meta">Sortering {sub.sortering} · {articleCount(sub.articlesCount)}</p>
+                        </div>
+                        <div className="ui-toolbar">
+                          <button type="button" className="btn btn-secondary btn-sm" aria-label={`Redigér ${sub.navn}`} onClick={() => openEdit(sub)}><Pencil size={14} aria-hidden="true" /></button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm cat-delete"
+                            aria-label={`Slet ${sub.navn}`}
+                            title={sub.articlesCount > 0 ? "Flyt først artiklerne" : "Slet undersektion"}
+                            disabled={isPending || sub.articlesCount > 0}
+                            onClick={() => setToDelete({ id: sub.id, navn: sub.navn })}
+                          >
+                            <Trash2 size={14} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
 
-            <div className="field">
-              <label htmlFor="slug">Slug (URL-sti)</label>
-              <input
-                className="input"
-                id="slug"
-                name="slug"
-                defaultValue={editingCat.slug ?? ""}
-                required
-                pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
-                placeholder="fx erhverv eller ivaerksaettere"
-              />
-              <span style={{ fontSize: "11px", color: "var(--color-neutral-500)" }}>
-                Små bogstaver, tal og bindestreger.
-              </span>
-            </div>
-
-            <div className="field">
-              <label htmlFor="parentId">Overordnet sektion</label>
-              <select
-                className="input"
-                id="parentId"
-                name="parentId"
-                defaultValue={editingCat.parentId ?? ""}
-              >
+      <Sheet open={editingCat !== null} onClose={() => setEditingCat(null)} title={sheetTitle} size="sm">
+        {editingCat ? (
+          <form action={handleSubmit} className="ui-stack ui-gap-md" key={editingCat.id ?? `new-${editingCat.parentId ?? "root"}`}>
+            {actionState.error ? <Notice tone="danger">{actionState.error}</Notice> : null}
+            <Field label="Navn" htmlFor="navn" required>
+              <input className="input" id="navn" name="navn" defaultValue={editingCat.navn ?? ""} required placeholder="fx Erhverv eller Iværksættere" />
+            </Field>
+            <Field label="Slug (URL-sti)" htmlFor="slug" required hint="Små bogstaver, tal og bindestreger.">
+              <input className="input" id="slug" name="slug" defaultValue={editingCat.slug ?? ""} required pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$" placeholder="fx erhverv eller ivaerksaettere" aria-describedby="slug-hint" />
+            </Field>
+            <Field label="Overordnet sektion" htmlFor="parentId" hint="Maksimalt to niveauer er tilladt.">
+              <select className="input" id="parentId" name="parentId" defaultValue={editingCat.parentId ?? ""} aria-describedby="parentId-hint">
                 <option value="">Ingen (dette er en hovedsektion)</option>
-                {categories
-                  .filter((c) => c.id !== editingCat.id)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.navn}
-                    </option>
-                  ))}
+                {categories.filter((c) => c.id !== editingCat.id).map((c) => <option key={c.id} value={c.id}>{c.navn}</option>)}
               </select>
-              <span style={{ fontSize: "11px", color: "var(--color-neutral-500)" }}>
-                Maksimalt to niveauer er tilladt.
-              </span>
-            </div>
-
-            <div className="field">
-              <label htmlFor="beskrivelse">Beskrivelse</label>
-              <textarea
-                className="input"
-                id="beskrivelse"
-                name="beskrivelse"
-                defaultValue={editingCat.beskrivelse ?? ""}
-                rows={2}
-                placeholder="Kort beskrivelse til læsere og søgemaskiner..."
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="sortering">Sorteringsorden</label>
-              <input
-                type="number"
-                className="input"
-                id="sortering"
-                name="sortering"
-                defaultValue={editingCat.sortering ?? 0}
-                min={0}
-              />
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input
-                type="checkbox"
-                id="iNavigation"
-                name="iNavigation"
-                defaultChecked={editingCat.iNavigation ?? true}
-              />
-              <label htmlFor="iNavigation" style={{ fontSize: "13px", cursor: "pointer" }}>
-                Vis i primær navigation / menulinje
-              </label>
-            </div>
-
-            <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-              <button type="submit" className="btn btn-primary" disabled={isPending} style={{ flex: 1 }}>
-                {isPending ? "Gemmer…" : "Gem sektion"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                disabled={isPending}
-                onClick={() => setEditingCat(null)}
-              >
-                Annuller
-              </button>
+            </Field>
+            <Field label="Beskrivelse" htmlFor="beskrivelse">
+              <textarea className="input" id="beskrivelse" name="beskrivelse" defaultValue={editingCat.beskrivelse ?? ""} rows={2} placeholder="Kort beskrivelse til læsere og søgemaskiner…" />
+            </Field>
+            <Field label="Sorteringsorden" htmlFor="sortering" hint="Laveste tal vises først.">
+              <input type="number" className="input" id="sortering" name="sortering" defaultValue={editingCat.sortering ?? 0} min={0} aria-describedby="sortering-hint" />
+            </Field>
+            <label className="check-row">
+              <input type="checkbox" id="iNavigation" name="iNavigation" defaultChecked={editingCat.iNavigation ?? true} />
+              Vis i primær navigation / menulinje
+            </label>
+            <div className="ui-dialog-foot">
+              <button type="button" className="btn btn-secondary" disabled={isPending} onClick={() => setEditingCat(null)}>Annullér</button>
+              <button type="submit" className="btn btn-primary" disabled={isPending}>{isPending ? "Gemmer…" : "Gem sektion"}</button>
             </div>
           </form>
-        </div>
-      )}
+        ) : null}
+      </Sheet>
+
+      <Dialog
+        open={toDelete !== null}
+        onClose={() => setToDelete(null)}
+        title="Slet sektionen?"
+        size="sm"
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setToDelete(null)}>Annullér</button>
+            <button type="button" className="btn btn-danger" onClick={confirmDelete}>Slet sektion</button>
+          </>
+        }
+      >
+        <p className="ui-dialog-message">Sektionen &quot;{toDelete?.navn}&quot; slettes permanent. Det kan ikke fortrydes.</p>
+      </Dialog>
     </div>
   );
 }

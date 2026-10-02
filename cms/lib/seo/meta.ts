@@ -72,6 +72,7 @@ export type PageMetaOptions = {
   article?: {
     publishedTime?: Date | null;
     modifiedTime?: Date | null;
+    expirationTime?: Date | null;
     authorUrls?: string[];
     section?: string;
     tags?: string[];
@@ -80,6 +81,20 @@ export type PageMetaOptions = {
   /** Ekstra RSS-feeds til autodiscovery (ud over `/feed.xml`). */
   feeds?: Array<{ path: string; title: string }>;
   ogTitle?: string;
+  /** Artikel-overrides (additive; ubrugt af øvrige sider). */
+  canonicalUrl?: string;
+  ogDescription?: string;
+  locale?: string;
+  keywords?: string[];
+  newsKeywords?: string[];
+  /** Twitter/X-kort: type, tekster og billede (ellers samme som Open Graph). */
+  twitter?: { card?: "summary" | "summary_large_image"; title?: string; description?: string; image?: { url: string; alt?: string } };
+  /** Google: `unavailable_after` (ISO). */
+  unavailableAfter?: Date | null;
+  /** Google News standout-tag (peger på canonical). */
+  standout?: boolean;
+  /** hreflang-alternater: sprogkode -> absolut URL. */
+  languages?: Record<string, string>;
 };
 
 export async function buildPageMetadata(opts: PageMetaOptions): Promise<Metadata> {
@@ -93,7 +108,7 @@ export async function buildPageMetadata(opts: PageMetaOptions): Promise<Metadata
   const outOfRange = Boolean(opts.totalPages && opts.totalPages > 0 && page > opts.totalPages);
 
   const canonicalPath = filtered ? opts.path : pageUrl(opts.path, page);
-  const canonical = absoluteUrl(base, canonicalPath);
+  const canonical = opts.canonicalUrl && /^https?:\/\//i.test(opts.canonicalUrl) ? opts.canonicalUrl : absoluteUrl(base, canonicalPath);
 
   const indexable = !opts.noindex && !filtered && !outOfRange && host.known;
   const follow = host.known ? !opts.nofollow : false;
@@ -102,6 +117,7 @@ export async function buildPageMetadata(opts: PageMetaOptions): Promise<Metadata
   const pageSuffix = page > 1 && !filtered ? ` – side ${page}` : "";
   const titleWithPage = `${title}${pageSuffix}`;
   const description = metaDescription(opts.description, opts.fallbackDescription ?? site.tagline);
+  const ogDescription = opts.ogDescription ?? description;
   const ogTitle = stripHtml(opts.ogTitle ?? titleWithPage);
 
   const image = opts.image ?? {
@@ -121,10 +137,10 @@ export async function buildPageMetadata(opts: PageMetaOptions): Promise<Metadata
 
   const openGraphBase = {
     siteName: site.navn,
-    locale: "da_DK",
+    locale: opts.locale ?? "da_DK",
     url: canonical,
     title: ogTitle,
-    description,
+    description: ogDescription,
     images: ogImages,
   };
 
@@ -135,6 +151,7 @@ export async function buildPageMetadata(opts: PageMetaOptions): Promise<Metadata
           type: "article",
           publishedTime: isoWithOffset(opts.article?.publishedTime ?? null),
           modifiedTime: isoWithOffset(opts.article?.modifiedTime ?? null),
+          expirationTime: isoWithOffset(opts.article?.expirationTime ?? null),
           authors: opts.article?.authorUrls?.length ? opts.article.authorUrls : undefined,
           section: opts.article?.section,
           tags: opts.article?.tags?.length ? opts.article.tags : undefined,
@@ -146,8 +163,10 @@ export async function buildPageMetadata(opts: PageMetaOptions): Promise<Metadata
   const metadata: Metadata = {
     title: opts.titleAbsolute ? { absolute: titleWithPage } : titleWithPage,
     description,
+    ...(opts.keywords?.length ? { keywords: opts.keywords } : {}),
     alternates: {
       canonical,
+      ...(opts.languages && Object.keys(opts.languages).length ? { languages: opts.languages } : {}),
       types: {
         "application/rss+xml": [
           { url: `${base}/feed.xml`, title: `${site.navn} – alle nyheder` },
@@ -158,13 +177,27 @@ export async function buildPageMetadata(opts: PageMetaOptions): Promise<Metadata
     robots: robotsMeta(indexable, follow),
     openGraph,
     twitter: {
-      card: "summary_large_image",
-      title: ogTitle,
-      description,
-      images: [{ url: image.url, ...(image.alt ? { alt: image.alt } : {}) }],
+      card: opts.twitter?.card ?? "summary_large_image",
+      title: opts.twitter?.title ?? ogTitle,
+      description: opts.twitter?.description ?? ogDescription,
+      images: [{ url: (opts.twitter?.image ?? image).url, ...((opts.twitter?.image?.alt ?? image.alt) ? { alt: opts.twitter?.image?.alt ?? image.alt } : {}) }],
       ...(cfg.twitterSite ? { site: cfg.twitterSite } : {}),
     },
   };
+
+  if (opts.unavailableAfter && indexable) {
+    const iso = isoWithOffset(opts.unavailableAfter);
+    const robots = metadata.robots as Record<string, unknown>;
+    if (iso && robots) {
+      robots.unavailable_after = iso;
+      const gb = robots.googleBot as Record<string, unknown> | undefined;
+      if (gb) gb.unavailable_after = iso;
+    }
+  }
+  const other: Record<string, string> = {};
+  if (opts.newsKeywords?.length) other.news_keywords = opts.newsKeywords.join(", ");
+  if (opts.standout) other.standout = canonical;
+  if (Object.keys(other).length) metadata.other = other;
 
   // Paginering (rel=prev/next) – kun på rene sider uden filter.
   if (!filtered && opts.totalPages && opts.totalPages > 1) {

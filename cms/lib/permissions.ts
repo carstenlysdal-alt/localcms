@@ -23,6 +23,10 @@ export const PERMISSIONS = {
   FRONTPAGE_LAYOUT_MANAGE: "frontpage.layout.manage",
   FRONTPAGE_SNAPSHOT_APPROVE: "frontpage.snapshot.approve",
   FRONTPAGE_AI_USE: "frontpage.ai.use",
+  /** AI-operatøren (tale/skrift → værktøjer). Kan aldrig mere end brugerens egne rettigheder (docs/review/FIX-ai-operator.md). */
+  OPERATOR_USE: "operator.use",
+  /** AI-forslag i artikel-editoren (overskrifter, SEO, opslagstekster, tags, alt-tekst …). Forslag — aldrig auto-gem/publicér. */
+  ARTICLE_AI_USE: "article.ai.use",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

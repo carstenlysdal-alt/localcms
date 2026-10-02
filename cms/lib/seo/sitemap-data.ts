@@ -43,6 +43,7 @@ export async function collectSiteIndex(site: SiteLike, now: Date = new Date()): 
         forfatterId: true,
         kategori: { select: { slug: true, parent: { select: { slug: true } } } },
         coverMedia: { select: { altTekst: true } },
+        meta: { select: { robotsNoindex: true, newsKeywords: true } },
         geoTags: { select: { id: true } },
         tags: { select: { id: true } },
       },
@@ -134,6 +135,8 @@ export async function collectSiteIndex(site: SiteLike, now: Date = new Date()): 
   const news: NewsEntry[] = [];
   const latest: SiteIndex["latest"] = [];
   for (const a of articles) {
+    // Artikler redaktøren har sat til noindex hører ikke hjemme i sitemaps (modsigelse over for robots-meta).
+    if (a.meta?.robotsNoindex) continue;
     const sektion = a.kategori?.parent?.slug || a.kategori?.slug || "nyheder";
     const loc = absoluteUrl(base, articlePath(sektion, a.slug));
     if (latest.length < 10) latest.push({ title: stripHtml(a.titel), loc, section: a.kategori?.parent?.slug || a.kategori?.slug || "nyheder" });
@@ -148,7 +151,8 @@ export async function collectSiteIndex(site: SiteLike, now: Date = new Date()): 
       isWithinNewsWindow(a.publiceretTid, now) &&
       news.length < NEWS_MAX_URLS
     ) {
-      news.push({ loc, title: stripHtml(a.titel), publishedAt: a.publiceretTid });
+      const kw = Array.isArray(a.meta?.newsKeywords) ? (a.meta!.newsKeywords as unknown[]).filter((k): k is string => typeof k === "string" && k.trim() !== "") : [];
+      news.push({ loc, title: stripHtml(a.titel), publishedAt: a.publiceretTid, ...(kw.length ? { keywords: kw } : {}) });
     }
   }
 

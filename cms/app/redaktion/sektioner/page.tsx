@@ -2,6 +2,9 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { CategoryManager } from "@/components/admin/category-manager";
+import { NoAccess } from "@/components/admin/no-access";
+import { Page, PageHeader } from "@/components/ui/Page";
+import { DEFAULT_SECTIONS } from "@/lib/default-sections";
 
 export const metadata = {
   title: "Sektioner — Redaktion",
@@ -16,16 +19,7 @@ export default async function SectionsAdminPage() {
     can(session.user, PERMISSIONS.FRONTPAGE_EDIT) ||
     can(session.user, PERMISSIONS.ARTICLE_EDIT_ALL);
 
-  if (!hasAccess) {
-    return (
-      <main className="admin-main">
-        <div className="dialog inline-dialog">
-          <h1 className="dialog-title">Ingen adgang</h1>
-          <p className="dialog-body">Du har ikke rettigheder til at administrere sektioner.</p>
-        </div>
-      </main>
-    );
-  }
+  if (!hasAccess) return <NoAccess area="sektionsadministration" />;
 
   const rawCategories = await db.category.findMany({
     where: {
@@ -70,15 +64,9 @@ export default async function SectionsAdminPage() {
   }));
 
   return (
-    <main className="admin-main">
-      <div className="page-heading">
-        <div>
-          <span className="eyebrow">Struktur & Taksonomi</span>
-          <h1>Sektioner</h1>
-        </div>
-      </div>
-
-      <CategoryManager categories={categories} />
-    </main>
+    <Page>
+      <PageHeader eyebrow="Struktur" title="Sektioner" subtitle="Forsidens og navigationens rygrad. Sektioner og undersektioner bruges til placering, filtrering og URL'er." />
+      <CategoryManager categories={categories} defaultSections={DEFAULT_SECTIONS.map((d) => ({ ...d, children: d.children.map((c) => ({ ...c })) }))} />
+    </Page>
   );
 }

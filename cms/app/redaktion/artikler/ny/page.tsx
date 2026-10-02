@@ -1,30 +1,27 @@
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
 import { ChevronLeft } from "lucide-react";
-import { ArticleForm } from "@/components/editor/article-form";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { can, PERMISSIONS } from "@/lib/permissions";
+import { ArticleEditor } from "@/components/editor/article-editor";
+import { AiDock } from "@/components/editor/ai-dock";
+import { getAuthorizedUser } from "@/lib/auth";
+import { emptyArticleValue, loadEditorOptions } from "@/lib/editor/load";
 
 export default async function NewArticlePage() {
-  const session = await auth();
-  if (!session?.user) return null;
-  const [categories, authors, tags, geoTags, media] = await Promise.all([
-    db.category.findMany({
-      where: { instansId: session.user.instansId },
-      include: { parent: true },
-      orderBy: [{ parentId: "asc" }, { sortering: "asc" }, { navn: "asc" }],
-    }),
-    db.author.findMany({ where: { instansId: session.user.instansId }, orderBy: { navn: "asc" } }),
-    db.tag.findMany({ where: { instansId: session.user.instansId }, orderBy: { navn: "asc" } }),
-    db.geoTag.findMany({ where: { instansId: session.user.instansId }, orderBy: { navn: "asc" } }),
-    db.media.findMany({ where: { instansId: session.user.instansId, filtype: "billede" }, orderBy: { createdAt: "desc" }, select: { id: true, url: true, altTekst: true, billedtekst: true, filnavn: true } }),
-  ]);
-  const formattedCategories = categories
-    .map((c) => ({
-      id: c.id,
-      navn: c.parent ? `${c.parent.navn} → ${c.navn}` : c.navn,
-    }))
-    .sort((a, b) => a.navn.localeCompare(b.navn, "da"));
-
-  return <main className="editor-page"><div className="editor-topbar"><Link href="/redaktion/artikler" className="btn btn-ghost"><ChevronLeft size={16} /> Tilbage</Link><div><span className="eyebrow">Ny artikel</span><h1>Uden titel</h1></div></div><ArticleForm article={{ id: null, titel: "", manchet: "", slug: "", blocks: [{ id: "initial-paragraph", type: "paragraph", data: { content: "" } }], status: "Idé", indholdstype: "Uafhængig", aiBrug: [], marking: null, pinned: false, breaking: false, seoTitel: "", seoBeskrivelse: "", sprog: "da", kategoriId: "", forfatterId: session.user.authorId ?? "", coverMediaId: "", tagIds: [], geoTagIds: [] }} categories={formattedCategories} authors={authors} tags={tags} geoTags={geoTags} media={media} transitions={[]} canPublish={can(session.user, PERMISSIONS.ARTICLE_PUBLISH)} canControlFrontpage={can(session.user, PERMISSIONS.FRONTPAGE_EDIT)} /></main>;
+  const user = await getAuthorizedUser();
+  if (!user) return null;
+  const editor = await loadEditorOptions(user);
+  // AI-docken vises også på nye artikler; ny samtale pr. sideindlæsning (artiklen har endnu intet id).
+  const sessionId = `ny-${randomUUID()}`;
+  return (
+    <AiDock sessionId={sessionId} initialMessages={[]}>
+      <main className="editor-page cms-page">
+        <div className="cms-page-top">
+          <Link href="/redaktion/artikler" className="btn btn-ghost">
+            <ChevronLeft size={16} /> Tilbage
+          </Link>
+        </div>
+        <ArticleEditor article={emptyArticleValue(user)} options={editor.options} flags={editor.flags} site={editor.site} transitions={[]} mode="page" hasUnverifiedSource={false} />
+      </main>
+    </AiDock>
+  );
 }

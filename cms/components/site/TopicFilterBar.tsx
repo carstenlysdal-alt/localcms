@@ -10,12 +10,15 @@ type TopicFilterBarProps = {
   currentCity?: string;
   networkSites?: NetworkSiteLink[];
   sectionPaths?: string[];
+  /** Topsektioner fra databasen (navn + slug). Barren viser højst 6, så navigationen er overskuelig; undersektioner findes under hver sektion. */
+  sections?: Array<{ navn: string; slug: string }>;
 };
 
 export function TopicFilterBar({
   currentCity = "",
   networkSites = ALL_NETWORK_SITES.map((s) => ({ ...s, origin: `https://${s.domaene}` })),
   sectionPaths = [],
+  sections = [],
 }: TopicFilterBarProps) {
   const pathname = usePathname() ?? "/";
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -42,17 +45,8 @@ export function TopicFilterBar({
     };
   }, [dropdownOpen]);
 
-  // Alle emne-links peger på rigtige undersektioner (/nyheder/<slug>) eller områdeoversigten.
-  const topics = [
-    { key: "nabolag", label: "Mit nabolag", href: "/omraade" },
-    { key: "sundhed", label: "Sundhed", href: "/nyheder/sundhed" },
-    { key: "skole-og-boern", label: "Skole og børn", href: "/nyheder/skole-og-boern" },
-    { key: "trafik", label: "Trafik", href: "/nyheder/trafik" },
-    { key: "krimi-og-retsvaesen", label: "Krimi og retsvæsen", href: "/nyheder/krimi-og-retsvaesen" },
-    { key: "bolig-og-byudvikling", label: "Bolig og byggeri", href: "/nyheder/bolig-og-byudvikling" },
-    { key: "natur-og-klima", label: "Natur og klima", href: "/nyheder/natur-og-klima" },
-    { key: "politik", label: "Politik", href: "/nyheder/politik" },
-  ];
+  // Emne-links er topsektionerne fra kategoritræet (aldrig hardcodede): de peger altid på en rigtig sektion.
+  const topics = sections.slice(0, 6).map((c) => ({ key: c.slug, label: c.navn, href: `/${c.slug}` }));
 
   return (
     <div className="topic-filter-bar-wrapper">

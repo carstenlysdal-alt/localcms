@@ -21,7 +21,7 @@ import { hashPassword } from "../lib/password";
 import { ALL_NETWORK_SITES } from "../lib/network-sites";
 import { NETWORK_SITES } from "../prisma/network-seed-data";
 
-const TOP_CATEGORIES = ["Nyheder", "Erhverv", "Sport", "Kultur", "Foreningsliv", "Debat"];
+const TOP_CATEGORIES = ["Nyheder", "Politik", "Erhverv", "112", "Kultur"];
 const ADMIN_ROLE = "Ansvarshavende redaktør";
 
 const SLAGELSE = {

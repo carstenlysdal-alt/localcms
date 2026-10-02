@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Megaphone, Eye, Rocket, ArrowUpRight } from "lucide-react";
+import { Lightbulb, Megaphone, Eye, Rocket, ArrowUpRight, Plus } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { Field, Notice } from "@/components/ui/Layout";
 import { createCampaignAction } from "@/app/redaktion/annoncer/actions";
 
 const FORMAT_PRESETS: Record<string, { standardPris: number; zone: string; label: string; cta: string }> = {
@@ -104,366 +106,150 @@ export function AdGeneratorForm() {
   };
 
   return (
-    <div style={{ marginBottom: "32px" }}>
+    <div className="adgen">
       {!isOpen ? (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="btn btn-primary"
-          style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 18px", fontSize: "0.95rem" }}
-        >
-          <Sparkles size={18} /> Opret Ny Kampagne (Ad-Generator)
+        <button type="button" onClick={() => setIsOpen(true)} className="btn btn-primary">
+          <Plus size={16} aria-hidden="true" /> Opret ny kampagne
         </button>
       ) : (
-        <div className="card" style={{ padding: "24px", border: "2px solid var(--accent, #BF6415)", borderRadius: "10px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <div>
-              <h2 style={{ fontSize: "1.3rem", fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-                <Megaphone size={22} style={{ color: "#BF6415" }} />
-                Agentisk Banner- og Ad-Generator
-              </h2>
-              <p className="text-muted" style={{ margin: "4px 0 0", fontSize: "0.875rem" }}>
-                Generér professionelle first-party annoncer ud fra priser og standardformater
-              </p>
-            </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="btn btn-secondary"
-              style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-            >
-              Luk
-            </button>
-          </div>
+        <Card
+          title="Banner- og annoncegenerator"
+          icon={<Megaphone size={18} />}
+          description="Opret first-party annoncer ud fra standardformater og priser."
+          actions={<button type="button" onClick={() => setIsOpen(false)} className="btn btn-secondary btn-sm">Luk</button>}
+        >
+          <form action={createCampaignAction} className="adgen-grid">
+            <div className="ui-stack ui-gap-md">
+              <Field label="Annonceformat" htmlFor="ad-format" hint="Baseret på Min By Media og støttemodellen.">
+                <select id="ad-format" name="format" value={format} onChange={(e) => handleFormatChange(e.target.value)} className="input" aria-describedby="ad-format-hint">
+                  <option value="IN_FEED_BANNER">In-feed display banner: 3.500 kr./uge (1200×300 / mobil)</option>
+                  <option value="EVENT_POST">Event post i kalender: 499 kr. (lokalt)</option>
+                  <option value="NATIVE_PREMIUM">Native premium artikel og forside: 14.500 kr.</option>
+                </select>
+              </Field>
 
-          <form action={createCampaignAction}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "28px" }}>
-              {/* Venstre kolonne: Felter og AI generator */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {/* Formatvælger */}
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "6px" }}>
-                    Annonceformat (baseret på Min By Media & Støttemodellen)
-                  </label>
-                  <select
-                    name="format"
-                    value={format}
-                    onChange={(e) => handleFormatChange(e.target.value)}
-                    className="input"
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                  >
-                    <option value="IN_FEED_BANNER">In-Feed Display Banner — 3.500 kr./uge (1200×300 / mobil)</option>
-                    <option value="EVENT_POST">Event Post i Kalender — 499 kr. (lokalt)</option>
-                    <option value="NATIVE_PREMIUM">Native Premium Artikel & Forside — 14.500 kr.</option>
-                  </select>
-                </div>
-
-                {/* Annoncør & Brief */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "6px" }}>
-                      Annoncør / Firmanavn *
-                    </label>
-                    <input
-                      name="annoncoer"
-                      type="text"
-                      placeholder="fx Harboe Bryggeri A/S"
-                      value={annoncoer}
-                      onChange={(e) => {
-                        setAnnoncoer(e.target.value);
-                        if (!titel) setTitel(`${e.target.value} - Kampagne`);
-                      }}
-                      required
-                      className="input"
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "6px" }}>
-                      Internt Kampagnenavn *
-                    </label>
-                    <input
-                      name="titel"
-                      type="text"
-                      placeholder="fx Efterårskampagne 2026"
-                      value={titel}
-                      onChange={(e) => setTitel(e.target.value)}
-                      required
-                      className="input"
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-                </div>
-
-                {/* Brief & Agentisk Knap */}
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <label style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-                      Kort brief eller stikord om budskabet
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handleGenerateAgenticAngles}
-                      disabled={!annoncoer || isGenerating}
-                      className="btn btn-secondary"
-                      style={{
-                        fontSize: "0.75rem",
-                        padding: "4px 8px",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        color: "#92400e",
-                        background: "#fef3c7",
-                        borderColor: "#fde68a",
-                        cursor: annoncoer ? "pointer" : "not-allowed",
-                      }}
-                    >
-                      <Sparkles size={13} /> {isGenerating ? "Genererer vinkler..." : "AI: Generér 3 vinkler"}
-                    </button>
-                  </div>
-                  <textarea
-                    rows={2}
-                    placeholder="fx Nyt menukort til efteråret med lokale råvarer fra Vestsjælland..."
-                    value={brief}
-                    onChange={(e) => setBrief(e.target.value)}
-                    className="input"
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                  />
-                </div>
-
-                {/* Forslag hvis genereret */}
-                {suggestedAngles.length > 0 && (
-                  <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                      Vælg genereret vinkel:
-                    </span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px" }}>
-                      {suggestedAngles.map((ang, i) => (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => {
-                            setOverskrift(ang.overskrift);
-                            setManchet(ang.manchet);
-                            setCtaTekst(ang.cta);
-                          }}
-                          style={{
-                            textAlign: "left",
-                            padding: "8px 10px",
-                            background: overskrift === ang.overskrift ? "#eff6ff" : "#fff",
-                            border: `1px solid ${overskrift === ang.overskrift ? "#3b82f6" : "#cbd5e1"}`,
-                            borderRadius: "6px",
-                            cursor: "pointer",
-                            fontSize: "0.85rem",
-                          }}
-                        >
-                          <strong>{ang.overskrift}</strong>
-                          <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{ang.manchet}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Tekster på annoncen */}
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "6px" }}>
-                    Overskrift på kortet *
-                  </label>
+              <div className="ui-form-grid">
+                <Field label="Annoncør / firmanavn" htmlFor="ad-annoncoer" required>
                   <input
-                    name="overskrift"
+                    id="ad-annoncoer"
+                    name="annoncoer"
                     type="text"
-                    value={overskrift}
-                    onChange={(e) => setOverskrift(e.target.value)}
+                    placeholder="fx Harboe Bryggeri A/S"
+                    value={annoncoer}
+                    onChange={(e) => {
+                      setAnnoncoer(e.target.value);
+                      if (!titel) setTitel(`${e.target.value} - Kampagne`);
+                    }}
                     required
                     className="input"
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc" }}
                   />
+                </Field>
+                <Field label="Internt kampagnenavn" htmlFor="ad-titel" required>
+                  <input id="ad-titel" name="titel" type="text" placeholder="fx Efterårskampagne 2026" value={titel} onChange={(e) => setTitel(e.target.value)} required className="input" />
+                </Field>
+              </div>
+
+              <div>
+                <div className="ui-row ui-justify-between ui-gap-sm adgen-brief-head">
+                  <label className="field-label" htmlFor="ad-brief">Kort brief eller stikord om budskabet</label>
+                  <button type="button" onClick={handleGenerateAgenticAngles} disabled={!annoncoer || isGenerating} className="btn btn-secondary btn-sm">
+                    <Lightbulb size={14} aria-hidden="true" /> {isGenerating ? "Finder vinkler…" : "Foreslå 3 vinkler"}
+                  </button>
                 </div>
+                <textarea id="ad-brief" rows={2} placeholder="fx Nyt menukort til efteråret med lokale råvarer fra Vestsjælland…" value={brief} onChange={(e) => setBrief(e.target.value)} className="input" />
+                <p className="ui-field-hint">Vinklerne er skabeloner ud fra annoncør og brief. Der kaldes ingen AI-model.</p>
+              </div>
 
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "6px" }}>
-                    Undertekst / Manchet
-                  </label>
-                  <textarea
-                    name="manchet"
-                    rows={2}
-                    value={manchet}
-                    onChange={(e) => setManchet(e.target.value)}
-                    className="input"
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                  />
-                </div>
-
-                {/* Link & CTA */}
-                <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "6px" }}>
-                      Destinations-URL (Link) *
-                    </label>
-                    <input
-                      name="linkUrl"
-                      type="url"
-                      value={linkUrl}
-                      onChange={(e) => setLinkUrl(e.target.value)}
-                      required
-                      className="input"
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, marginBottom: "6px" }}>
-                      Knaptekst (CTA)
-                    </label>
-                    <input
-                      name="ctaTekst"
-                      type="text"
-                      value={ctaTekst}
-                      onChange={(e) => setCtaTekst(e.target.value)}
-                      className="input"
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: "6px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-                </div>
-
-                {/* Kommercielle parametre: Pris, Placering, Varighed */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", background: "#f8fafc", padding: "12px", borderRadius: "8px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, marginBottom: "4px" }}>
-                      Aftalt Pris (kr. ex moms)
-                    </label>
-                    <input
-                      name="pris"
-                      type="number"
-                      value={pris}
-                      onChange={(e) => setPris(parseInt(e.target.value, 10) || 0)}
-                      className="input"
-                      style={{ width: "100%", padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, marginBottom: "4px" }}>
-                      Placering
-                    </label>
-                    <select
-                      name="placeringZone"
-                      value={placeringZone}
-                      onChange={(e) => setPlaceringZone(e.target.value)}
-                      className="input"
-                      style={{ width: "100%", padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc" }}
+              {suggestedAngles.length > 0 ? (
+                <div role="group" aria-label="Foreslåede vinkler" className="adgen-angles">
+                  <p className="ui-small ui-strong">Vælg en vinkel</p>
+                  {suggestedAngles.map((ang, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      aria-pressed={overskrift === ang.overskrift}
+                      className="adgen-angle"
+                      onClick={() => {
+                        setOverskrift(ang.overskrift);
+                        setManchet(ang.manchet);
+                        setCtaTekst(ang.cta);
+                      }}
                     >
-                      <option value="feed">Forside In-Feed (Mellem zoner)</option>
-                      <option value="top">Topzone / Hovedplacering</option>
-                      <option value="kalender">Kalender sektion</option>
+                      <strong>{ang.overskrift}</strong>
+                      <span className="ui-small ui-muted">{ang.manchet}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <Field label="Overskrift på kortet" htmlFor="ad-overskrift" required>
+                <input id="ad-overskrift" name="overskrift" type="text" value={overskrift} onChange={(e) => setOverskrift(e.target.value)} required className="input" />
+              </Field>
+              <Field label="Undertekst / manchet" htmlFor="ad-manchet">
+                <textarea id="ad-manchet" name="manchet" rows={2} value={manchet} onChange={(e) => setManchet(e.target.value)} className="input" />
+              </Field>
+
+              <div className="ui-form-grid">
+                <Field label="Destinations-URL" htmlFor="ad-link" required>
+                  <input id="ad-link" name="linkUrl" type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} required className="input" />
+                </Field>
+                <Field label="Knaptekst (CTA)" htmlFor="ad-cta">
+                  <input id="ad-cta" name="ctaTekst" type="text" value={ctaTekst} onChange={(e) => setCtaTekst(e.target.value)} className="input" />
+                </Field>
+              </div>
+
+              <fieldset className="adgen-commercial">
+                <legend className="field-label">Kommercielle parametre</legend>
+                <div className="adgen-commercial-grid">
+                  <Field label="Aftalt pris (kr. ex moms)" htmlFor="ad-pris">
+                    <input id="ad-pris" name="pris" type="number" value={pris} onChange={(e) => setPris(parseInt(e.target.value, 10) || 0)} className="input" />
+                  </Field>
+                  <Field label="Placering" htmlFor="ad-zone">
+                    <select id="ad-zone" name="placeringZone" value={placeringZone} onChange={(e) => setPlaceringZone(e.target.value)} className="input">
+                      <option value="feed">Forside in-feed (mellem zoner)</option>
+                      <option value="top">Topzone / hovedplacering</option>
+                      <option value="kalender">Kalendersektion</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, marginBottom: "4px" }}>
-                      Varighed
-                    </label>
-                    <select
-                      name="dageVarighed"
-                      value={dageVarighed}
-                      onChange={(e) => setDageVarighed(e.target.value)}
-                      className="input"
-                      style={{ width: "100%", padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc" }}
-                    >
+                  </Field>
+                  <Field label="Varighed" htmlFor="ad-dage">
+                    <select id="ad-dage" name="dageVarighed" value={dageVarighed} onChange={(e) => setDageVarighed(e.target.value)} className="input">
                       <option value="7">7 dage (1 uge)</option>
                       <option value="14">14 dage (2 uger)</option>
                       <option value="30">30 dage (1 måned)</option>
                     </select>
-                  </div>
+                  </Field>
                 </div>
+              </fieldset>
 
-                <input type="hidden" name="badgeTekst" value="ANNONCE" />
+              <input type="hidden" name="badgeTekst" value="ANNONCE" />
 
-                <div style={{ marginTop: "12px" }}>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    style={{ width: "100%", padding: "12px", fontSize: "1rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
-                  >
-                    <Rocket size={18} /> Lancér Kampagne til Website
-                  </button>
-                </div>
-              </div>
-
-              {/* Højre kolonne: Live Forhåndsvisning (HTML/CSS/SVG) */}
               <div>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Eye size={14} /> Live Forhåndsvisning (Som læseren ser det)
-                </span>
-
-                <div style={{ marginTop: "12px", background: "#f1f5f9", padding: "16px", borderRadius: "8px" }}>
-                  <div style={{ fontSize: "0.75rem", color: "#64748b", marginBottom: "8px" }}>
-                    Placering: {placeringZone === "feed" ? "Forside In-Feed" : placeringZone === "top" ? "Topzone" : "Kalender"} • Mærkning: Rav-ramme (#B8860B) + ANNONCE
-                  </div>
-
-                  {/* Render simulated ad */}
-                  <div
-                    style={{
-                      border: "2px solid #B8860B",
-                      borderTop: "4px solid #B8860B",
-                      borderRadius: "8px",
-                      padding: "18px 20px",
-                      background: "linear-gradient(135deg, #FFFDF8 0%, #FFF9EB 100%)",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                      <span
-                        style={{
-                          background: "#FCE8A6",
-                          color: "#4D3900",
-                          fontSize: "0.75rem",
-                          fontWeight: 800,
-                          padding: "2px 8px",
-                          borderRadius: "4px",
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        ANNONCE
-                      </span>
-                      <span style={{ fontSize: "0.8rem", color: "#666" }}>
-                        {annoncoer || "Virksomhedsnavn"}
-                      </span>
-                    </div>
-
-                    <h3 style={{ fontSize: "1.15rem", fontWeight: 700, margin: "0 0 6px", color: "#111" }}>
-                      {overskrift || "Overskrift på annoncen vises her"}
-                    </h3>
-
-                    <p style={{ fontSize: "0.9rem", color: "#444", margin: "0 0 14px", lineHeight: 1.45 }}>
-                      {manchet || "Dette er underteksten eller beskrivelsen af kampagnen, som den vil fremstå på sitet."}
-                    </p>
-
-                    <div>
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          background: "#996500",
-                          color: "#FFF",
-                          padding: "8px 14px",
-                          borderRadius: "6px",
-                          fontWeight: 700,
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        {ctaTekst || "Læs mere"} <ArrowUpRight size={14} />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: "16px", padding: "12px", background: "#fef3c7", borderRadius: "6px", fontSize: "0.8rem", color: "#92400e" }}>
-                  <strong>Forbrugerombudsmanden & Governance:</strong> Annoncen overholder automatisk kravene med tydelig rav-farvet afgrænsning og badge i versaler. Den serveres 100% first-party uden tredjeparts-scripts.
-                </div>
+                <button type="submit" className="btn btn-primary adgen-submit"><Rocket size={18} aria-hidden="true" /> Lancér kampagne til website</button>
               </div>
             </div>
+
+            <div className="ui-stack ui-gap-md">
+              <p className="ui-eyebrow adgen-preview-label"><Eye size={14} aria-hidden="true" /> Forhåndsvisning, som læseren ser det</p>
+              <div className="adgen-stage">
+                <p className="ui-small ui-muted adgen-place">
+                  Placering: {placeringZone === "feed" ? "Forside in-feed" : placeringZone === "top" ? "Topzone" : "Kalender"} · Mærkning: rav-ramme og ANNONCE
+                </p>
+                <article className="adprev" aria-label="Forhåndsvisning af annoncen">
+                  <div className="adprev-head">
+                    <span className="adprev-badge">ANNONCE</span>
+                    <span className="adprev-by">{annoncoer || "Virksomhedsnavn"}</span>
+                  </div>
+                  <h3 className="adprev-title">{overskrift || "Overskrift på annoncen vises her"}</h3>
+                  <p className="adprev-text">{manchet || "Dette er underteksten eller beskrivelsen af kampagnen, som den vil fremstå på sitet."}</p>
+                  <span className="adprev-cta">{ctaTekst || "Læs mere"} <ArrowUpRight size={14} aria-hidden="true" /></span>
+                </article>
+              </div>
+              <Notice tone="warn" title="Forbrugerombudsmanden og governance">
+                Annoncen overholder automatisk kravene med tydelig rav-farvet afgrænsning og badge i versaler. Den serveres 100 % first-party uden tredjeparts-scripts.
+              </Notice>
+            </div>
           </form>
-        </div>
+        </Card>
       )}
     </div>
   );

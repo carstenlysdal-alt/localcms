@@ -1,11 +1,32 @@
 import Link from "next/link";
-import { LayoutGrid, LogOut, MessageSquare, UserRound } from "lucide-react";
+import { headers } from "next/headers";
+import { LayoutGrid, LogOut } from "lucide-react";
 import { getSessionState, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { NavLinks } from "@/components/admin/nav-links";
-import { ChangePasswordForm } from "@/components/admin/change-password-form";
+import { db } from "@/lib/db";
+import { getNetworkLinks } from "@/lib/site";
 import { can, PERMISSIONS } from "@/lib/permissions";
+import { ChangePasswordForm } from "@/components/admin/change-password-form";
+import { NavLinks, type NavCity } from "@/components/admin/nav-links";
+import { ShellFrame } from "@/components/admin/shell-frame";
+import { BottomNav } from "@/components/admin/bottom-nav";
+import { UserMenu } from "@/components/admin/user-menu";
+import { GlobalSearch } from "@/components/admin/global-search";
+import { AiOperatorButton, MobileMenuButton } from "@/components/admin/topbar";
+import { bottomNavItems, buildNav, canSeeOperator, countsPartnerBriefs } from "@/components/admin/nav-model";
+import { countNewIntake } from "@/components/admin/nav-counts";
+import { OperatorPanel } from "@/components/operator/operator-panel";
 
+/** Sendes sidens anmodning fra en iframe (forside-forhåndsvisning)? Uden for en request (fx i tests) er svaret nej. */
+async function isIframeRequest(): Promise<boolean> {
+  try {
+    return (await headers()).get("sec-fetch-dest") === "iframe";
+  } catch {
+    return false;
+  }
+}
+
+/** Redaktionens skal: grupperet sidebar (rettighedsfiltreret), topbar med søgning og AI-operatør, mobil-drawer + bundnavigation. */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Databaseopslag (ikke JWT): slettet/deaktiveret bruger og sessioner udstedt før et kodeskift sendes til log ind.
   const state = await getSessionState();
@@ -20,8 +41,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // slet ikke, så intet indhold kan nås. Server actions er spærret separat i getAuthorizedUser/getFreshSession.
   if (state.status === "must-change-password") {
     return (
-      <main className="login-page">
-        <div className="stack" style={{ width: "min(460px, 100%)" }}>
+      <main className="login-page cms-root">
+        <div className="stack login-stack">
           <ChangePasswordForm email={user.email} name={user.name} forced />
           <form action={logout}>
             <button className="btn btn-secondary" type="submit"><LogOut size={14} aria-hidden="true" /> Log ud</button>
@@ -31,31 +52,59 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
+  // Forside-forhåndsvisningen indlæses i en iframe i forside-editoren: der skal ikke ligge en ekstra skal omkring den.
+  if (await isIframeRequest()) return <div className="cms-root">{children}</div>;
+
+  const [inboxCount, instance, network] = await Promise.all([
+    countNewIntake(user.instansId, countsPartnerBriefs(user)),
+    db.instance.findUnique({ where: { id: user.instansId }, select: { domaene: true, navn: true } }),
+    getNetworkLinks().catch(() => []),
+  ]);
+  const groups = buildNav(user, { inbox: inboxCount });
+  const cities: NavCity[] = network.map((site) => ({
+    by: site.by,
+    href: `${site.origin}/redaktion`,
+    current: Boolean(instance && (site.domaene === instance.domaene.toLowerCase() || site.navn === instance.navn)),
+  }));
+  const currentCity = cities.find((c) => c.current)?.by;
+  const searchPages = groups.flatMap((g) => g.items.map((i) => ({ href: i.href, label: i.label, group: g.label, icon: i.icon })));
+  const operator = can(user, PERMISSIONS.OPERATOR_USE);
+
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <Link href="/redaktion/artikler" className="sidebar-brand">
-          <span className="sidebar-brand-mark"><LayoutGrid size={15} /></span>
-          <span>
-            <span className="sidebar-brand-name" style={{ display: "block" }}>Lysdals</span>
-            <span className="sidebar-brand-sub">Redaktion</span>
-          </span>
-        </Link>
-        <NavLinks canManageUsers={can(user, PERMISSIONS.USERS_MANAGE)} />
-        <div className="sidebar-spacer" />
-        <div className="sidebar-bottom">
-          <Link href="/redaktion/chat" className="sidebar-cta"><MessageSquare size={16} /> AI Assistent</Link>
-          <div className="sidebar-user">
-            <strong>{user.name}</strong>
-            <small>{user.roleName}</small>
-          </div>
-          <Link href="/redaktion/konto" className="sidebar-logout"><UserRound size={16} /> Min konto</Link>
-          <form action={logout}>
-            <button className="sidebar-logout" type="submit"><LogOut size={16} /> Log ud</button>
-          </form>
+    <div className="cms-root">
+      <a className="shell-skip" href="#main-content">Spring til indhold</a>
+      <ShellFrame>
+        <aside id="shell-sidebar" className="shell-sidebar" aria-label="Sidebar">
+          <Link href="/redaktion/artikler" className="shell-brand">
+            <span className="shell-brand-mark" aria-hidden="true"><LayoutGrid size={18} /></span>
+            <span>
+              <span className="shell-brand-name">Lysdals</span>
+              <span className="shell-brand-sub">Redaktion{currentCity ? ` · ${currentCity}` : ""}</span>
+            </span>
+          </Link>
+          <NavLinks groups={groups} cities={cities} />
+          <UserMenu
+            name={user.name}
+            roleName={user.roleName}
+            canManageUsers={can(user, PERMISSIONS.USERS_MANAGE)}
+            canUseOperator={canSeeOperator(user)}
+            logoutAction={logout}
+          />
+        </aside>
+        <div className="shell-main">
+          <header className="shell-topbar" data-shell-inert>
+            <MobileMenuButton />
+            <Link href="/redaktion/artikler" className="shell-topbar-brand">Lysdals</Link>
+            <GlobalSearch pages={searchPages} />
+            <div className="shell-topbar-spacer" />
+            <AiOperatorButton hasPanel={operator} />
+          </header>
+          <div id="main-content" tabIndex={-1} className="shell-content" data-shell-inert>{children}</div>
         </div>
-      </aside>
-      <div className="app-content">{children}</div>
+        <BottomNav items={bottomNavItems(groups)} />
+      </ShellFrame>
+      {/* AI-operatør: flydende knap + Cmd/Ctrl+K på alle /redaktion-sider (components/operator). Lytter på cms:operator-open fra topbaren. */}
+      <OperatorPanel user={user} />
     </div>
   );
 }

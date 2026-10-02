@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Newsreader, JetBrains_Mono } from "next/font/google";
+import { Inter, Newsreader, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -9,12 +9,23 @@ const inter = Inter({
   display: "swap",
 });
 
+// Offentlig serif: bruges af det offentlige site og forside-preview (de indlæser selv deres egen kopi) og af ældre
+// overskrifts-regler. Ikke preloadet i redaktionen — browseren henter den kun, hvis en side faktisk bruger den.
 const newsreader = Newsreader({
   variable: "--font-serif",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   style: ["normal", "italic"],
   display: "swap",
+  preload: false,
+});
+
+// Redaktionens display-/UI-font (overskrifter, knapper, tal i KPI-kort). Variabel font: én fil for alle vægte.
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-display-var",
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
+  preload: false,
 });
 
 const jetbrains = JetBrains_Mono({
@@ -38,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="da" className={`${inter.variable} ${newsreader.variable} ${jetbrains.variable} h-full antialiased`}>
+    <html lang="da" className={`${inter.variable} ${newsreader.variable} ${jakarta.variable} ${jetbrains.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         {children}
       </body>

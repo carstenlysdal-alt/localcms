@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { slugCandidates } from "@/lib/seo/url";
-import { searchVariants } from "@/lib/slug";
+import { metaFromRow } from "@/lib/article-meta";import { searchVariants } from "@/lib/slug";
 import { isPostgresUrl, searchOr } from "@/lib/search";
 import { Prisma } from "@prisma/client";
 import { calculateArticleScore, ArticleDistributionInput } from "@/lib/distribution-engine";
@@ -568,6 +568,7 @@ export async function getArticleBySlug(instansId: string, sectionSlug: string, s
       coverMedia: true,
       tags: true,
       geoTags: true,
+      meta: true,
       corrections: {
         where: { fjernetTid: null }, // fjernede rettelser vises ikke offentligt (men slettes aldrig fysisk)
         orderBy: { dato: "desc" },
@@ -578,7 +579,21 @@ export async function getArticleBySlug(instansId: string, sectionSlug: string, s
   if (!article) return null;
 
   const ownSection = article.kategori?.parent?.slug ?? article.kategori?.slug ?? "nyheder";
+  // Forkert sektion i URL'en: 404 her; siden slår derefter SlugRedirect op (lib/slug-redirect.ts) og svarer permanent redirect.
   if (ownSection !== sectionSlug) return null;
+
+  // Udvidet metadata + de medier/forfattere den refererer (altid tenant-afgrænset).
+  const articleMeta = metaFromRow(article.meta as unknown as Record<string, unknown> | null);
+  const mediaIds = [articleMeta.ogMediaId, articleMeta.twitterMediaId].filter((v): v is string => Boolean(v));
+  const creditAuthorIds = articleMeta.medforfattere.map((c) => c.authorId).filter((v): v is string => Boolean(v));
+  const [metaMediaRows, creditAuthors] = await Promise.all([
+    mediaIds.length ? db.media.findMany({ where: { id: { in: mediaIds }, instansId, filtype: "billede" } }) : Promise.resolve([]),
+    creditAuthorIds.length ? db.author.findMany({ where: { id: { in: creditAuthorIds }, instansId }, select: { id: true, slug: true } }) : Promise.resolve([]),
+  ]);
+  const metaMedia = {
+    og: metaMediaRows.find((m) => m.id === articleMeta.ogMediaId) ?? null,
+    twitter: metaMediaRows.find((m) => m.id === articleMeta.twitterMediaId) ?? null,
+  };
 
   const relaterede = await db.article.findMany({
     where: {
@@ -603,6 +618,9 @@ export async function getArticleBySlug(instansId: string, sectionSlug: string, s
 
   return {
     article,
+    articleMeta,
+    metaMedia,
+    creditAuthors,
     summary: mapArticleToSummary(article),
     relaterede: relaterede.map(mapArticleToSummary),
   };

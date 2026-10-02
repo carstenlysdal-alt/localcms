@@ -62,7 +62,7 @@ export default async function Frontpage() {
               <span>{dateText}</span>
             </div>
           </div>
-          <TopicFilterBar currentCity={site.kommune} networkSites={networkLinks} sectionPaths={sectionPaths} />
+          <TopicFilterBar currentCity={site.kommune} networkSites={networkLinks} sectionPaths={sectionPaths} sections={categories.map((c) => ({ navn: c.navn, slug: c.slug }))} />
         </>
       }
       after={

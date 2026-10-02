@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { Upload } from "lucide-react";
 import { createMedia, type MediaFormState } from "@/app/redaktion/medier/actions";
+import { Notice } from "@/components/ui/Layout";
 
 export function MediaCreateForm() {
   const [state, action, pending] = useActionState<MediaFormState, FormData>(createMedia, {});
@@ -10,11 +11,11 @@ export function MediaCreateForm() {
   const [type, setType] = useState("billede");
   return (
     <form action={action} className="media-form card elev-sm">
-      <div className="seg" aria-label="Mediekilde">
+      <div className="seg" role="radiogroup" aria-label="Mediekilde">
         <label className="seg-opt"><input className="sr-only" type="radio" name="source" value="upload" checked={source === "upload"} onChange={() => setSource("upload")} />Upload fil</label>
         <label className="seg-opt"><input className="sr-only" type="radio" name="source" value="external" checked={source === "external"} onChange={() => setSource("external")} />Ekstern URL</label>
       </div>
-      {state.error && <div className="dialog inline-dialog" role="alert"><strong className="dialog-title">Mediet kunne ikke oprettes</strong><p className="dialog-body">{state.error}</p></div>}
+      {state.error && <Notice tone="danger" title="Mediet kunne ikke oprettes">{state.error}</Notice>}
       {source === "upload" ? (
         <div className="field"><label htmlFor="file">Fil, maks. 10 MB</label><input className="input file-input" id="file" name="file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/mpeg,audio/wav,audio/ogg,application/pdf" required /></div>
       ) : <><div className="field"><label htmlFor="url">Direkte URL</label><input className="input" id="url" name="url" type="url" placeholder="https://…" required /></div><div className="field"><label htmlFor="filtype">Medietype</label><select className="input" id="filtype" name="filtype" value={type} onChange={(event) => setType(event.target.value)}>{["billede", "video", "lyd", "dokument"].map((item) => <option key={item}>{item}</option>)}</select></div></>}

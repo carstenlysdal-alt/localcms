@@ -1,7 +1,9 @@
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { UnifiedIntakeInbox, type IntakeItem } from "@/components/admin/UnifiedIntakeInbox";
-import { Inbox, MessageSquarePlus, ExternalLink } from "lucide-react";
+import { Inbox, ExternalLink } from "lucide-react";
+import { Page, PageHeader } from "@/components/ui/Page";
+import { Badge } from "@/components/ui/Badge";
 import { isNewIntakeStatus } from "@/lib/validation/status";
 import { NoAccess } from "@/components/admin/no-access";
 import { PAGE_PERMISSIONS, canViewPartnerBriefs, canViewSourceDetails, HIDDEN_CONTACT } from "@/lib/redaktion-access";
@@ -166,48 +168,19 @@ export default async function RedaktionIndbakkePage() {
   ).length;
 
   return (
-    <main className="admin-main">
-      <div className="page-heading">
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Inbox size={26} style={{ color: "var(--color-primary, #9E3D1B)" }} />
-            <h1 style={{ margin: 0 }}>Redaktionel Indbakke</h1>
-            {nyCount > 0 && (
-              <span
-                style={{
-                  background: "#EFF6FF",
-                  color: "#1D4ED8",
-                  border: "1px solid #BFDBFE",
-                  padding: "2px 8px",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                  fontWeight: "700",
-                }}
-              >
-                {nyCount} nye henvendelser
-              </span>
-            )}
-          </div>
-          <p className="text-muted" style={{ marginTop: "4px" }}>
-            Samlet gennemstrømning af kilde-Q&A, interviews, partner-briefs, meddeler-sager og borgerindlæg.
-            Konvertér til artikler med ét klik med korrekte indholdstyper og deklarationer.
-          </p>
-        </div>
-
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <a
-            href="/qa"
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-secondary"
-            style={{ fontSize: "13px" }}
-          >
-            Se kilde-portaler ↗
+    <Page>
+      <PageHeader
+        icon={<Inbox size={22} />}
+        title="Indbakke"
+        badge={nyCount > 0 ? <Badge tone="info" dot>{nyCount} {nyCount === 1 ? "ny henvendelse" : "nye henvendelser"}</Badge> : undefined}
+        subtitle="Samlet gennemstrømning af kilde-Q&A, interviews, partner-briefs, meddeler-sager og borgerindlæg. Konvertér til artikler med ét klik, med korrekte indholdstyper og deklarationer."
+        actions={
+          <a href="/qa" target="_blank" rel="noreferrer" className="btn btn-secondary">
+            Se kilde-portaler <ExternalLink size={14} aria-hidden="true" /><span className="sr-only"> (åbner i ny fane)</span>
           </a>
-        </div>
-      </div>
-
+        }
+      />
       <UnifiedIntakeInbox items={items} />
-    </main>
+    </Page>
   );
 }

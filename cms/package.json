@@ -30,6 +30,7 @@
     "build:railway": "npm run prisma:pg:schema && prisma generate --schema prisma/postgres/schema.prisma && next build",
     "start:railway": "prisma migrate deploy --schema prisma/postgres/schema.prisma && next start -H 0.0.0.0 -p ${PORT:-3000}",
     "seed:prod": "tsx scripts/seed-prod.ts",
+    "sections:sync": "tsx scripts/sync-sections.ts",
     "user:reset-password": "tsx scripts/reset-password.ts"
   },
   "dependencies": {

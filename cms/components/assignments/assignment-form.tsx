@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Save } from "lucide-react";
 import { saveAssignment, type AssignmentFormState } from "@/app/redaktion/opgaver/actions";
 import { DELIVERY_TYPES } from "@/lib/assignments";
+import { Notice } from "@/components/ui/Layout";
 
 type Option = { id: string; navn?: string; titel?: string; organisationNavn?: string };
 type Rate = { leverancetype: string; standard: number; minimum: number; maksimum: number };
@@ -21,8 +22,8 @@ export function AssignmentForm({ value, authors, articles, agreements, rates }: 
   }
   const rate = rates.find((item) => item.leverancetype === deliveryType);
   return <form action={action} className="assignment-form card elev-sm">
-    {state.error && <div className="dialog inline-dialog" role="alert"><strong className="dialog-title">Opgaven kunne ikke gemmes</strong><p className="dialog-body">{state.error}</p></div>}
-    {state.success && <div className="notice-success">{state.success}</div>}
+    {state.error && <Notice tone="danger" title="Opgaven kunne ikke gemmes">{state.error}</Notice>}
+    {state.success && <Notice tone="success">{state.success}</Notice>}
     <div className="field"><label htmlFor="titel">Opgavetitel</label><input className="input" id="titel" name="titel" defaultValue={value.titel} required />{state.fieldErrors?.titel?.map((error) => <p className="error-text" key={error}>{error}</p>)}</div>
     <div className="field"><label htmlFor="beskrivelse">Brief og forventet leverance</label><textarea className="input" id="beskrivelse" name="beskrivelse" rows={6} defaultValue={value.beskrivelse} required /></div>
     <div className="assignment-grid">

@@ -1,8 +1,8 @@
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import Link from "next/link";
-import { Handshake } from "lucide-react";
+import { ExternalLink, Handshake } from "lucide-react";
 import { SponsorListClient } from "./SponsorListClient";
+import { Page, PageHeader } from "@/components/ui/Page";
 import { NoAccess } from "@/components/admin/no-access";
 import { PAGE_PERMISSIONS } from "@/lib/redaktion-access";
 
@@ -19,26 +19,18 @@ export default async function RedaktionSponsorPage() {
   });
 
   return (
-    <main className="admin-main">
-      <div className="page-heading">
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Handshake size={26} style={{ color: "#065f46" }} />
-            <h1 style={{ margin: 0 }}>Sponsor- & Partnerindhold</h1>
-          </div>
-          <p className="text-muted" style={{ marginTop: "4px" }}>
-            Styrk det lokale erhvervsliv med mærket partnerindhold. Modtag partnerbriefs, opret udkast med påkrævet deklaration og send citater til faktatjek.
-          </p>
-        </div>
-
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+    <Page>
+      <PageHeader
+        icon={<Handshake size={22} />}
+        title="Sponsor og partnerindhold"
+        subtitle="Styrk det lokale erhvervsliv med mærket partnerindhold. Modtag partnerbriefs, opret udkast med påkrævet deklaration og send citater til faktatjek."
+        actions={
           <a href="/sponsor" target="_blank" rel="noreferrer" className="btn btn-secondary">
-            Se offentlig partnerportal ↗
+            Se offentlig partnerportal <ExternalLink size={14} aria-hidden="true" /><span className="sr-only"> (åbner i ny fane)</span>
           </a>
-        </div>
-      </div>
-
+        }
+      />
       <SponsorListClient briefs={briefs} />
-    </main>
+    </Page>
   );
 }

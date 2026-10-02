@@ -7,6 +7,7 @@ import { stripHtml, metaDescription, truncateAtWord } from "./escape";
 import { absoluteUrl, articlePath, sectionPath, encodeSegment } from "./url";
 import { isoWithOffset } from "./time";
 import { isHttpUrl, type SeoSiteConfig } from "./config";
+import { inLanguage, NEWS_SCHEMA_TYPES, SCHEMA_TYPES } from "../article-meta";
 
 export type JsonLdNode = Record<string, unknown>;
 
@@ -165,9 +166,30 @@ export function breadcrumbList(items: CrumbInput[], base: string): JsonLdNode | 
 
 // ── Artikel ─────────────────────────────────────────────────────────────────
 
+/** Udvidet metadata fra ArticleMeta (alle felter valgfrie; udeladte felter giver uændret output). */
+export type ArticleLdMeta = {
+  schemaType?: string | null;
+  isAccessibleForFree?: boolean | null;
+  paywall?: { cssSelector: string } | null;
+  dateline?: string | null;
+  laesetidMin?: number | null;
+  udloebTid?: Date | null;
+  begivenhedTid?: Date | null;
+  keywords?: string[] | null;
+  medforfattere?: Array<{ navn: string; rolle: string; authorId?: string | null; slug?: string | null }> | null;
+  kilder?: Array<{ titel: string; url?: string | null; udgiver?: string | null; dato?: string | null }> | null;
+  sistSubstantielOpdateringTid?: Date | null;
+  /** Absolut URL til det billede der er valgt som OG-billede (indgår som første billede). */
+  ogImageUrl?: string | null;
+};
+
 export type ArticleLdInput = {
   titel: string;
   manchet?: string | null;
+  seoTitel?: string | null;
+  /** Ren brødtekst (til wordCount/timeRequired); udelades hvis ukendt. */
+  bodyText?: string | null;
+  meta?: ArticleLdMeta | null;
   seoBeskrivelse?: string | null;
   slug: string;
   indholdstype: ContentType;
@@ -196,7 +218,9 @@ function str(v: unknown): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
 }
 
-export function articleSchemaType(a: Pick<ArticleLdInput, "indholdstype" | "sektion">): string {
+export function articleSchemaType(a: Pick<ArticleLdInput, "indholdstype" | "sektion"> & { meta?: Pick<ArticleLdMeta, "schemaType"> | null }): string {
+  const override = a.meta?.schemaType;
+  if (override && (SCHEMA_TYPES as readonly string[]).includes(override)) return override;
   switch (a.indholdstype) {
     case "Sponsoreret":
     case "Brugerindsendt":
@@ -312,31 +336,80 @@ export function newsArticleNode(
 
   const description = metaDescription(a.seoBeskrivelse || a.manchet);
   const published = isoWithOffset(a.publiceretTid ?? a.opdateretTid ?? null);
-  const modified = isoWithOffset(a.opdateretTid ?? a.publiceretTid ?? null);
+  // "Sidst substantielt opdateret" (redaktørens valg) går forud for tekniske gem (opdateretTid ændres også af små rettelser).
+  const modified = isoWithOffset(a.meta?.sistSubstantielOpdateringTid ?? a.opdateretTid ?? a.publiceretTid ?? null);
   const version = a.opdateretTid ? a.opdateretTid.getTime() : undefined;
 
-  const images = (["16x9", "4x3", "1x1"] as OgFormat[]).map((f) => articleImageUrl(base, a.slug, f, version));
+  const allImages = (["16x9", "4x3", "1x1"] as OgFormat[]).map((f) => articleImageUrl(base, a.slug, f, version));
+  const ogImg = a.meta?.ogImageUrl && isHttpUrl(a.meta.ogImageUrl) ? a.meta.ogImageUrl : undefined;
   const keywords = [...(a.tags ?? []).map((t) => t.navn), ...(a.geoTags ?? []).map((g) => g.navn)];
   const primaryGeo = a.geoTags?.[0];
 
+  // ── Udvidet metadata (ArticleMeta) ──
+  const m = a.meta ?? {};
+  const schemaType = articleSchemaType(a);
+  const explicitKeywords = (m.keywords ?? []).filter((k) => typeof k === "string" && k.trim());
+  const credits = m.medforfattere ?? [];
+  const personOf = (c: { navn: string; slug?: string | null }): JsonLdNode => ({ "@type": "Person", name: c.navn, url: c.slug ? `${base}/forfatter/${encodeSegment(c.slug)}` : undefined });
+  const coAuthors = credits.filter((c) => c.rolle === "Medforfatter").map(personOf);
+  const editors = credits.filter((c) => c.rolle === "Redaktør").map(personOf);
+  const contributors = credits
+    .filter((c) => c.rolle !== "Medforfatter" && c.rolle !== "Redaktør")
+    .map((c) => ({ ...personOf(c), jobTitle: c.rolle }));
+  const allAuthors = coAuthors.length > 0 ? [author, ...coAuthors].filter((x): x is JsonLdNode => Boolean(x)) : undefined;
+  const words = a.bodyText ? a.bodyText.trim().split(/\s+/).filter(Boolean).length : 0;
+  const minutes = m.laesetidMin ?? (words > 0 ? Math.max(1, Math.round(words / 200)) : undefined);
+  const sources = (m.kilder ?? []).filter((k) => k.titel.trim()).map((k) => ({
+    "@type": "CreativeWork",
+    name: k.titel,
+    url: k.url && isHttpUrl(k.url) ? k.url : undefined,
+    publisher: k.udgiver ? { "@type": "Organization", name: k.udgiver } : undefined,
+    datePublished: k.dato || undefined,
+  }));
+  const existingCitation = extra.citation as unknown[] | undefined;
+  const citation = [...(existingCitation ?? []), ...sources];
+  const lang = inLanguage(a.sprog);
+  // Speakable kun med rigtigt grundlag: Google understøtter det alene for engelsk, og vælgerne skal findes i markup.
+  const speakable = lang.startsWith("en") && a.manchet?.trim()
+    ? { "@type": "SpeakableSpecification", cssSelector: [".site-article-h1", ".site-article-manchet"] }
+    : undefined;
+  const asList = (v: unknown): JsonLdNode[] => (Array.isArray(v) ? (v as JsonLdNode[]) : v ? [v as JsonLdNode] : []);
+  const mergedContributors = [...asList(extra.contributor), ...contributors];
+  const mergedEditors = [...asList(extra.editor), ...editors];
+  const freeAccess = m.isAccessibleForFree !== false;
+  const images = ogImg ? [ogImg, ...allImages] : allImages;
+
   return {
-    "@type": articleSchemaType(a),
+    "@type": schemaType,
     "@id": `${url}#article`,
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     url,
-    headline: truncateAtWord(stripHtml(a.titel), 110),
+    headline: truncateAtWord(stripHtml(a.seoTitel?.trim() || a.titel), 110),
+    alternativeHeadline: a.seoTitel?.trim() && stripHtml(a.seoTitel) !== stripHtml(a.titel) ? truncateAtWord(stripHtml(a.titel), 110) : undefined,
     description,
     image: images,
     datePublished: published,
     dateModified: modified,
-    inLanguage: a.sprog === "da" || !a.sprog ? "da-DK" : a.sprog,
-    isAccessibleForFree: true,
+    inLanguage: lang,
+    isAccessibleForFree: freeAccess,
+    hasPart: !freeAccess
+      ? { "@type": "WebPageElement", isAccessibleForFree: false, cssSelector: m.paywall?.cssSelector || ".site-article-blocks" }
+      : undefined,
     articleSection: a.sektion.navn,
-    keywords: keywords.length > 0 ? keywords : undefined,
+    keywords: explicitKeywords.length > 0 ? explicitKeywords : keywords.length > 0 ? keywords : undefined,
     about: (a.tags ?? []).map((t) => ({ "@type": "Thing", name: t.navn })),
-    author,
+    wordCount: words > 0 ? words : undefined,
+    timeRequired: minutes ? `PT${minutes}M` : undefined,
+    dateline: NEWS_SCHEMA_TYPES.includes(schemaType) && m.dateline?.trim() ? m.dateline.trim() : undefined,
+    expires: isoWithOffset(m.udloebTid ?? null),
+    contentReferenceTime: isoWithOffset(m.begivenhedTid ?? null),
+    speakable,
+    author: allAuthors ?? author,
     publisher: publisherRef(site, cfg, base),
     ...extra,
+    ...(citation.length > 0 ? { citation } : {}),
+    ...(contributors.length > 0 ? { contributor: mergedContributors } : {}),
+    ...(editors.length > 0 ? { editor: mergedEditors } : {}),
     contentLocation: primaryGeo
       ? {
           "@type": "Place",

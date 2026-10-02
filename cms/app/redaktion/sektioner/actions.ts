@@ -8,6 +8,7 @@ import { can, PERMISSIONS } from "@/lib/permissions";
 import { isReservedSlug, validateCategoryNesting } from "@/lib/taxonomy";
 import { loadCategoryTree } from "@/lib/category-tree";
 import { isAiRestrictedCategoryTree } from "@/lib/marking";
+import { applySectionSync, planSectionSync } from "@/lib/default-sections-sync";
 
 export type CategoryActionState = {
   error?: string;
@@ -193,4 +194,30 @@ export async function deleteCategory(categoryId: string): Promise<CategoryAction
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Kunne ikke slette sektionen." };
   }
+}
+
+/**
+ * Opretter standardstrukturen (lib/default-sections.ts) for brugerens egen instans — kun oprettelser, aldrig sletning/flytning.
+ * Samme rettigheder som saveCategory; instansId kommer altid fra den friske session.
+ */
+export async function createDefaultSections(): Promise<CategoryActionState> {
+  const session = await getFreshSession();
+  if (
+    !session?.user ||
+    (!can(session.user, PERMISSIONS.CATEGORY_MANAGE) &&
+      !can(session.user, PERMISSIONS.FRONTPAGE_EDIT) &&
+      !can(session.user, PERMISSIONS.ARTICLE_EDIT_ALL))
+  ) {
+    return { error: "Du har ikke rettigheder til at administrere sektioner." };
+  }
+  const instansId = session.user.instansId;
+  const existing = await db.category.findMany({ where: { instansId }, select: { id: true, slug: true, parentId: true } });
+  const plan = planSectionSync(existing);
+  const total = plan.createTop.length + plan.createChildren.length;
+  if (total === 0) {
+    return { success: plan.conflicts.length > 0 ? `Standardsektionerne er oprettet. ${plan.conflicts.length} findes på en anden placering og er ikke flyttet.` : "Standardsektionerne findes allerede." };
+  }
+  const created = await applySectionSync(db, instansId, plan);
+  revalidatePath("/redaktion/sektioner");
+  return { success: `${created} sektioner oprettet.${plan.conflicts.length > 0 ? ` ${plan.conflicts.length} findes på en anden placering og er ikke flyttet.` : ""}` };
 }

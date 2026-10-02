@@ -129,8 +129,8 @@ export function usesAi(aiBrug: unknown): boolean {
   return Array.isArray(aiBrug) && aiBrug.some((v) => typeof v === "string" && v !== AI_USE_NONE && v.trim() !== "");
 }
 
-/** Reserverede sluggs for sektioner med AI-spærring (Krimi og retsvæsen, Sundhed). */
-export const AI_RESTRICTED_SLUGS: readonly string[] = ["krimi-og-retsvaesen", "sundhed"];
+/** Reserverede sluggs for sektioner med AI-spærring (Krimi og retsvæsen, 112, Sundhed). */
+export const AI_RESTRICTED_SLUGS: readonly string[] = ["krimi-og-retsvaesen", "112", "sundhed"];
 
 /**
  * AI-assisteret indhold må ikke ligge i Krimi og retsvæsen eller Sundhed uden journalistisk gennemskrivning.
@@ -141,7 +141,7 @@ export function isAiRestrictedCategory(category: { slug?: string | null; navn?: 
   if (!category) return false;
   const slug = (category.slug ?? "").toLowerCase();
   const navn = (category.navn ?? "").toLowerCase();
-  return AI_RESTRICTED_SLUGS.includes(slug) || navn.includes("krimi") || navn.includes("sundhed");
+  return AI_RESTRICTED_SLUGS.includes(slug) || navn.includes("krimi") || navn.includes("sundhed") || navn.trim() === "112";
 }
 
 export type CategoryNode = { slug?: string | null; navn?: string | null; parent?: CategoryNode | null };

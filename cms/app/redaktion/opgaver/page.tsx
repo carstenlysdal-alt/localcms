@@ -1,17 +1,26 @@
 import Link from "next/link";
-import { BriefcaseBusiness, Plus, Search } from "lucide-react";
+import { BriefcaseBusiness, Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { searchOr } from "@/lib/search";
 import { claimAssignment } from "./actions";
+import { Page, PageHeader } from "@/components/ui/Page";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { LinkTabs } from "@/components/ui/LinkTabs";
+import { SearchField } from "@/components/ui/SearchField";
 
 function deadlineClass(deadline: Date, status: string) {
   if (["Godkendt", "Annulleret"].includes(status)) return "";
   const hours = (deadline.getTime() - Date.now()) / 3_600_000;
   return hours < 0 ? "deadline-overdue" : hours <= 48 ? "deadline-soon" : "";
 }
+
+const STATUSES = ["Åben", "Tildelt", "I gang", "Afleveret", "Godkendt", "Annulleret"];
+const STATUS_TONE: Record<string, BadgeTone> = { Åben: "info", Tildelt: "planned", "I gang": "review", Afleveret: "draft", Godkendt: "success", Annulleret: "neutral" };
 
 export default async function AssignmentsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
@@ -30,9 +39,55 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
   };
   const assignments = await db.assignment.findMany({ where, include: { assignedAuthor: true, article: true }, orderBy: { afleveringsDeadline: "asc" } });
   const canManage = can(session.user, PERMISSIONS.TASK_MANAGE);
-  return <main className="admin-main">
-    <div className="page-heading"><div><h1>Opgaver</h1><p className="text-muted">{assignments.length} aktive og historiske opgaver</p></div>{canManage && <Link className="btn btn-primary" href="/redaktion/opgaver/ny"><Plus size={17} /> Ny opgave</Link>}</div>
-    <form className="filter-bar assignment-filter"><label className="search-field"><Search size={17} /><input name="q" defaultValue={query} placeholder="Søg i opgaver" /></label><select className="input" name="status" defaultValue={status}><option value="">Alle statusser</option>{["Åben", "Tildelt", "I gang", "Afleveret", "Godkendt", "Annulleret"].map((item) => <option key={item}>{item}</option>)}</select><button className="btn btn-secondary">Filtrér</button></form>
-    <div className="assignment-list">{assignments.length ? assignments.map((item) => <article className="assignment-row" key={item.id}><div className="assignment-icon"><BriefcaseBusiness size={20} /></div><div><span className="eyebrow">{item.leverancetype}</span><Link href={`/redaktion/opgaver/${item.id}`}><strong>{item.titel}</strong></Link><small>{item.assignedAuthor?.navn ?? (item.iPulje ? "Opgavepulje" : "Ikke tildelt")} · {item.article?.titel ?? "Ingen artikel"}</small></div><span className={`assignment-deadline ${deadlineClass(item.afleveringsDeadline, item.status)}`}><small>Aflevering</small>{new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeStyle: "short" }).format(item.afleveringsDeadline)}</span><span className="tag tag-neutral">{item.status}</span><strong className="assignment-fee">{item.estimeretHonorar.toLocaleString("da-DK")} kr.</strong>{item.iPulje && session.user.authorId && !canManage ? <form action={claimAssignment.bind(null, item.id)}><button className="btn btn-primary">Tag opgave</button></form> : <Link className="btn btn-secondary" href={`/redaktion/opgaver/${item.id}`}>Åbn</Link>}</article>) : <div className="empty-state">Ingen opgaver matcher filtrene.</div>}</div>
-  </main>;
+
+  const href = (s: string) => {
+    const p = new URLSearchParams();
+    if (query) p.set("q", query);
+    if (s) p.set("status", s);
+    const q = p.toString();
+    return `/redaktion/opgaver${q ? `?${q}` : ""}`;
+  };
+
+  return (
+    <Page>
+      <PageHeader
+        icon={<BriefcaseBusiness size={22} />}
+        title="Opgaver"
+        subtitle={`${assignments.length} ${assignments.length === 1 ? "opgave" : "opgaver"} i den aktuelle visning`}
+        actions={canManage ? <Link className="btn btn-primary" href="/redaktion/opgaver/ny"><Plus size={16} aria-hidden="true" /> Ny opgave</Link> : undefined}
+      />
+      <LinkTabs label="Opgavestatus" items={[{ href: href(""), label: "Alle", active: !status }, ...STATUSES.map((s) => ({ href: href(s), label: s, active: status === s }))]} />
+      <FilterBar label="Søg i opgaver" submitLabel="Søg" resetHref={query ? href(status) : undefined}>
+        <SearchField label="Søg i opgaver" defaultValue={query} placeholder="Søg i opgaver" />
+        {status ? <input type="hidden" name="status" value={status} /> : null}
+      </FilterBar>
+      {assignments.length ? (
+        <div className="assignment-list">
+          {assignments.map((item) => (
+            <article className="assignment-row" key={item.id}>
+              <div className="assignment-icon"><BriefcaseBusiness size={20} aria-hidden="true" /></div>
+              <div>
+                <span className="eyebrow">{item.leverancetype}</span>
+                <Link href={`/redaktion/opgaver/${item.id}`}><strong>{item.titel}</strong></Link>
+                <small>{item.assignedAuthor?.navn ?? (item.iPulje ? "Opgavepulje" : "Ikke tildelt")} · {item.article?.titel ?? "Ingen artikel"}</small>
+              </div>
+              <span className={`assignment-deadline ${deadlineClass(item.afleveringsDeadline, item.status)}`}>
+                <small>Aflevering</small>
+                {new Intl.DateTimeFormat("da-DK", { dateStyle: "medium", timeStyle: "short" }).format(item.afleveringsDeadline)}
+              </span>
+              <Badge tone={STATUS_TONE[item.status] ?? "neutral"} dot>{item.status}</Badge>
+              <strong className="assignment-fee">{item.estimeretHonorar.toLocaleString("da-DK")} kr.</strong>
+              {item.iPulje && session.user.authorId && !canManage ? (
+                <form action={claimAssignment.bind(null, item.id)}><button className="btn btn-primary btn-sm">Tag opgave</button></form>
+              ) : (
+                <Link className="btn btn-secondary btn-sm" href={`/redaktion/opgaver/${item.id}`}>Åbn</Link>
+              )}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState icon={<BriefcaseBusiness size={22} />} title="Ingen opgaver matcher filtrene" description="Prøv en anden status eller søgning." />
+      )}
+    </Page>
+  );
 }

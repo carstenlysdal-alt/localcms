@@ -2,66 +2,66 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3,
-  BriefcaseBusiness,
-  Calendar,
-  FileText,
-  FolderTree,
-  Handshake,
-  Images,
-  Inbox,
-  LayoutTemplate,
-  Mail,
-  MapPin,
-  Megaphone,
-  Mic,
-  Radio,
-  Rss,
-  Users,
-  WalletCards,
-} from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { NAV_ICONS } from "./nav-icons";
+import { activeHref, type NavGroup } from "./nav-model";
+import { CityDot } from "@/components/ui/CityDot";
 
-const links = [
-  { href: "/redaktion/artikler", label: "Artikler", icon: FileText },
-  { href: "/redaktion/indbakke", label: "Indbakke", icon: Inbox },
-  { href: "/redaktion/qa", label: "Kilde-Q&A", icon: Inbox },
-  { href: "/redaktion/interview", label: "AI Interview", icon: Mic },
-  { href: "/redaktion/sponsor", label: "Sponsor & Briefs", icon: Handshake },
-  { href: "/redaktion/meddeler", label: "Meddelere", icon: Radio },
-  { href: "/redaktion/forside", label: "Forsidestyring", icon: LayoutTemplate },
-  { href: "/redaktion/metrikker", label: "Metrikker", icon: BarChart3 },
-  { href: "/redaktion/annoncer", label: "Annoncer & Ads", icon: Megaphone },
-  { href: "/redaktion/nyhedsbrev", label: "Nyhedsbrev", icon: Mail },
-  { href: "/redaktion/sektioner", label: "Sektioner", icon: FolderTree },
-  { href: "/redaktion/omraader", label: "Områder", icon: MapPin },
-  { href: "/redaktion/signaler", label: "Signaler", icon: Rss },
-  { href: "/redaktion/emner", label: "Emner", icon: Radio },
-  { href: "/redaktion/medier", label: "Medier", icon: Images },
-  { href: "/redaktion/opgaver", label: "Opgaver", icon: BriefcaseBusiness },
-  { href: "/redaktion/honorar", label: "Honorar", icon: WalletCards },
-];
+export type NavCity = { by: string; href: string; current: boolean };
 
-const usersLink = { href: "/redaktion/brugere", label: "Brugere", icon: Users };
-
-export function NavLinks({ canManageUsers = false }: { canManageUsers?: boolean }) {
+/**
+ * Sidebarens navigation: grupperede links (allerede filtreret efter rettigheder på serveren), by-liste med prikker.
+ * Aktivt punkt: indigo pille + `aria-current="page"`. Tæller-badges vises hvor data findes (fx Indbakke).
+ */
+export function NavLinks({ groups, cities = [] }: { groups: NavGroup[]; cities?: NavCity[] }) {
   const path = usePathname();
-  const items = canManageUsers ? [...links, usersLink] : links;
+  const active = activeHref(groups.flatMap((g) => g.items), path);
   return (
-    <nav className="sidebar-nav" aria-label="Primær navigation">
-      {items.map(({ href, label, icon: Icon }) => (
-        <Link
-          key={href}
-          href={href}
-          className="sidebar-link"
-          aria-current={path.startsWith(href) ? "page" : undefined}
-        >
-          <Icon size={16} /> {label}
-        </Link>
+    <nav className="shell-nav" aria-label="Primær navigation">
+      {groups.map((group) => (
+        <div key={group.id} className="shell-nav-group" role="group" aria-labelledby={`nav-g-${group.id}`}>
+          <p className="shell-nav-label" id={`nav-g-${group.id}`}>{group.label}</p>
+          <ul className="shell-nav-list">
+            {group.items.map((item) => {
+              const Icon = NAV_ICONS[item.icon];
+              return (
+                <li key={item.href}>
+                  <Link href={item.href} className="shell-link" aria-current={active === item.href ? "page" : undefined}>
+                    <Icon size={18} aria-hidden="true" />
+                    <span className="shell-link-text">{item.label}</span>
+                    {item.badge ? <span className="shell-link-badge" aria-label={`${item.badge} nye`}>{item.badge > 99 ? "99+" : item.badge}</span> : null}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       ))}
-      <span className="sidebar-link sidebar-link-disabled" aria-disabled="true">
-        <Calendar size={16} /> Kalender <span className="sidebar-link-badge">Snart</span>
-      </span>
+      {cities.length > 0 ? (
+        <div className="shell-nav-group" role="group" aria-labelledby="nav-g-cities">
+          <p className="shell-nav-label" id="nav-g-cities">Byer</p>
+          <ul className="shell-nav-list">
+            {cities.map((city) => (
+              <li key={city.by}>
+                {city.current ? (
+                  <span className="shell-link shell-link-city is-current" aria-current="true">
+                    <CityDot city={city.by} />
+                    <span className="shell-link-text">{city.by}</span>
+                    <span className="shell-link-note">Du er her</span>
+                  </span>
+                ) : (
+                  <a className="shell-link shell-link-city" href={city.href} rel="noopener">
+                    <CityDot city={city.by} />
+                    <span className="shell-link-text">{city.by}</span>
+                    <ExternalLink size={14} aria-hidden="true" className="shell-link-ext" />
+                    <span className="sr-only">(åbner byens redaktion)</span>
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </nav>
   );
 }

@@ -12,24 +12,30 @@ const PROMPT_CHIPS = [
   "Hvad er de vigtigste spørgsmål at stille en kilde?",
 ];
 
-export function ChatInterface({ sessionId, initialMessages }: {
+export function ChatInterface({ sessionId, initialMessages, getContext }: {
   sessionId: string;
   initialMessages: Message[];
+  /** Valgfri artikelkontekst (editor-docken): sendes med som data til /api/chat. Udeladt = uændret adfærd. */
+  getContext?: () => Record<string, unknown> | null;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<"ask" | "auto">("ask");
   const [loading, setLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const nearBottomRef = useRef(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // chat-module: rul kun ned, hvis brugeren allerede er nederst (ellers rykkes man midt i læsning af historik).
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (el && nearBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   async function send(text: string) {
     if (!text.trim() || loading) return;
     const userMsg: Message = { role: "user", content: text.trim() };
+    nearBottomRef.current = true;
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
@@ -41,7 +47,7 @@ export function ChatInterface({ sessionId, initialMessages }: {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message: text.trim(), mode }),
+        body: JSON.stringify({ sessionId, message: text.trim(), mode, ...(getContext ? { context: getContext() } : {}) }),
       });
       if (!res.body) throw new Error("No stream");
       const reader = res.body.getReader();
@@ -91,7 +97,16 @@ export function ChatInterface({ sessionId, initialMessages }: {
           </div>
         </div>
       ) : (
-        <div className="chat-messages">
+        <div
+          className="chat-messages"
+          ref={scrollRef}
+          role="log"
+          aria-label="Samtale"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+          }}
+        >
           {messages.map((msg, i) => (
             <div key={i} className={`chat-message chat-message-${msg.role}`}>
               <div className="chat-bubble">
@@ -99,7 +114,6 @@ export function ChatInterface({ sessionId, initialMessages }: {
               </div>
             </div>
           ))}
-          <div ref={bottomRef} />
         </div>
       )}
 
@@ -111,13 +125,15 @@ export function ChatInterface({ sessionId, initialMessages }: {
             value={input}
             placeholder="Beskriv en historie, en vinkel eller et spørgsmål…"
             rows={1}
+            disabled={loading}
+            aria-label="Besked"
             onChange={(e) => {
               setInput(e.target.value);
               e.target.style.height = "auto";
               e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(input); }
             }}
           />
           <div className="chat-input-actions">

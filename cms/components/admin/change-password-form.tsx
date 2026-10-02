@@ -5,6 +5,7 @@ import { useActionState, useId, useState } from "react";
 import { Eye, EyeOff, KeyRound } from "lucide-react";
 import { changePasswordAction, type ChangePasswordState } from "@/app/redaktion/konto/actions";
 import { MIN_PASSWORD_LENGTH, passwordStrength } from "@/lib/password-policy";
+import { Notice } from "@/components/ui/Layout";
 
 type Props = {
   email: string;
@@ -46,17 +47,17 @@ export function ChangePasswordForm({ email, name, forced = false }: Props) {
       <div className="card-kicker">{forced ? "Første login" : "Sikkerhed"}</div>
       <h2 className="card-title">{forced ? "Vælg en ny adgangskode" : "Skift adgangskode"}</h2>
       {forced && (
-        <p className="card-body" style={{ flex: "none" }}>
+        <p className="card-body card-body-fixed">
           Du er logget ind med en midlertidig adgangskode. Vælg en ny, som kun du kender, før du kan bruge redaktionen.
         </p>
       )}
 
       {state.ok && state.message && (
-        <p className="notice-success" role="status">
-          {state.message} {state.relogin && <Link href="/login">Gå til log ind</Link>}
-        </p>
+        <Notice tone="success">
+          {state.message} {state.relogin && <Link className="ui-link" href="/login">Gå til log ind</Link>}
+        </Notice>
       )}
-      {!state.ok && state.message && <p className="error-text" role="alert">{state.message}</p>}
+      {!state.ok && state.message && <Notice tone="danger">{state.message}</Notice>}
 
       <div className="field">
         <label htmlFor={ids.current}>Nuværende adgangskode</label>

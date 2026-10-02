@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { PERMISSIONS } from "@/lib/permissions";
 import { NoAccess } from "@/components/admin/no-access";
 import { UserAdmin, type RoleOption, type UserRow } from "@/components/admin/user-admin";
+import { Users } from "lucide-react";
+import { Page, PageHeader } from "@/components/ui/Page";
+import { DataTable, type DataTableRow } from "@/components/ui/DataTable";
 
 const ACTION_LABELS: Record<string, string> = {
   "user.create": "Oprettede bruger",
@@ -44,40 +47,40 @@ export default async function BrugerePage() {
     createdLabel: fmt(u.createdAt),
   }));
 
+  const auditRows: DataTableRow[] = audit.map((entry) => {
+    const detail = entry.detail && typeof entry.detail === "object" && !Array.isArray(entry.detail) ? (entry.detail as Record<string, unknown>) : {};
+    const extra = detail.fromRole && detail.toRole ? ` (${String(detail.fromRole)} → ${String(detail.toRole)})` : detail.role ? ` (${String(detail.role)})` : "";
+    const label = ACTION_LABELS[entry.action] ?? entry.action;
+    const target = entry.targetId === entry.actorId ? "" : entry.targetLabel ? ` ${entry.targetLabel}` : "";
+    return {
+      id: entry.id,
+      sort: { tid: entry.createdAt.getTime() },
+      cells: { tid: fmt(entry.createdAt), af: entry.actorLabel ?? "Driftsværktøj", handling: `${label}${target}${extra}` },
+    };
+  });
+
   return (
-    <main className="admin-main">
-      <div className="page-heading">
-        <div>
-          <h1>Brugere</h1>
-          <p className="text-muted">Opret brugere, skift roller og udsted midlertidige adgangskoder. Kun brugere i denne redaktion vises.</p>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        icon={<Users size={22} />}
+        title="Brugere"
+        subtitle="Opret brugere, skift roller og udsted midlertidige adgangskoder. Kun brugere i denne redaktion vises."
+      />
       <UserAdmin users={rows} roles={roleOptions} />
-      <section aria-labelledby="audit-heading" style={{ marginTop: "var(--space-8)" }}>
-        <h2 className="section-label" id="audit-heading">Seneste handlinger</h2>
-        <div className="table-wrap">
-          <table className="table users-table">
-            <caption className="sr-only">Seneste administrative handlinger i denne redaktion</caption>
-            <thead><tr><th scope="col">Tidspunkt</th><th scope="col">Udført af</th><th scope="col">Handling</th></tr></thead>
-            <tbody>
-              {audit.map((entry) => {
-                const detail = entry.detail && typeof entry.detail === "object" && !Array.isArray(entry.detail) ? (entry.detail as Record<string, unknown>) : {};
-                const extra = detail.fromRole && detail.toRole ? ` (${String(detail.fromRole)} → ${String(detail.toRole)})` : detail.role ? ` (${String(detail.role)})` : "";
-                const label = ACTION_LABELS[entry.action] ?? entry.action;
-                const target = entry.targetId === entry.actorId ? "" : entry.targetLabel ? ` ${entry.targetLabel}` : "";
-                return (
-                  <tr key={entry.id}>
-                    <td>{fmt(entry.createdAt)}</td>
-                    <td>{entry.actorLabel ?? "Driftsværktøj"}</td>
-                    <td>{label}{target}{extra}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {!audit.length && <div className="empty-state">Ingen handlinger registreret endnu.</div>}
-        </div>
+      <section aria-labelledby="audit-heading" className="page-section">
+        <h2 className="ui-section-title" id="audit-heading">Seneste handlinger</h2>
+        <DataTable
+          caption="Seneste administrative handlinger i denne redaktion"
+          columns={[
+            { key: "tid", header: "Tidspunkt", sortable: true },
+            { key: "af", header: "Udført af" },
+            { key: "handling", header: "Handling" },
+          ]}
+          rows={auditRows}
+          defaultSort={{ key: "tid", direction: "desc" }}
+          emptyTitle="Ingen handlinger registreret endnu"
+        />
       </section>
-    </main>
+    </Page>
   );
 }

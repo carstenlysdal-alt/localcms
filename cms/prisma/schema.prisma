@@ -207,6 +207,8 @@ model Article {
   seoBeskrivelse String?
   sprog         String    @default("da")
   publiceretTid DateTime?
+  // Planlagt udgivelse: kun artikler i status "Planlagt" med planlagtTid <= nu flyttes af /api/cron/publish-scheduled.
+  planlagtTid   DateTime?
   opdateretTid  DateTime  @updatedAt
   createdAt     DateTime  @default(now())
 
@@ -242,9 +244,68 @@ model Article {
   externalId    String?
   provenance    Json?     // { ingestKeyPrefix, receivedAt, agent, kilder:[{url,dato,titel,sourceType}], signalIds }
 
+  // Udvidet metadata/SoMe (1:1) og omdirigeringer fra tidligere URL'er.
+  meta          ArticleMeta?
+  slugRedirects SlugRedirect[]
+
   @@unique([instansId, externalId])
   @@index([instansId, status])
   @@index([instansId, indholdstype])
+  @@index([instansId, status, planlagtTid])
+}
+
+/// Udvidet artikelmetadata (SEO, OG/Twitter, opslagstekster pr. platform, Google News/Discover, schema.org).
+/// 1:1 med Article. Json-felter valideres i app-laget (lib/article-meta.ts). Se docs/design/METADATA-OG-SOME.md.
+model ArticleMeta {
+  id         String   @id @default(cuid())
+  articleId  String   @unique
+  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  instansId  String
+
+  canonicalUrl     String?
+  robotsNoindex    Boolean  @default(false)
+  robotsNofollow   Boolean  @default(false)
+  keywords         Json     // string[]
+  newsKeywords     Json     // string[]
+  ogTitel          String?
+  ogBeskrivelse    String?
+  ogMediaId        String?
+  twitterCard      String?  // summary | summary_large_image
+  twitterTitel     String?
+  twitterBeskrivelse String?
+  twitterMediaId   String?
+  social           Json     // { facebook|instagram|linkedin|x|bluesky: { tekst, hashtags[], link?, utm? } }
+  schemaType       String?  // NewsArticle | OpinionNewsArticle | Article | Report …
+  isAccessibleForFree Boolean @default(true)
+  paywall          Json?    // { cssSelector }
+  dateline         String?
+  standout         Boolean  @default(false)
+  laesetidMin      Int?
+  udloebTid        DateTime?
+  begivenhedTid    DateTime?
+  medforfattere    Json     // [{ authorId?, navn, rolle }]
+  kilder           Json     // [{ titel, url?, udgiver?, dato? }]
+  sistSubstantielOpdateringTid DateTime?
+  oversaettelser   Json?    // { <sprog>: { url, titel? } }
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([instansId])
+}
+
+/// Tidligere URL (sektion + slug) på en publiceret artikel -> artiklens nuværende URL (301/permanent redirect).
+/// Peger på artikel-id (ikke på ny slug), så en artikel der omdøbes flere gange aldrig giver redirect-kæder.
+model SlugRedirect {
+  id           String   @id @default(cuid())
+  instansId    String
+  fraSektion   String
+  fraSlug      String
+  tilArticleId String
+  article      Article  @relation(fields: [tilArticleId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([instansId, fraSektion, fraSlug])
+  @@index([tilArticleId])
 }
 
 model ArticleRevision {
@@ -845,4 +906,29 @@ model FrontpageSlotMetric {
 
   @@unique([instansId, moduleId, slotKey, articleId, day])
   @@index([instansId, day])
+}
+
+// ── AI-operatør: engangs-bekræftelser og fortryd-recepter ───────────────────
+/// Én række pr. handling, som AI-operatøren har foreslået (status "pending", kræver brugerens klik) eller udført
+/// ("applied", evt. med en `undo`-recept). Bevidst uden relationer (som AuditLog). `input` og `result` indeholder
+/// aldrig hemmeligheder; råt bekræftelses-token gemmes aldrig, kun dets SHA-256 (`tokenHash`).
+model OperatorAction {
+  id        String    @id @default(cuid())
+  instansId String
+  userId    String
+  sessionId String?
+  tool      String
+  risk      String    // safe-write | confirm
+  status    String    // pending | applied | undone | cancelled | expired | failed
+  inputHash String    // sha256 af kanonisk JSON af det validerede input
+  input     Json
+  tokenHash String?   @unique
+  result    Json?
+  undo      Json?
+  expiresAt DateTime?
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([instansId, userId, createdAt])
+  @@index([sessionId])
 }
