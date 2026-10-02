@@ -1591,7 +1591,7 @@ SL_STORIES = [
           role='Lokaljournalist', published='I dag kl. 09:14', read=3,
           paras=[
               'Vagtchefen ved Sydsjællands og Lolland-Falsters Politi oplyser, at uheldet skete omkring klokken 08.45 lige før højbroen i vestgående retning mod Fyn. Der er tale om et harmonikasammenstød med to personbiler under den tætte morgentrafik.',
-              'Ingen personer er kommet alvorligt til skade, men vragdele og en mindre olielækage har gjort det nødvendigt midlertidigt at lukke det højre spor, mens Falck og Vejdirektoratet arbejder på stedet.',
+              'Ingen personer er kommet alvorligt til skade, men vragdele og en mindre olielækage har gjort det nødvendigt midlertidigt at lukke det højre spor, mens redningsberedskabet og Vejdirektoratet arbejder på stedet.',
               ('fakta', 'Fakta om Storebæltsbroen', [
                   'Omkring 36.000 køretøjer passerer forbindelsen dagligt.',
                   'Aktuel status: 1 spor farbart i vestgående retning med 50 km/t hastighedsbegrænsning.',
@@ -1648,7 +1648,7 @@ SL_STORIES = [
       'Dramatisk overtidssejr i topopgøret på hjemmebane',
       'Mål i det 93. minut udløste jubel foran et tætpakket publikum.',
       'fodbold', 'Slagelse C', when='I går', author='Martin Simonsen',
-      tags='fodbold sport kamp slagelse b&i harboe arena', time='22:15',
+      tags='fodbold sport kamp slagelse b&i eksempel arena', time='22:15',
       custom=dict(
           lead='Mål i det 93. minut udløste jubel foran et tætpakket publikum.',
           role='Sportsreporter', published='I går kl. 22:15', read=3,
@@ -1959,7 +1959,7 @@ OTHER_STORIES = {
               'En historisk bevilling sikrer de fem originale vikingeskibe mod fremtidige stormfloder og skaber et nyt vartegn.',
               'bymidte', 'Roskilde By', when='2 t. siden', tags='kultur byråd vikingeskibe museum klima'),
             S('festival', 'kultur', 'MUSIK · FESTIVAL',
-              'Roskilde Festival løfter sløret for 24 nye internationale kunstnere',
+              'Eksempel Festival løfter sløret for 24 nye kunstnere',
               'Programmet for sommerens festival er blevet udvidet med nye navne.',
               'bymidte', 'Roskilde By', tags='kultur festival musik koncert'),
             S('ruc', 'nyheder', 'VIDEN · RUC',
@@ -1991,7 +1991,7 @@ OTHER_STORIES = {
         wire_times=['08:25', '07:40', '06:55', '22:05', '19:30'],
         stories=[
             S('biotek', 'erhverv', 'BIOTEK & UDDANNELSE · KALUNDBORG',
-              'Novo Nordisk og Kalundborg Kommune indvier nyt biotek-akademi',
+              'Eksempel Virksomhed A og kommunen indvier nyt biotek-akademi',
               'Det nye uddannelsescenter skal uddanne hundredvis af procesteknologer og ingeniører til den voksende industri.',
               'erhverv', 'Kalundborg By', when='1 t. siden', tags='biotek uddannelse akademi erhverv industri'),
             S('krydstogt', 'erhverv', 'HAVN · TURISME',

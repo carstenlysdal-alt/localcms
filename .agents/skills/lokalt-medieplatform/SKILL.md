@@ -65,7 +65,7 @@ npm run seed
 npm run dev          # http://localhost:3000
 ```
 
-Demo-login til redaktionen: `redaktoer@slagelse.test` / `journalist@slagelse.test`, adgangskode `cms-demo-2026` (se `HANDOFF.md`). Efter fase 1 ligger redaktionen på `/redaktion`.
+Demo-login til redaktionen: `redaktoer@slagelse.test` / `journalist@slagelse.test`, adgangskode = `SEED_DEMO_PASSWORD` fra `.env` (ellers en tilfældig kode, som `npm run seed` printer; se `HANDOFF.md`). Efter fase 1 ligger redaktionen på `/redaktion`.
 
 ## 5. Kendte faldgruber (kort — detaljer i HANDOFF.md §3-4)
 
