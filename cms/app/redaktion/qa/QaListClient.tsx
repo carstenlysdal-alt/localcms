@@ -96,7 +96,8 @@ export function QaListClient({ qas }: { qas: QAItem[] }) {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <button
+              {qa.token && (
+<button
                 type="button"
                 onClick={() => handleCopyLink(qa.token)}
                 style={{
@@ -115,6 +116,7 @@ export function QaListClient({ qas }: { qas: QAItem[] }) {
                 {copiedToken === qa.token ? <Check size={14} style={{ color: "#16a34a" }} /> : <Copy size={14} />}
                 <span>{copiedToken === qa.token ? "Kopieret!" : "Kopier kildelink"}</span>
               </button>
+)}
 
               {hasArticle ? (
                 <Link

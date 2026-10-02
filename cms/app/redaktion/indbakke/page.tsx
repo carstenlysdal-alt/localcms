@@ -1,14 +1,22 @@
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { UnifiedIntakeInbox, type IntakeItem } from "@/components/admin/UnifiedIntakeInbox";
 import { Inbox, MessageSquarePlus, ExternalLink } from "lucide-react";
 import { isNewIntakeStatus } from "@/lib/validation/status";
+import { NoAccess } from "@/components/admin/no-access";
+import { PAGE_PERMISSIONS, canViewPartnerBriefs, canViewSourceDetails, HIDDEN_CONTACT } from "@/lib/redaktion-access";
 
 export default async function RedaktionIndbakkePage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  // Rettighed slås op i databasen (ikke JWT'en). Layoutet kræver kun login.
+  const user = await getAuthorizedUser([...PAGE_PERMISSIONS.indbakke]);
+  if (!user) return <NoAccess area="den redaktionelle indbakke" />;
 
-  const instansId = session.user.instansId;
+  const instansId = user.instansId;
+  // Kildekontakter og portal-links kræver SOURCE_VIEW_CONFIDENTIAL; partnerbriefs kræver salgs-/supportrettighed.
+  const showSources = canViewSourceDetails(user);
+  const showPartners = canViewPartnerBriefs(user);
+  const contact = (value: string | null | undefined) => (showSources ? value : value ? HIDDEN_CONTACT : value);
+  const tokenOf = <T,>(value: T) => (showSources ? value : undefined);
 
   // Hent alle 5 kilder sideløbende
   const [qas, interviews, sponsorBriefs, meddelerSager, submissions] = await Promise.all([
@@ -22,11 +30,11 @@ export default async function RedaktionIndbakkePage() {
       include: { article: { select: { id: true, titel: true, slug: true, status: true } } },
       orderBy: { createdAt: "desc" },
     }),
-    db.sponsorBrief.findMany({
+    showPartners ? db.sponsorBrief.findMany({
       where: { instansId },
       include: { article: { select: { id: true, titel: true, slug: true, status: true } } },
       orderBy: { createdAt: "desc" },
-    }),
+    }) : Promise.resolve([]),
     db.meddelerSag.findMany({
       where: { instansId },
       include: {
@@ -52,12 +60,12 @@ export default async function RedaktionIndbakkePage() {
       channel: "qa" as const,
       title: q.titel,
       senderName: q.kildeNavn || "Ukendt kilde",
-      senderContact: q.kildeKontakt,
+      senderContact: contact(q.kildeKontakt),
       senderRole: q.kildeRolle,
       status: q.status,
       createdAt: q.createdAt,
       summary: q.aiOpsummering || q.baggrund || q.emne,
-      token: q.token,
+      token: tokenOf(q.token),
       articleId: q.articleId,
       article: q.article,
       details: {
@@ -73,12 +81,12 @@ export default async function RedaktionIndbakkePage() {
       channel: "interview" as const,
       title: i.titel,
       senderName: i.kildeNavn,
-      senderContact: i.kildeKontakt,
+      senderContact: contact(i.kildeKontakt),
       senderRole: i.kildeRolle,
       status: i.status,
       createdAt: i.createdAt,
       summary: i.aiOpsummering || `Interview om ${i.emne}`,
-      token: i.token,
+      token: tokenOf(i.token),
       articleId: i.articleId,
       article: i.article,
       details: {
@@ -115,12 +123,12 @@ export default async function RedaktionIndbakkePage() {
       channel: "meddeler" as const,
       title: m.titel,
       senderName: m.meddeler?.navn || "Lokal meddeler",
-      senderContact: m.meddeler?.kontakt,
+      senderContact: contact(m.meddeler?.kontakt),
       senderRole: m.meddeler?.organisation || m.kategori,
       status: m.status,
       createdAt: m.createdAt,
       summary: m.tekst.length > 140 ? `${m.tekst.slice(0, 140)}...` : m.tekst,
-      token: m.meddeler?.token,
+      token: tokenOf(m.meddeler?.token),
       articleId: m.articleId,
       article: m.article,
       details: {
@@ -135,7 +143,7 @@ export default async function RedaktionIndbakkePage() {
       channel: "submission" as const,
       title: sub.emne,
       senderName: sub.navn,
-      senderContact: sub.kontakt,
+      senderContact: contact(sub.kontakt),
       senderRole: sub.omraade?.navn || "Borger",
       status: sub.status,
       createdAt: sub.createdAt,

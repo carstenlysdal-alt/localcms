@@ -1,5 +1,8 @@
 import { z } from "zod";
+import { AI_USAGE_VALUES } from "../marking";
 import { cleanText, isHttpUrl } from "../validation/text";
+
+export { AI_USAGE_VALUES };
 
 /**
  * Kontrakt for agent-indtaget (POST /api/ingest/signals og /api/ingest/articles).
@@ -27,8 +30,7 @@ export const AI_RESTRICTED_SOURCE_TYPES: readonly SourceTypeValue[] = ["politi",
 export const INGEST_SCOPES = ["signals:write", "articles:draft", "health:read"] as const;
 export type IngestScope = (typeof INGEST_SCOPES)[number];
 
-/** Tilladte AI-brugsværdier = de samme som redaktørens AI-brug-felt (components/editor/article-form.tsx). */
-export const AI_USAGE_VALUES = ["Sproglig korrektur", "Omskrivning", "Transskribering", "Udkast"] as const;
+// AI_USAGE_VALUES (de samme som redaktørens AI-brug-felt) importeres fra lib/marking.ts og re-eksporteres ovenfor.
 
 const RAW = 3;
 const plain = (max: number, min = 1) =>
@@ -101,7 +103,8 @@ export const articleInputSchema = z.object({
   manchet: plain(400, 1).optional(),
   tekst: longPlain(60_000).optional(),
   blocks: z.array(ingestBlockSchema).max(200).optional(),
-  sektion: plain(80).optional(), // kategori-slug i instansen
+  // Kategori-slug i instansen. PÅKRÆVET: uden en afgjort sektion kan Krimi/Sundhed-spærringen ikke håndhæves.
+  sektion: plain(80),
   omraader: z.array(plain(120)).max(10).optional(),
   indholdstype: z.literal("AI-assisteret").optional(),
   aiBrug: z.array(z.enum(AI_USAGE_VALUES)).min(1, "aiBrug er påkrævet: angiv hvad AI har været brugt til."),

@@ -3,11 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PERMISSIONS } from "@/lib/permissions";
+import { AREA_PERMISSIONS } from "@/lib/redaktion-access";
 import { cleanText } from "@/lib/validation/text";
 
-// Samme rettighedsmodel som sektioner (taksonomi): CATEGORY_MANAGE, med FRONTPAGE_EDIT/ARTICLE_EDIT_ALL som fallback.
-const AREA_PERMISSIONS = [PERMISSIONS.CATEGORY_MANAGE, PERMISSIONS.FRONTPAGE_EDIT, PERMISSIONS.ARTICLE_EDIT_ALL];
+// Samme rettighedsmodel som sektioner (taksonomi): se AREA_PERMISSIONS i lib/redaktion-access.ts.
 
 function toSlug(input: string) {
   return input

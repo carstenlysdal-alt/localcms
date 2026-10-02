@@ -1,14 +1,16 @@
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { saveAreaAction, deleteAreaAction } from "./actions";
 import { MapPin, Plus, Trash2 } from "lucide-react";
+import { NoAccess } from "@/components/admin/no-access";
+import { PAGE_PERMISSIONS } from "@/lib/redaktion-access";
 
 export default async function OmraaderAdminPage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = await getAuthorizedUser([...PAGE_PERMISSIONS.omraader]);
+  if (!user) return <NoAccess area="områdeadministration" />;
 
   const areas = await db.geoTag.findMany({
-    where: { instansId: session.user.instansId },
+    where: { instansId: user.instansId },
     include: { _count: { select: { articles: true } } },
     orderBy: { navn: "asc" },
   });

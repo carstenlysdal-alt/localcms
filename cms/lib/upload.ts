@@ -42,7 +42,9 @@ export function looksLikeActiveContent(buf: Uint8Array): boolean {
 
 /** PDF med aktivt indhold (JavaScript, Launch, indlejrede filer) afvises. Grov skanning af hele filen. */
 export function pdfHasActiveContent(buf: Uint8Array): boolean {
-  const text = Buffer.from(buf).toString("latin1");
+  // PDF-navne må hex-escapes (/#4aavaScript == /JavaScript): afkod #xx før skanningen (T5 P3-8). Serveres desuden med
+  // CSP `default-src 'none'; sandbox`, så dette er dybdeforsvar.
+  const text = Buffer.from(buf).toString("latin1").replace(/#([0-9a-fA-F]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16)));
   return /\/(JavaScript|JS|Launch|EmbeddedFile|RichMedia|XFA)\b/.test(text) || /\/OpenAction/.test(text) || /\/AA\s*<</.test(text);
 }
 

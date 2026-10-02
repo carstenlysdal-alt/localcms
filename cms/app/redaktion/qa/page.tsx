@@ -1,16 +1,19 @@
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { Inbox, Plus, ExternalLink, Copy } from "lucide-react";
 import { CreateQaModal } from "./CreateQaModal";
 import { QaListClient } from "./QaListClient";
+import { NoAccess } from "@/components/admin/no-access";
+import { PAGE_PERMISSIONS, canViewSourceDetails, HIDDEN_CONTACT } from "@/lib/redaktion-access";
 
 export default async function RedaktionQaPage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = await getAuthorizedUser([...PAGE_PERMISSIONS.qa]);
+  if (!user) return <NoAccess area="kilde-Q&A" />;
+  const showSources = canViewSourceDetails(user);
 
   const qas = await db.sourceQA.findMany({
-    where: { instansId: session.user.instansId },
+    where: { instansId: user.instansId },
     include: {
       article: { select: { id: true, titel: true, status: true } },
     },
@@ -35,7 +38,14 @@ export default async function RedaktionQaPage() {
         </div>
       </div>
 
-      <QaListClient qas={qas} />
+      <QaListClient
+        qas={qas.map((q) => ({
+          ...q,
+          // Kildekontakt og portal-link kræver SOURCE_VIEW_CONFIDENTIAL.
+          token: showSources ? q.token : "",
+          kildeKontakt: showSources ? q.kildeKontakt : q.kildeKontakt ? HIDDEN_CONTACT : null,
+        }))}
+      />
     </main>
   );
 }

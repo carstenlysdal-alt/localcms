@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
+import { searchOr } from "@/lib/search";
 import { claimAssignment } from "./actions";
 
 function deadlineClass(deadline: Date, status: string) {
@@ -23,7 +24,7 @@ export default async function AssignmentsPage({ searchParams }: { searchParams: 
     instansId: session.user.instansId,
     ...(status ? { status } : {}),
     AND: [
-      ...(query ? [{ OR: [{ titel: { contains: query } }, { beskrivelse: { contains: query } }] }] : []),
+      ...(query ? [{ OR: searchOr<Prisma.AssignmentWhereInput>(["titel", "beskrivelse"], query) }] : []),
       ...(!viewAll ? [{ OR: [{ assignedAuthorId: session.user.authorId ?? "__none__" }, { iPulje: true, status: "Åben" }] }] : []),
     ],
   };

@@ -1,23 +1,26 @@
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { Radio } from "lucide-react";
 import { MeddelerListClient } from "./MeddelerListClient";
+import { NoAccess } from "@/components/admin/no-access";
+import { PAGE_PERMISSIONS, canViewSourceDetails, HIDDEN_CONTACT } from "@/lib/redaktion-access";
 
 export default async function RedaktionMeddelerPage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = await getAuthorizedUser([...PAGE_PERMISSIONS.meddeler]);
+  if (!user) return <NoAccess area="meddeler-netværket" />;
+  const showSources = canViewSourceDetails(user);
 
   const [meddelere, sager] = await Promise.all([
     db.meddelerProfile.findMany({
-      where: { instansId: session.user.instansId },
+      where: { instansId: user.instansId },
       include: {
         _count: { select: { sager: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
     db.meddelerSag.findMany({
-      where: { instansId: session.user.instansId },
+      where: { instansId: user.instansId },
       include: {
         meddeler: true,
         article: { select: { id: true, titel: true, status: true } },
@@ -46,7 +49,18 @@ export default async function RedaktionMeddelerPage() {
         </div>
       </div>
 
-      <MeddelerListClient meddelere={meddelere} sager={sager} />
+      <MeddelerListClient
+        meddelere={meddelere.map((m) => (showSources ? m : {
+          // Uden SOURCE_VIEW_CONFIDENTIAL sendes kontaktoplysninger og portal-link aldrig til klienten (heller ikke skjult i UI).
+          ...m,
+          token: "",
+          kontakt: HIDDEN_CONTACT,
+          phone: m.phone ? HIDDEN_CONTACT : null,
+          telefon: null,
+          noter: null,
+        }))}
+        sager={sager.map((s) => (showSources ? s : { ...s, meddeler: { id: s.meddeler.id, navn: s.meddeler.navn, organisation: s.meddeler.organisation, kontakt: HIDDEN_CONTACT } as typeof s.meddeler }))}
+      />
     </main>
   );
 }

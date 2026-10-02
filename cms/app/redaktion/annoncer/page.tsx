@@ -1,14 +1,19 @@
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AdGeneratorForm } from "@/components/admin/AdGeneratorForm";
 import { toggleCampaignStatusAction, deleteCampaignAction } from "./actions";
 import { Megaphone, DollarSign, Eye, MousePointerClick, Trash2 } from "lucide-react";
+import { NoAccess } from "@/components/admin/no-access";
+import { AD_MANAGE_PERMISSIONS, PAGE_PERMISSIONS } from "@/lib/redaktion-access";
+import { can } from "@/lib/permissions";
 
 export default async function AnnoncerPage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = await getAuthorizedUser([...PAGE_PERMISSIONS.annoncer]);
+  if (!user) return <NoAccess area="annoncer og kampagner" />;
+  // SUPPORT_READ giver kun læseadgang; ændringer kræver ADS_MANAGE/SUPPORT_MANAGE (og håndhæves igen i actions).
+  const canManage = AD_MANAGE_PERMISSIONS.some((p) => can(user, p));
 
-  const instansId = session.user.instansId;
+  const instansId = user.instansId;
 
   // Hent alle kampagner
   const campaigns = await db.adCampaign.findMany({
@@ -61,7 +66,7 @@ export default async function AnnoncerPage() {
       </div>
 
       {/* Agentisk Generator Form */}
-      <AdGeneratorForm />
+      {canManage && <AdGeneratorForm />}
 
       {/* Kampagnetabel */}
       <div className="table-wrap">
@@ -123,6 +128,7 @@ export default async function AnnoncerPage() {
                     </span>
                   </td>
                   <td>
+                    {canManage ? (
                     <div style={{ display: "flex", gap: "6px" }}>
                       <form action={toggleCampaignStatusAction.bind(null, camp.id, camp.status)}>
                         <button
@@ -145,6 +151,9 @@ export default async function AnnoncerPage() {
                         </button>
                       </form>
                     </div>
+                    ) : (
+                      <span className="text-muted">Kun visning</span>
+                    )}
                   </td>
                 </tr>
               );

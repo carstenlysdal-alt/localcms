@@ -21,6 +21,44 @@ export async function markRead(id: string) {
   revalidatePath("/redaktion/signaler");
 }
 
+/**
+ * Godkend et maskinindsamlet signal til offentlig visning på forsiden (Fra kommunen/Fra politiet).
+ * Kræver SIGNAL_APPROVE (slået op i databasen), er bundet til brugerens instans og registrerer hvem og hvornår.
+ * Uden godkendelse vises et signal aldrig offentligt — heller ikke politi/112.
+ */
+export async function approveSignal(id: string) {
+  const user = await getAuthorizedUser(PERMISSIONS.SIGNAL_APPROVE);
+  if (!user) return { ok: false as const, error: "Du har ikke rettighed til at godkende signaler." };
+  const res = await db.signal.updateMany({
+    where: { id: String(id), instansId: user.instansId },
+    data: { godkendtAf: user.id, godkendtTid: new Date(), laest: true },
+  });
+  if (res.count !== 1) return { ok: false as const, error: "Signalet findes ikke." };
+  revalidatePath("/redaktion/signaler");
+  revalidatePath("/");
+  return { ok: true as const };
+}
+
+/** Træk en godkendelse tilbage: signalet forsvinder straks fra forsiden. */
+export async function revokeSignalApproval(id: string) {
+  const user = await getAuthorizedUser(PERMISSIONS.SIGNAL_APPROVE);
+  if (!user) return { ok: false as const, error: "Du har ikke rettighed til at ændre godkendelser." };
+  const res = await db.signal.updateMany({
+    where: { id: String(id), instansId: user.instansId },
+    data: { godkendtAf: null, godkendtTid: null },
+  });
+  if (res.count !== 1) return { ok: false as const, error: "Signalet findes ikke." };
+  revalidatePath("/redaktion/signaler");
+  revalidatePath("/");
+  return { ok: true as const };
+}
+
+/** Formular-handling: godkend (hvis ikke godkendt) eller træk godkendelsen tilbage. Rettigheden tjekkes i approve/revoke. */
+export async function toggleSignalApprovalAction(id: string, currentlyApproved: boolean): Promise<void> {
+  if (currentlyApproved) await revokeSignalApproval(id);
+  else await approveSignal(id);
+}
+
 export async function createSignal(data: FormData) {
   const user = await getAuthorizedUser(PERMISSIONS.ARTICLE_CREATE);
   if (!user) return;

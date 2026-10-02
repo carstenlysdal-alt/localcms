@@ -17,22 +17,23 @@ interface CorrectionItem {
 export function ArticleCorrections({
   articleId,
   corrections,
+  canRemove = false,
 }: {
   articleId: string;
   corrections: CorrectionItem[];
+  /** Kun redaktører (publicering/redigér alle) må fjerne en rettelse; håndhæves igen i serveren. */
+  canRemove?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const action = addArticleCorrection.bind(null, articleId);
   const [state, formAction, pending] = useActionState<CorrectionActionState, FormData>(action, {});
 
   const handleDelete = (correctionId: string) => {
-    if (!confirm("Er du sikker på, at du vil slette denne rettelse?")) return;
+    if (!confirm("Er du sikker på, at du vil fjerne denne rettelse fra den offentlige log? Fjernelsen registreres med dit navn og tidspunkt.")) return;
     startTransition(async () => {
       await deleteArticleCorrection(correctionId, articleId);
     });
   };
-
-  const nowIsoString = new Date().toISOString().slice(0, 16);
 
   return (
     <div
@@ -101,16 +102,19 @@ export function ArticleCorrections({
                     {corr.tekst}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  title="Slet rettelse"
-                  disabled={isPending}
-                  onClick={() => handleDelete(corr.id)}
-                  style={{ color: "var(--color-error-600)", padding: "4px 8px", marginLeft: "12px" }}
-                >
-                  <Trash2 size={13} />
-                </button>
+                {canRemove && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="Fjern rettelse fra den offentlige log"
+                    aria-label="Fjern rettelse fra den offentlige log"
+                    disabled={isPending}
+                    onClick={() => handleDelete(corr.id)}
+                    style={{ color: "var(--color-error-600)", padding: "4px 8px", marginLeft: "12px" }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
             );
           })}
@@ -142,18 +146,9 @@ export function ArticleCorrections({
         </div>
 
         <div style={{ display: "flex", gap: "12px", alignItems: "flex-end" }}>
-          <div className="field" style={{ flex: "0 0 220px", marginBottom: 0 }}>
-            <label htmlFor="dato" style={{ fontSize: "12px", fontWeight: "500" }}>
-              Tidspunkt for rettelse
-            </label>
-            <input
-              type="datetime-local"
-              id="dato"
-              name="dato"
-              className="input"
-              defaultValue={nowIsoString}
-            />
-          </div>
+          <p className="help-text" style={{ margin: 0, flex: "1 1 auto" }}>
+            Rettelsen tidsstemples automatisk og kan ikke bagdateres.
+          </p>
 
           <button
             type="submit"

@@ -43,6 +43,7 @@ const article = (over: Record<string, unknown> = {}) => ({
   titel: "Ny lokalplan sendt i høring",
   manchet: "Planen omfatter 40 boliger.",
   tekst: "Første afsnit <img src=x onerror=alert(1)> med tekst.\n\nAndet afsnit & mere.",
+  sektion: "politik",
   aiBrug: ["Udkast"],
   sources: [{ url: "https://naestved.dk/dagsorden/2026-10-01", dato: "2026-10-01", sourceType: "kommune_dagsorden" }],
   ...over,
@@ -61,9 +62,12 @@ before(async () => {
   const ib = await mk("b");
   await db.geoTag.create({ data: { instansId: ia.id, navn: "Test Område", slug: "test-omraade" } });
   await db.geoTag.create({ data: { instansId: ib.id, navn: "Test Område", slug: "test-omraade" } });
+  await db.category.create({ data: { instansId: ib.id, navn: "Politik", slug: "politik" } });
   const krimi = await db.category.create({ data: { instansId: ia.id, navn: "Krimi og retsvæsen", slug: "krimi-og-retsvaesen" } });
   categoryKrimiId = krimi.id;
   await db.category.create({ data: { instansId: ia.id, navn: "Politik", slug: "politik" } });
+  // Barn af Krimi med et "uskyldigt" navn og slug — spærringen følger forældrekæden (T5 P2-7 / T7 §7).
+  await db.category.create({ data: { instansId: ia.id, navn: "Lokale sager", slug: "lokale-sager", parentId: krimi.id } });
   const ka = await createApiKey({ instansId: ia.id, name: "test A", scopes: ["signals:write", "articles:draft", "health:read"] });
   const kb = await createApiKey({ instansId: ib.id, name: "test B", scopes: ["signals:write", "articles:draft", "health:read"] });
   const ro = await createApiKey({ instansId: ia.id, name: "read only", scopes: ["health:read"] });
@@ -270,4 +274,60 @@ test("rate limit: 120 kald/min pr. nøgle, derefter 429 med Retry-After", async 
   let status = 0;
   for (let i = 0; i < 32; i++) status = (await getHealth(req("/api/ingest/health", "lk_" + "y".repeat(43), undefined, "GET"))).status;
   assert.equal(status, 429);
+});
+
+test("T7: sektion er påkrævet og skal kunne afgøres; barn af Krimi er spærret uanset navn/slug", async () => {
+  const post = (body: unknown) => postArticles(req("/api/ingest/articles", a.key, body));
+  const noSektion = { ...article({ externalId: `art-${run}-nosek` }) } as Record<string, unknown>;
+  delete noSektion.sektion;
+  const res = await post(noSektion);
+  assert.equal(res.status, 400, "manglende sektion afvises af kontrakten (strict schema)");
+  assert.equal((await post(article({ externalId: `art-${run}-child`, sektion: "lokale-sager" }))).status, 403, "barn af Krimi/retsvæsen er spærret");
+  assert.equal(await db.article.count({ where: { instansId: a.id, externalId: { in: [`art-${run}-nosek`, `art-${run}-child`] } } }), 0);
+});
+
+test("T7: signal-meta gemmes, og opdatering nulstiller læst og redaktørens godkendelse", async () => {
+  const ext = `sig-${run}-meta`;
+  const created = await (await postSignals(req("/api/ingest/signals", a.key, signal({ externalId: ext, kildeUrl: "https://naestved.dk/dagsorden/meta-1", meta: { runId: "r-1", fetched: true, antal: 3, tom: null } })))).json();
+  assert.equal(created.status, "created");
+  const row = await db.signal.findUniqueOrThrow({ where: { id: created.id } });
+  assert.deepEqual(row.meta, { runId: "r-1", fetched: true, antal: 3, tom: null });
+  assert.equal(row.godkendtTid, null, "nye signaler er altid ugodkendte");
+  assert.equal(row.godkendtAf, null);
+
+  // En redaktør læser og godkender signalet.
+  await db.signal.update({ where: { id: row.id }, data: { laest: true, godkendtAf: "redaktoer-1", godkendtTid: new Date() } });
+
+  // Kun meta ændret -> gemmes uden at røre ved læst/godkendt/version.
+  const metaOnly = await (await postSignals(req("/api/ingest/signals", a.key, signal({ externalId: ext, kildeUrl: "https://naestved.dk/dagsorden/meta-1", meta: { runId: "r-2" } })))).json();
+  assert.equal(metaOnly.status, "updated");
+  const afterMeta = await db.signal.findUniqueOrThrow({ where: { id: row.id } });
+  assert.deepEqual(afterMeta.meta, { runId: "r-2" });
+  assert.equal(afterMeta.laest, true);
+  assert.ok(afterMeta.godkendtTid, "godkendelsen består ved ren meta-ændring");
+  assert.equal(afterMeta.version, 1);
+
+  // Indholdet ændres -> ny version, ulæst og ugodkendt igen.
+  const changed = await (await postSignals(req("/api/ingest/signals", a.key, signal({ externalId: ext, kildeUrl: "https://naestved.dk/dagsorden/meta-1", overskrift: "Helt ny overskrift om punkt 4", meta: { runId: "r-2" } })))).json();
+  assert.equal(changed.status, "updated");
+  const afterChange = await db.signal.findUniqueOrThrow({ where: { id: row.id } });
+  assert.equal(afterChange.version, 2);
+  assert.equal(afterChange.laest, false, "opdateret signal er ulæst igen");
+  assert.equal(afterChange.godkendtTid, null, "ændret signal skal godkendes igen");
+  assert.equal(afterChange.godkendtAf, null);
+
+  // Uændret gentagelse er et duplikat.
+  const dup = await (await postSignals(req("/api/ingest/signals", a.key, signal({ externalId: ext, kildeUrl: "https://naestved.dk/dagsorden/meta-1", overskrift: "Helt ny overskrift om punkt 4", meta: { runId: "r-2" } })))).json();
+  assert.equal(dup.status, "duplicate");
+});
+
+test("T7: geo matcher 'Næstved' mod 'Næstved By' og postnummer via instansens tabel", async () => {
+  const post = (body: unknown) => postSignals(req("/api/ingest/signals", a.key, body));
+  const geoA = await db.geoTag.create({ data: { instansId: a.id, navn: "Brodersby By", slug: "brodersby-by" } });
+  const r1 = await (await post(signal({ externalId: `sig-${run}-geo1`, kildeUrl: "https://naestved.dk/geo/1", geo: { by: "Brodersby" } }))).json();
+  assert.equal((await db.signal.findUniqueOrThrow({ where: { id: r1.id } })).omraadeId, geoA.id, "by 'Brodersby' rammer 'Brodersby By'");
+  const r2 = await (await post(signal({ externalId: `sig-${run}-geo2`, kildeUrl: "https://naestved.dk/geo/2", geo: { omraade: "ukendt-sted", postnr: "4999" } }))).json();
+  const row2 = await db.signal.findUniqueOrThrow({ where: { id: r2.id } });
+  assert.equal(row2.omraadeId, null);
+  assert.match(row2.omraadeTekst ?? "", /ukendt-sted/);
 });

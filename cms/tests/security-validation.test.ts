@@ -168,6 +168,9 @@ test("upload: filtype afgøres af indhold, SVG/HTML/exe/aktiv PDF afvises", asyn
   const evilPdf = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog /OpenAction << /S /JavaScript /JS (app.alert(1)) >> >>\nendobj\n");
   assert.equal(validateUploadBuffer(cleanPdf).ok, true);
   assert.equal(validateUploadBuffer(evilPdf).ok, false);
+  // T5 P3-8: hex-escapede PDF-navne (/#4aavaScript == /JavaScript, /#4aS == /JS) omgår ikke skanningen
+  const escapedPdf = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog /O#70enAction << /S /#4aavaScript /#4aS (app.alert(1)) >> >>\nendobj\n");
+  assert.equal(validateUploadBuffer(escapedPdf).ok, false);
 
   const tooBig = Buffer.concat([png.subarray(0, 8), Buffer.alloc(11 * 1024 * 1024)]);
   assert.equal(validateUploadBuffer(tooBig).ok, false);

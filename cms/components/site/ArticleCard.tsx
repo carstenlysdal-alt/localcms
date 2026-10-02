@@ -136,7 +136,7 @@ export function ArticleCard({
         {categoryMeta && <div className="site-card-category">{categoryMeta}</div>}
 
         <HeadingTag className="site-card-title">
-          {breaking && <span className="site-card-breaking">BREAKING</span>}
+          {breaking && <span className="site-card-breaking">LIGE NU</span>}
           {debatLabel && <span className="site-card-debat-label">{debatLabel}: </span>}
           <Link href={href} className="site-card-link">
             {titel}

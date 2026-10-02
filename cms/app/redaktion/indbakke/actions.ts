@@ -1,11 +1,20 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { textToParagraphHtml } from "@/lib/validation/text";
+import { loadCategoryTree } from "@/lib/category-tree";
+import { isAiRestrictedCategoryTree } from "@/lib/marking";
+import { canViewPartnerBriefs } from "@/lib/redaktion-access";
+
+/** AI-assisterede kladder må ikke lægges i Krimi/Sundhed (heller ikke som barn af dem) — kategorien overlades da til redaktøren. */
+async function aiSafeCategoryId(instansId: string, categoryId: string | null | undefined): Promise<string | null> {
+  if (!categoryId) return null;
+  return isAiRestrictedCategoryTree(await loadCategoryTree(instansId, categoryId)) ? null : categoryId;
+}
 
 function slugify(text: string): string {
   const base = text
@@ -24,7 +33,7 @@ export async function updateSubmissionStatus(
   status: "Ny" | "Behandles" | "Afvist",
   noter?: string
 ) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
     return { success: false, error: "Du har ikke rettigheder til at opdatere indsendelser." };
   }
@@ -50,7 +59,7 @@ export async function updateSubmissionStatus(
 }
 
 export async function convertSubmissionToArticle(submissionId: string) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
     return { success: false, error: "Du har ikke rettigheder til at oprette artikler." };
   }
@@ -154,7 +163,7 @@ export async function convertSubmissionToArticle(submissionId: string) {
 }
 
 export async function deleteSubmission(submissionId: string) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
     return { success: false, error: "Du har ikke rettigheder til at slette indsendelser." };
   }
@@ -168,7 +177,7 @@ export async function deleteSubmission(submissionId: string) {
 }
 
 export async function convertQaToArticle(qaId: string) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
     return { success: false, error: "Du har ikke rettigheder til at oprette artikler." };
   }
@@ -233,12 +242,15 @@ export async function convertQaToArticle(qaId: string) {
       blocks: blocks as unknown as Prisma.InputJsonValue,
       status: "Idé",
       indholdstype: "Uafhængig",
-      aiBrug: ["Assisteret indsamling via Kilde-Q&A"],
+      // AI-brug er ikke afgjort — redaktøren skal vælge aktivt ("Ingen AI brugt" eller konkret brug) før publicering.
+      aiBrug: [],
+      // Kildens identitet er IKKE verificeret (henvendelsen kan være indsendt anonymt via det offentlige Q&A-link):
+      // artiklen kan ikke publiceres, før en redaktør har afkrydset verifikation. Kontaktoplysninger lægges ikke i marking.
       marking: {
         kilde: qa.kildeNavn,
         kildeRolle: qa.kildeRolle,
-        kildeKontakt: qa.kildeKontakt,
         type: "Kilde-Q&A",
+        uverificeretKilde: true,
       },
       kategoriId: defaultCategory?.id || null,
       forfatterId: session.user.authorId || null,
@@ -262,7 +274,7 @@ export async function convertQaToArticle(qaId: string) {
 }
 
 export async function convertInterviewToArticle(interviewId: string) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
     return { success: false, error: "Du har ikke rettigheder til at oprette artikler." };
   }
@@ -329,12 +341,13 @@ export async function convertInterviewToArticle(interviewId: string) {
       blocks: blocks as unknown as Prisma.InputJsonValue,
       status: "Idé",
       indholdstype: "Uafhængig",
-      aiBrug: ["AI-guidet interviewtransskription"],
+      aiBrug: ["Transskribering"],
       marking: {
         kilde: interview.kildeNavn,
         kildeRolle: interview.kildeRolle,
         interviewer: interview.journalistNavn || session.user.name,
         type: "AI-Kildeinterview",
+        uverificeretKilde: true, // se convertQaToArticle: kildens identitet skal verificeres før publicering
       },
       kategoriId: defaultCategory?.id || null,
       forfatterId: session.user.authorId || null,
@@ -358,9 +371,13 @@ export async function convertInterviewToArticle(interviewId: string) {
 }
 
 export async function convertSponsorBriefToArticle(briefId: string) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
     return { success: false, error: "Du har ikke rettigheder til at oprette artikler." };
+  }
+  // Partnerbriefs indeholder partnerens kontaktoplysninger: samme adgang som visningen (salgs-/supportrettighed).
+  if (!canViewPartnerBriefs(session.user)) {
+    return { success: false, error: "Du har ikke adgang til partnerbriefs." };
   }
 
   const brief = await db.sponsorBrief.findFirst({
@@ -463,7 +480,7 @@ export async function convertSponsorBriefToArticle(briefId: string) {
 }
 
 export async function convertMeddelerSagToArticle(sagId: string) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
     return { success: false, error: "Du har ikke rettigheder til at oprette artikler." };
   }
@@ -519,14 +536,16 @@ export async function convertMeddelerSagToArticle(sagId: string) {
       blocks: blocks as unknown as Prisma.InputJsonValue,
       status: "Idé",
       indholdstype: "AI-assisteret",
-      aiBrug: ["AI-struktureret meddelerrapport"],
+      aiBrug: ["Udkast"],
       marking: {
         afsender: sag.meddeler?.navn || "Lokal meddeler",
         organisation: sag.meddeler?.organisation || null,
         kategori: sag.kategori,
         type: "Meddeler-rapport",
+        uverificeretKilde: true,
       },
-      kategoriId: category?.id || null,
+      // AI-assisteret: aldrig i Krimi/Sundhed (inkl. underkategorier) — redaktøren vælger sektion.
+      kategoriId: await aiSafeCategoryId(session.user.instansId, category?.id),
       forfatterId: session.user.authorId || null,
       instansId: session.user.instansId,
     },

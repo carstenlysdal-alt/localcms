@@ -5,6 +5,7 @@ import { ArticleTable } from "@/components/admin/article-table";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
+import { searchOr } from "@/lib/search";
 
 const tabs = ["Alle", "Publiceret", "Planlagt", "Meninger", "Debat"] as const;
 
@@ -23,7 +24,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
 
   const where: Prisma.ArticleWhereInput = {
     instansId: session.user.instansId,
-    ...(query ? { titel: { contains: query } } : {}),
+    ...(query ? { OR: searchOr<Prisma.ArticleWhereInput>(["titel"], query) } : {}),
     ...(status ? { status } : tab === "Publiceret" ? { status: "Publiceret" } : tab === "Planlagt" ? { status: "Planlagt" } : {}),
     ...(type ? { indholdstype: type } : filterSponsored ? { indholdstype: "Sponsoreret" } : tab === "Debat" ? { kategori: { slug: "debat" } } : tab === "Meninger" ? { indholdstype: "Brugerindsendt" } : {}),
     ...(filterBreaking ? { breaking: true } : {}),
@@ -100,7 +101,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
       )}
 
       <section className="article-group">
-        <h2>BREAKING <span>{breaking.length}</span></h2>
+        <h2>HASTENYHEDER <span>{breaking.length}</span></h2>
         <ArticleTable articles={breaking} canManageFrontpage={canManage} />
       </section>
       <section className="article-group">

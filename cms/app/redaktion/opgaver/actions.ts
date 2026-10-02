@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { assignmentSchema, canTransitionAssignment, parseLocalDateTime } from "@/lib/assignments";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
@@ -20,7 +20,7 @@ async function validateRelations(instansId: string, values: { assignedAuthorId?:
 }
 
 export async function saveAssignment(id: string | null, _: AssignmentFormState, formData: FormData): Promise<AssignmentFormState> {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user?.id || !can(session.user, PERMISSIONS.TASK_MANAGE)) return { error: "Du har ikke adgang til at administrere opgaver." };
   const parsed = assignmentSchema.safeParse({ ...Object.fromEntries(formData), iPulje: formData.get("iPulje") === "on" });
   if (!parsed.success) return { error: "Kontrollér opgavens felter.", fieldErrors: parsed.error.flatten().fieldErrors };
@@ -56,7 +56,7 @@ export async function saveAssignment(id: string | null, _: AssignmentFormState, 
 }
 
 export async function claimAssignment(id: string) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user?.authorId || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) throw new Error("Du kan ikke tage denne opgave.");
   const result = await db.assignment.updateMany({
     where: { id, instansId: session.user.instansId, iPulje: true, status: "Åben", assignedAuthorId: null },
@@ -68,7 +68,7 @@ export async function claimAssignment(id: string) {
 }
 
 export async function transitionAssignment(id: string, targetStatus: string, formData: FormData) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) throw new Error("Ikke logget ind.");
   const assignment = await db.assignment.findFirst({ where: { id, instansId: session.user.instansId } });
   if (!assignment) throw new Error("Opgaven findes ikke.");

@@ -5,6 +5,7 @@ import { MediaPreview } from "@/components/media/media-preview";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
+import { searchOr } from "@/lib/search";
 
 function formatBytes(value: number | null) {
   if (!value) return "Ekstern";
@@ -18,7 +19,7 @@ export default async function MediaPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim() : "";
   const type = typeof params.type === "string" ? params.type : "";
-  const where: Prisma.MediaWhereInput = { instansId: session.user.instansId, ...(type ? { filtype: type } : {}), ...(query ? { OR: [{ filnavn: { contains: query } }, { billedtekst: { contains: query } }, { altTekst: { contains: query } }, { ophavsperson: { contains: query } }] } : {}) };
+  const where: Prisma.MediaWhereInput = { instansId: session.user.instansId, ...(type ? { filtype: type } : {}), ...(query ? { OR: searchOr<Prisma.MediaWhereInput>(["filnavn", "billedtekst", "altTekst", "ophavsperson"], query) } : {}) };
   const media = await db.media.findMany({ where, orderBy: { createdAt: "desc" } });
   return <main className="admin-main">
     <div className="page-heading"><div><h1>Mediebibliotek</h1><p className="text-muted">{media.length} medier i den aktuelle visning</p></div>{can(session.user, PERMISSIONS.MEDIA_MANAGE) && <Link className="btn btn-primary" href="/redaktion/medier/ny"><Plus size={17} /> Tilføj medie</Link>}</div>

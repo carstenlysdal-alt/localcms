@@ -35,7 +35,8 @@ Railway edge-proxy  ──►  Next.js (proxy.ts: origin-lås, bot-/bane-filter,
 | Variabel | Værdi | Bemærkning |
 |---|---|---|
 | `ORIGIN_SECRET` | `openssl rand -base64 36` (min. 24 tegn) | Samme værdi i Cloudflare Transform Rule (afsnit 3.3). Uden den er originen åben for alle, der kender Railway-domænet. |
-| `TRUST_CLOUDFLARE` | `1` | **Kun** når `ORIGIN_SECRET` er sat; ellers kan alle forfalske `CF-Connecting-IP`. |
+| `TRUST_CLOUDFLARE` | `1` | **Kun** når `ORIGIN_SECRET` er sat; ellers kan alle forfalske `CF-Connecting-IP`. Fra T5 P2-2 er `TRUST_CLOUDFLARE=1` uden `ORIGIN_SECRET` en **startfejl** i produktion (`lib/env.ts`), og manglende `ORIGIN_SECRET` giver en advarsel. |
+| `TRUST_FORWARDED_HOST` | (udeladt) | Standard: tenant og cache-nøgle bruger kun `Host` (Cloudflare bevarer den; Railway router på den). `X-Forwarded-Host` kan sættes af klienten og ignoreres, medmindre kanten garanterer at den overskrives — sæt da `1` (`lib/trusted-host.ts`). Anonym HTML får `Vary: Host` (`Host, X-Forwarded-Host` når den er betroet), så en CDN aldrig blander byer. |
 | `TRUSTED_PROXY_HOPS` | `2` (Cloudflare + Railway) | Bruges når `CF-Connecting-IP`/`CF-Ray` mangler (fx Railways healthcheck). Kun Railway foran: `1` (standard). |
 | `REDIS_URL` | `${{Redis.REDIS_URL}}` (privat adresse) | Påkrævet ved mere end 1 replika, ellers er grænser/lockout/bans pr. proces. |
 | `CSP_REPORT_ONLY` | `1` de første dage, derefter fjernes | Se afsnit 7. Standard i produktion er **håndhævet**. |

@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { isReservedSlug, validateCategoryNesting } from "@/lib/taxonomy";
+import { loadCategoryTree } from "@/lib/category-tree";
+import { isAiRestrictedCategoryTree } from "@/lib/marking";
 
 export type CategoryActionState = {
   error?: string;
@@ -30,7 +32,7 @@ export async function saveCategory(
   _prevState: CategoryActionState,
   formData: FormData
 ): Promise<CategoryActionState> {
-  const session = await auth();
+  const session = await getFreshSession();
   if (
     !session?.user ||
     (!can(session.user, PERMISSIONS.CATEGORY_MANAGE) &&
@@ -84,6 +86,18 @@ export async function saveCategory(
     }
   }
 
+  // 2b. AI-spærring (T5 P2-7): en sektion i Krimi og retsvæsen/Sundhed-træet kan ikke gøres "ikke-spærret" ved at
+  //     omdøbe den, ændre dens slug eller flytte den ud af den spærrede gren.
+  if (categoryId) {
+    const before = await loadCategoryTree(session.user.instansId, categoryId);
+    if (before && isAiRestrictedCategoryTree(before)) {
+      const parentTree = parentId ? await loadCategoryTree(session.user.instansId, parentId) : null;
+      if (!isAiRestrictedCategoryTree({ slug, navn, parent: parentTree })) {
+        return { error: "Sektionen er spærret for AI-assisteret indhold (Krimi og retsvæsen/Sundhed). Navn, slug og placering kan ikke ændres, så spærringen ophæves." };
+      }
+    }
+  }
+
   // 3. Unik slug pr. instans
   const existing = await db.category.findFirst({
     where: {
@@ -133,7 +147,7 @@ export async function saveCategory(
 }
 
 export async function deleteCategory(categoryId: string): Promise<CategoryActionState> {
-  const session = await auth();
+  const session = await getFreshSession();
   if (
     !session?.user ||
     (!can(session.user, PERMISSIONS.CATEGORY_MANAGE) &&

@@ -1,4 +1,8 @@
 import { db } from "@/lib/db";
+import { COMMERCIAL_TYPES } from "@/lib/frontpage/types";
+
+/** Instansens standardloft (samme som Instance.kvoteloftProcent i schemaet). */
+export const DEFAULT_KVOTELOFT_PROCENT = 25;
 
 export interface QuotaStatus {
   percentage: number;
@@ -11,6 +15,8 @@ export interface QuotaStatus {
 /**
  * Beregner støttefinansieret andel af publicerede artikler de seneste 7 dage (A-04, CMS-04).
  * Kvoteloftet sikrer mediets redaktionelle uafhængighed (typisk maks 20-25%).
+ * "Støttefinansieret" = indholdstyperne i COMMERCIAL_TYPES (Partner, Sponsoreret, PR, Annonce) — samme definition som
+ * forsidens rækværk (lib/frontpage/guardrails.ts). Annoncekampagner i ad-break-moduler tælles dér (adBreakAllowance).
  */
 export async function calculateSupportedContentQuota(instansId: string): Promise<QuotaStatus> {
   const instance = await db.instance.findUnique({
@@ -18,7 +24,7 @@ export async function calculateSupportedContentQuota(instansId: string): Promise
     select: { kvoteloftProcent: true },
   });
 
-  const kvoteloftProcent = instance?.kvoteloftProcent ?? 20;
+  const kvoteloftProcent = instance?.kvoteloftProcent ?? DEFAULT_KVOTELOFT_PROCENT;
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [totalCount, supportedCount] = await Promise.all([
@@ -34,10 +40,7 @@ export async function calculateSupportedContentQuota(instansId: string): Promise
         instansId,
         status: "Publiceret",
         publiceretTid: { gte: sevenDaysAgo },
-        OR: [
-          { indholdstype: { in: ["Partner", "Sponsoreret", "Annonce"] } },
-          { supportAftaleId: { not: null } },
-        ],
+        indholdstype: { in: [...COMMERCIAL_TYPES] },
       },
     }),
   ]);

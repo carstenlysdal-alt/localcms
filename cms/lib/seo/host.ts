@@ -1,3 +1,5 @@
+import { trustedHost } from "../trusted-host";
+
 /**
  * Host-kanonisering. Kun apex-domænet (`site.domaene`) må indekseres.
  * www.* redirectes i next.config.ts; ukendte værter får noindex (og robots Disallow: /).
@@ -30,7 +32,7 @@ export async function getHostStatus(siteDomain: string): Promise<HostClassificat
   try {
     const { headers } = await import("next/headers");
     const h = await headers();
-    return classifyHost(h.get("x-forwarded-host") ?? h.get("host"), siteDomain);
+    return classifyHost(trustedHost(h), siteDomain);
   } catch {
     return classifyHost(null, siteDomain);
   }

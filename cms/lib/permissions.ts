@@ -17,6 +17,8 @@ export const PERMISSIONS = {
   NEWSLETTER_MANAGE: "newsletter.manage",
   ADS_MANAGE: "ads.manage",
   INGEST_MANAGE: "ingest.manage",
+  /** Godkend maskinindsamlede signaler (Signal) til offentlig visning på forsiden (T5 P1-3). */
+  SIGNAL_APPROVE: "signal.approve",
   // T11/T12: modulær forside (docs/review/T11-T12-spec.md)
   FRONTPAGE_LAYOUT_MANAGE: "frontpage.layout.manage",
   FRONTPAGE_SNAPSHOT_APPROVE: "frontpage.snapshot.approve",

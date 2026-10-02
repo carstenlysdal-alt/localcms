@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { trustedHost } from "@/lib/trusted-host";
 import { ALL_NETWORK_SITES, siteOrigin, resolveSwitchPath } from "@/lib/network-sites";
 
 /**
@@ -22,7 +23,7 @@ export function GET(request: NextRequest) {
   const rawPath = searchParams.get("redirect") ?? "/";
   const safePath = isSafeRelativePath(rawPath) ? resolveSwitchPath(rawPath.split("?")[0].split("#")[0]) : "/";
 
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const host = trustedHost(request.headers);
   const origin = siteOrigin(target.domaene, host, request.headers.get("x-forwarded-proto"));
   return NextResponse.redirect(`${origin}${safePath}`, 307);
 }

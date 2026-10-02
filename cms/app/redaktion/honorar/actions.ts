@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 
 export async function approveHonor(id: string) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.HONOR_MANAGE)) throw new Error("Du har ikke adgang til at godkende honorarer.");
   const result = await db.honorEntry.updateMany({
     where: { id, instansId: session.user.instansId, status: "Afventer" },

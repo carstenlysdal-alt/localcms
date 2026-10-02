@@ -1,19 +1,21 @@
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { SubscriberList } from "@/components/admin/SubscriberList";
 import { Mail } from "lucide-react";
+import { NoAccess } from "@/components/admin/no-access";
+import { PAGE_PERMISSIONS } from "@/lib/redaktion-access";
 
 export default async function RedaktionNyhedsbrevPage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = await getAuthorizedUser([...PAGE_PERMISSIONS.nyhedsbrev]);
+  if (!user) return <NoAccess area="nyhedsbrevets modtagerliste" />;
 
   const subscribers = await db.newsletterSubscriber.findMany({
-    where: { instansId: session.user.instansId },
+    where: { instansId: user.instansId },
     orderBy: { createdAt: "desc" },
   });
 
   const areas = await db.geoTag.findMany({
-    where: { instansId: session.user.instansId },
+    where: { instansId: user.instansId },
     orderBy: { navn: "asc" },
     select: { slug: true, navn: true },
   });

@@ -7,7 +7,10 @@ import { z } from "zod";
  * regler — aldrig værdier (hemmeligheder må ikke ende i logs). Uden for produktion (dev/test) kaster vi aldrig.
  *
  * Påkrævet i produktion: DATABASE_URL, AUTH_SECRET (>= 32 tegn), NEXT_PUBLIC_APP_URL (http/https-URL), CRON_SECRET (>= 16).
- * Kun advarsel: REDIS_URL, AUTH_TRUST_HOST/AUTH_URL, DATABASE_URL ikke postgres, uploads på flygtigt filsystem.
+ * FEJL i produktion (T5 P2-2): TRUST_CLOUDFLARE=1 uden ORIGIN_SECRET (så kan enhver, der rammer Railway-origin direkte,
+ * forfalske CF-Connecting-IP og omgå rate limit/lockout/bans), og ORIGIN_SECRET kortere end 24 tegn.
+ * Kun advarsel: REDIS_URL, AUTH_TRUST_HOST/AUTH_URL, DATABASE_URL ikke postgres, uploads på flygtigt filsystem,
+ * ORIGIN_SECRET mangler, TURNSTILE_SECRET_KEY mangler, TRUST_FORWARDED_HOST slået til, delt IP-bucket bag Cloudflare.
  * Valgfri: ANTHROPIC_API_KEY m.fl.
  */
 
@@ -44,7 +47,14 @@ const optionalSchema = z.object({
   UPLOAD_DIR: optionalText,
   UPLOAD_STORAGE: optionalText,
   RAILWAY_VOLUME_MOUNT_PATH: optionalText,
+  ORIGIN_SECRET: optionalText,
+  TRUST_CLOUDFLARE: optionalText,
+  TRUST_FORWARDED_HOST: optionalText,
+  TRUSTED_PROXY_HOPS: optionalText,
+  TURNSTILE_SECRET_KEY: optionalText,
 });
+
+const isOn = (v: string | undefined) => v === "1" || v?.toLowerCase() === "true";
 
 export type EnvReport = {
   ok: boolean;
@@ -95,6 +105,24 @@ export function checkEnv(env: NodeJS.ProcessEnv = process.env): EnvReport {
   const volume = opt.UPLOAD_DIR || opt.RAILWAY_VOLUME_MOUNT_PATH;
   if (production && opt.UPLOAD_STORAGE !== "volume" && !volume) {
     warnings.push("Uploads gemmes på det flygtige filsystem — monter en Railway Volume og sæt UPLOAD_DIR (uploads forsvinder ved redeploy)");
+  }
+
+  // Kant og tillid (T5 P2-2). TRUST_CLOUDFLARE uden aktiv origin-lås gør CF-Connecting-IP forfalskbar -> startfejl.
+  const originSecret = opt.ORIGIN_SECRET?.trim();
+  if (isOn(opt.TRUST_CLOUDFLARE) && !originSecret) {
+    invalid.push("TRUST_CLOUDFLARE=1 kræver ORIGIN_SECRET (origin-lås), ellers kan klient-IP forfalskes og rate limit/lockout omgås");
+  }
+  if (originSecret && originSecret.length < 24) invalid.push("ORIGIN_SECRET skal være mindst 24 tegn");
+  if (!originSecret) {
+    warnings.push("ORIGIN_SECRET mangler — origin kan nås uden om Cloudflare (ingen origin-lås); sæt den og en Transform Rule der tilføjer x-origin-secret");
+  } else if (!isOn(opt.TRUST_CLOUDFLARE) && !(Number.parseInt(opt.TRUSTED_PROXY_HOPS ?? "1", 10) >= 2)) {
+    warnings.push("Origin-lås er aktiv (Cloudflare foran), men hverken TRUST_CLOUDFLARE=1 eller TRUSTED_PROXY_HOPS=2 er sat — alle besøgende bag samme Cloudflare-PoP deler rate-limit-bucket");
+  }
+  if (isOn(opt.TRUST_FORWARDED_HOST)) {
+    warnings.push("TRUST_FORWARDED_HOST=1 — X-Forwarded-Host bruges til tenant-valg; kanten SKAL overskrive/tilføje headeren, ellers kan klienten vælge by (cache poisoning)");
+  }
+  if (!opt.TURNSTILE_SECRET_KEY) {
+    warnings.push("TURNSTILE_SECRET_KEY mangler — formularer har kun honeypot og rate limit (Turnstile er slået fra)");
   }
   if (!opt.ANTHROPIC_API_KEY) warnings.push("ANTHROPIC_API_KEY mangler — AI-assistent og AI-forslag til forsiden er slået fra (valgfri)");
 

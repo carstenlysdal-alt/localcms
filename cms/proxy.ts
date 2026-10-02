@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { legacyPathToAscii } from "@/lib/slug";
 import { getClientIp } from "@/lib/client-ip";
+import { trustedHost, varyHeaderFor } from "@/lib/trusted-host";
 import { classifyUserAgent, pageLimitPerMinute } from "@/lib/bot/detect";
 import { isMaliciousPath } from "@/lib/bot/paths";
 import { isBanned, localPageLimit, recordStrike } from "@/lib/bot/ban";
@@ -186,8 +187,9 @@ export async function proxy(request: NextRequest) {
   });
   if (decision.cacheable && decision.cacheControl) {
     response.headers.set("Cache-Control", decision.cacheControl);
-    response.headers.set("Vary", "Host");
-    response.headers.set("Cache-Tag", cacheTagForHost(request.headers.get("x-forwarded-host")?.split(",")[0].trim() || request.headers.get("host") || request.nextUrl.host));
+    // Tenant-valget (lib/site.ts) bruger Host (eller betroet X-Forwarded-Host); Vary afspejler præcis det.
+    response.headers.set("Vary", varyHeaderFor());
+    response.headers.set("Cache-Tag", cacheTagForHost(trustedHost(request.headers) || request.nextUrl.host));
   } else if (pathname.startsWith("/redaktion") || pathname === "/login") {
     response.headers.set("Cache-Control", "private, no-store");
   }

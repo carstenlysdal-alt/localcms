@@ -79,3 +79,23 @@ test("upload-ruten: content-type, nosniff, cache, range, 304 og 404", async () =
     else process.env.UPLOAD_DIR = prev;
   }
 });
+
+test("T5 P3-7: OG-cover fra /uploads/<uuid> læses via lagringslaget (UPLOAD_DIR), ikke fra public/", async () => {
+  const sharp = (await import("sharp")).default;
+  const { loadCoverBuffer } = await import("../lib/seo/og");
+  const png = await sharp({ create: { width: 8, height: 8, channels: 3, background: "#369" } }).png().toBuffer();
+  const name = `${randomUUID()}.png`;
+  const prev = process.env.UPLOAD_DIR;
+  process.env.UPLOAD_DIR = dir;
+  try {
+    await saveUpload(name, png, getStorageConfig({ UPLOAD_DIR: dir } as unknown as NodeJS.ProcessEnv));
+    const buf = await loadCoverBuffer(`/uploads/${name}?v=1`);
+    assert.ok(buf && buf.length === png.length, "billedet findes i UPLOAD_DIR og læses");
+    assert.equal(await loadCoverBuffer(`/uploads/${randomUUID()}.png`), null, "ukendt upload -> null (genereret kort)");
+    assert.equal(await loadCoverBuffer("/uploads/../../etc/passwd"), null, "path traversal afvises");
+    assert.equal(await loadCoverBuffer(`/uploads/${randomUUID()}.pdf`), null, "ikke-billede afvises");
+  } finally {
+    if (prev === undefined) delete process.env.UPLOAD_DIR;
+    else process.env.UPLOAD_DIR = prev;
+  }
+});

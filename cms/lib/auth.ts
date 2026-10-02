@@ -10,13 +10,18 @@ import { can, type Permission } from "./permissions";
 let dummyHash: Promise<string> | undefined;
 const getDummyHash = () => (dummyHash ??= hash("dummy-password-for-timing", 12));
 
+export const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
+export const SESSION_UPDATE_AGE_SECONDS = 60 * 60;
+
 const credentialsSchema = z.object({
   email: z.string().email().transform((value) => value.toLowerCase().trim()),
   password: z.string().min(1).max(200),
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: { strategy: "jwt" },
+  // JWT'en bærer rettigheder fra login-tidspunktet; derfor kort levetid (T5 P2-3) + databaseopslag i alle actions
+  // (getAuthorizedUser / getFreshSession). 12 t dækker en arbejdsdag; updateAge fornyer ved aktivitet.
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS, updateAge: SESSION_UPDATE_AGE_SECONDS },
   pages: { signIn: "/login" },
   providers: [
     Credentials({
@@ -117,4 +122,14 @@ export async function getAuthorizedUser(permission?: Permission | Permission[]):
     if (!needed.some((p) => can(result, p))) return null;
   }
   return result;
+}
+
+/**
+ * Drop-in-erstatning for `auth()` i server actions: returnerer `{ user }` hvor brugeren og rettighederne er slået op i
+ * DATABASEN (ikke læst fra den op til 12 timer gamle JWT). null hvis ikke logget ind eller brugeren er slettet.
+ * Kald stadig `can(session.user, …)` for den konkrete rettighed.
+ */
+export async function getFreshSession(): Promise<{ user: AuthorizedUser } | null> {
+  const user = await getAuthorizedUser();
+  return user ? { user } : null;
 }

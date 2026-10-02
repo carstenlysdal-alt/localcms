@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
+import { resolveOwnerConfig } from "@/lib/owner-config";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { Mail, MapPin, Send, MessageSquare, AlertCircle } from "lucide-react";
 
@@ -14,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ContactPage() {
   const site = await getCurrentSite();
+  const owner = resolveOwnerConfig(site);
 
   return (
     <div className="site-page-container" style={{ padding: "24px 0 64px 0" }}>
@@ -173,9 +175,11 @@ export default async function ContactPage() {
               {site.navn} Udgiverselskab<br />
               {site.kommune}, Danmark
             </p>
-            <span style={{ fontSize: "12px", color: "var(--ink-3)" }}>
-              Ansvarshavende redaktør: Carsten Lysdal
-            </span>
+            {owner.ansvarshavendeRedaktoer && (
+              <span style={{ fontSize: "12px", color: "var(--ink-3)" }}>
+                Ansvarshavende redaktør: {owner.ansvarshavendeRedaktoer}
+              </span>
+            )}
           </div>
         </div>
       </div>

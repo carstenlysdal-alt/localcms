@@ -1,15 +1,17 @@
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { Handshake } from "lucide-react";
 import { SponsorListClient } from "./SponsorListClient";
+import { NoAccess } from "@/components/admin/no-access";
+import { PAGE_PERMISSIONS } from "@/lib/redaktion-access";
 
 export default async function RedaktionSponsorPage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = await getAuthorizedUser([...PAGE_PERMISSIONS.sponsor]);
+  if (!user) return <NoAccess area="sponsor- og partnerindhold" />;
 
   const briefs = await db.sponsorBrief.findMany({
-    where: { instansId: session.user.instansId },
+    where: { instansId: user.instansId },
     include: {
       article: { select: { id: true, titel: true, status: true } },
     },

@@ -35,7 +35,7 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
       select: { id: true, url: true, altTekst: true, billedtekst: true, filnavn: true },
     }),
     db.correction.findMany({
-      where: { articleId: id, instansId: session.user.instansId },
+      where: { articleId: id, instansId: session.user.instansId, fjernetTid: null },
       orderBy: { dato: "desc" },
     }),
   ]);
@@ -120,10 +120,11 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
           media={media}
           transitions={availableTransitions(article.status, session.user)}
           canPublish={can(session.user, PERMISSIONS.ARTICLE_PUBLISH)}
+          canControlFrontpage={can(session.user, PERMISSIONS.FRONTPAGE_EDIT)}
         />
 
         {/* A-05: Rettelser i editoren for publicerede artikler */}
-        <ArticleCorrections articleId={article.id} corrections={corrections} />
+        <ArticleCorrections articleId={article.id} corrections={corrections} canRemove={can(session.user, PERMISSIONS.ARTICLE_PUBLISH) || can(session.user, PERMISSIONS.ARTICLE_EDIT_ALL)} />
       </main>
     </AiDock>
   );

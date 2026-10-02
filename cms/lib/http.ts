@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { ZodType } from "zod";
+import { trustedHost } from "./trusted-host";
 
 /** Læs JSON-body med hård størrelsesgrænse (virker også for sendBeacon, som kan have text/plain). */
 export async function readJsonBody(req: Request, maxBytes: number): Promise<{ ok: true; data: unknown } | { ok: false; status: 400 | 413; error: string }> {
@@ -45,7 +46,7 @@ export function isSameOrigin(req: Request): boolean {
   if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") return false;
   const origin = req.headers.get("origin");
   if (!origin) return true;
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  const host = trustedHost(req.headers);
   try {
     return Boolean(host) && new URL(origin).host === host;
   } catch {

@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PERMISSIONS } from "@/lib/permissions";
+import { AD_MANAGE_PERMISSIONS } from "@/lib/redaktion-access";
 import { cleanText, isHttpUrl } from "@/lib/validation/text";
 
-const AD_PERMISSIONS = [PERMISSIONS.ADS_MANAGE, PERMISSIONS.SUPPORT_MANAGE];
+const AD_PERMISSIONS = AD_MANAGE_PERMISSIONS;
 const FORMATS = ["NATIVE_PREMIUM", "NATIVE_SEKTION", "IN_FEED_BANNER", "EVENT_POST", "GUIDE_PROFILE"] as const;
 const ZONES = ["top", "feed", "artikel", "kalender"] as const;
 

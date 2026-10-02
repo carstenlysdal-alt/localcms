@@ -93,7 +93,7 @@ function applyOne(modules: ModuleInstance[], op: FrontpageOp, ctx: { candidateId
     case "add_module": {
       const def = MODULE_REGISTRY[op.moduleType];
       const id = makeIdFactory(modules.map((m) => m.id))(op.moduleType);
-      const inst = { id, type: op.moduleType, slots: op.slots ?? def.slots.default, region: "full" as const, visible: true, mode: "forslag" as const, ...(op.variant ? { variant: op.variant } : {}), config: op.config ?? {} };
+      const inst = { id, type: op.moduleType, slots: op.slots ?? def.slots.default, region: "full" as const, visible: def.dataSource !== "Signal", mode: "forslag" as const, ...(op.variant ? { variant: op.variant } : {}), config: op.config ?? {} };
       const next = [...modules];
       if (op.afterModuleId === null) next.unshift(inst);
       else if (op.afterModuleId !== undefined) {

@@ -18,7 +18,7 @@ export default async function CorrectionsPage() {
   const site = await getCurrentSite();
 
   const corrections = await db.correction.findMany({
-    where: { instansId: site.id },
+    where: { instansId: site.id, fjernetTid: null },
     orderBy: { dato: "desc" },
     include: {
       article: {

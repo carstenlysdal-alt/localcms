@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
+import { resolveOwnerConfig } from "@/lib/owner-config";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { ShieldCheck } from "lucide-react";
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getCurrentSite();
+  const owner = resolveOwnerConfig(site);
   return {
     title: `Privatliv og databeskyttelse — ${site.navn}`,
     description: `Sådan behandler ${site.navn} personoplysninger: nyhedsbrev, tips og indsendelser, annoncer, cookies og dine rettigheder.`,
+    // Indtil ejeren har godkendt siden (OWNER_CONFIG / Instance.sideTekster.ejer.privatliv.godkendt) indekseres den ikke.
+    ...(owner.privatliv.godkendt ? {} : { robots: { index: false, follow: true } }),
   };
 }
 
@@ -19,6 +23,8 @@ const ulStyle = { fontSize: "16px", lineHeight: 1.6, color: "var(--ink-2)", marg
 export default async function PrivacyPage() {
   const site = await getCurrentSite();
   const email = `redaktion@${site.domaene}`;
+  // Ejer-afhængige felter (T6 nr. 30): vises kun når de er konfigureret — aldrig som pladsholder i firkantede parenteser.
+  const priv = resolveOwnerConfig(site).privatliv;
 
   return (
     <div className="site-page-container" style={{ padding: "24px 0 64px 0" }}>
@@ -57,13 +63,12 @@ export default async function PrivacyPage() {
             color: "var(--ink-2)",
           }}
         >
-          <strong>Udkast.</strong> Denne tekst er et udkast og skal gennemgås af mediets ejer og en jurist (GDPR, e-privacy og
-          presseetik) før lancering. Felter i [firkantede parenteser] er pladsholdere, som ejeren skal udfylde.
+          <strong>Udkast.</strong> Denne tekst afventer gennemgang af mediets ejer og en jurist (GDPR, e-privacy og presseetik).
         </div>
 
         <h2 style={h2Style}>1. Hvem er dataansvarlig?</h2>
         <p style={pStyle}>
-          Dataansvarlig er {site.navn} Udgiverselskab, {site.kommune}, Danmark [CVR-nr. og postadresse udfyldes af ejer].
+          Dataansvarlig er {site.navn} Udgiverselskab, {site.kommune}, Danmark{priv.dataansvarlig ? ` (${priv.dataansvarlig})` : ""}.
           Kontakt os om privatliv på <a href={`mailto:${email}`} style={{ color: "var(--site-accent)" }}>{email}</a>.
         </p>
 
@@ -72,15 +77,13 @@ export default async function PrivacyPage() {
           <li>
             <strong>Nyhedsbrev.</strong> E-mailadresse, evt. navn og dit valg af område/sektion. Formål: at sende nyhedsbrevet.
             Grundlag: dit samtykke (GDPR art. 6, stk. 1, litra a). Du kan til enhver tid afmelde dig.
-            Vi gemmer oplysningerne, indtil du afmelder dig, hvorefter de slettes eller anonymiseres [opbevaringsperiode
-            bekræftes af ejer].
+            Vi gemmer oplysningerne, indtil du afmelder dig, hvorefter de slettes eller anonymiseres{priv.nyhedsbrevOpbevaring ? ` ${priv.nyhedsbrevOpbevaring}` : ""}.
           </li>
           <li>
             <strong>Tips, læserbreve og indsendelser</strong> (<Link href="/indsend" style={{ color: "var(--site-accent)" }}>/indsend</Link>).
             Navn, kontaktoplysninger (e-mail eller telefon), din tekst og evt. vedhæftede billeder. Formål: redaktionel
             behandling og kontakt til dig. Grundlag: dit samtykke og mediets redaktionelle virke. Kildebeskyttelse
-            og tavshedspligt følger medieansvarsloven og de presseetiske regler. Afviste indsendelser slettes
-            [sletteperiode bekræftes af ejer].
+            og tavshedspligt følger medieansvarsloven og de presseetiske regler. Afviste indsendelser slettes{priv.indsendelserSletning ? ` ${priv.indsendelserSletning}` : ""}.
           </li>
           <li>
             <strong>Annoncer og annoncekøb.</strong> Henvendelser fra annoncører og sponsorer behandles for at kunne
@@ -90,7 +93,7 @@ export default async function PrivacyPage() {
             <strong>Anonym måling af visninger og klik.</strong> Vi tæller artikelvisninger, læsetid og klik på annoncer for
             at kunne dokumentere rækkevidde over for annoncører og forbedre indholdet. Målingen sker på vores egen
             server, uden tredjeparts-annoncenetværk og uden at dele data med reklameaktører. Vi bruger ikke
-            individuelle profiler, og målingen kræver ikke, at du er logget ind [teknisk afgrænsning verificeres af ejer].
+            individuelle profiler, og målingen kræver ikke, at du er logget ind{priv.maalingAfgraensning ? `. ${priv.maalingAfgraensning}` : ""}.
           </li>
           <li>
             <strong>Serverlogs.</strong> IP-adresse og browseroplysninger kan blive logget kortvarigt af hensyn til
@@ -122,7 +125,7 @@ export default async function PrivacyPage() {
         <h2 style={h2Style}>4. Modtagere og databehandlere</h2>
         <p style={pStyle}>
           Vi videregiver ikke dine oplysninger til tredjepart til markedsføring. Vi bruger databehandlere til hosting,
-          database og evt. e-mailudsendelse [leverandører og databehandleraftaler udfyldes af ejer]. Hvis oplysninger
+          database og evt. e-mailudsendelse{priv.leverandoerer ? ` (${priv.leverandoerer})` : ""}. Hvis oplysninger
           overføres uden for EU/EØS, sker det kun med gyldigt overførselsgrundlag.
         </p>
 
@@ -143,12 +146,12 @@ export default async function PrivacyPage() {
         <h2 style={h2Style}>6. Klage</h2>
         <p style={pStyle}>
           Du kan klage til Datatilsynet, Carl Jacobsens Vej 35, 2500 Valby, <a href="https://www.datatilsynet.dk" rel="noopener" style={{ color: "var(--site-accent)" }}>datatilsynet.dk</a>.
-          Klager over indhold kan rettes til os eller til Pressenævnet [verificér mediets tilknytning til Pressenævnet].
+          Klager over indhold kan rettes til os{priv.pressenaevnTilknytning ? ` eller til Pressenævnet (${priv.pressenaevnTilknytning})` : ""}.
         </p>
 
         <h2 style={h2Style}>7. Ændringer</h2>
         <p style={pStyle}>
-          Vi opdaterer siden, når vores behandling ændres. Sidst gennemgået: [dato udfyldes af ejer ved godkendelse].
+          Vi opdaterer siden, når vores behandling ændres. {priv.gennemgaaetDato ? `Sidst gennemgået: ${priv.gennemgaaetDato}.` : ""}
         </p>
 
         <p style={{ ...pStyle, marginTop: 32 }}>

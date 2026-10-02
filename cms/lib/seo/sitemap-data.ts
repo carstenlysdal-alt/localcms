@@ -48,7 +48,7 @@ export async function collectSiteIndex(site: SiteLike, now: Date = new Date()): 
       },
       orderBy: { publiceretTid: "desc" },
     }),
-    db.correction.findFirst({ where: { instansId: site.id }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
+    db.correction.findFirst({ where: { instansId: site.id, fjernetTid: null }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
   ]);
 
   const modOf = (a: { opdateretTid: Date; publiceretTid: Date | null }) => a.opdateretTid ?? a.publiceretTid;

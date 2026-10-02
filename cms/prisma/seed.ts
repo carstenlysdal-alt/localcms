@@ -280,24 +280,24 @@ async function main() {
   const org1 = await db.organization.upsert({
     where: { id: "org-sparekassen" },
     update: {},
-    create: { id: "org-sparekassen", navn: "Sparekassen Sjælland-Fyn", branche: "Finans", kontakt: "erhverv@spks.dk", instansId: instance.id },
+    create: { id: "org-sparekassen", navn: "Eksempel Partner A", branche: "Finans", kontakt: "kontakt@eksempel-partner-a.example", instansId: instance.id },
   });
   await db.organization.upsert({
     where: { id: "org-bilcenter" },
     update: {},
-    create: { id: "org-bilcenter", navn: "Vestsjællands Bilcenter", branche: "Autoforhandler", kontakt: "salg@vestbil.dk", instansId: instance.id },
+    create: { id: "org-bilcenter", navn: "Eksempel Partner B", branche: "Autoforhandler", kontakt: "kontakt@eksempel-partner-b.example", instansId: instance.id },
   });
   await db.supportAgreement.upsert({
     where: { id: "sa-sparekassen" },
     update: {},
     create: {
       id: "sa-sparekassen",
-      organisationNavn: "Sparekassen Sjælland-Fyn",
+      organisationNavn: "Eksempel Partner A",
       pakkeNiveau: "Fællesskab",
       startDato: new Date("2026-01-01"),
       arligKvote: 10,
       forbrugtKvote: 2,
-      kontaktperson: "Klaus Mortensen",
+      kontaktperson: "Eksempel Kontaktperson",
       pris: 30000,
       organizationId: org1.id,
       instansId: instance.id,
@@ -380,7 +380,7 @@ async function main() {
     {
       slug: "sundhedscenter-i-korsoer-udvider-aabningstiderne",
       titel: "Sundhedscenter i Korsør udvider åbningstider for blodprøvetagning",
-      manchet: "Fra næste uge kan pendlere få taget prøver allerede fra klokken 06.30, oplyser Region Sjælland.",
+      manchet: "Fra næste uge kan pendlere få taget prøver allerede fra klokken 06.30, oplyser Eksempel Region.",
       sectionSlug: "sundhed",
       areaSlug: "korsoer",
       authorId: "author-rikke",
@@ -693,7 +693,7 @@ async function main() {
     // --- PARTNER-INDHOLD (Mærkning: Partner) ---
     {
       slug: "lokal-bank-stoetter-fem-nye-ungdomsinitiativer-i-slagelse",
-      titel: "Sparekassen Sjælland-Fyn uddeler 250.000 kroner til lokale ungeprojekter",
+      titel: "Eksempel Partner A støtter lokale ungeprojekter (demodata)",
       manchet: "Blandt modtagerne er et makerspace for teenagere og en skaterbane i Slagelse Syd.",
       sectionSlug: "handel",
       areaSlug: "slagelse-by",
@@ -703,8 +703,8 @@ async function main() {
       breaking: false,
       indholdstype: "Partner",
       marking: {
-        sponsor: "Sparekassen Sjælland-Fyn",
-        labelTekst: "Finansieret af Sparekassen Sjælland-Fyn",
+        sponsor: "Eksempel Partner A",
+        labelTekst: "Finansieret af Eksempel Partner A",
         aftaleId: "sa-sparekassen",
       },
       daysAgo: 2,
@@ -721,8 +721,8 @@ async function main() {
       breaking: false,
       indholdstype: "Partner",
       marking: {
-        sponsor: "Sparekassen Sjælland-Fyn",
-        labelTekst: "Finansieret af Sparekassen Sjælland-Fyn",
+        sponsor: "Eksempel Partner A",
+        labelTekst: "Finansieret af Eksempel Partner A",
         aftaleId: "sa-sparekassen",
       },
       daysAgo: 6,
@@ -739,8 +739,8 @@ async function main() {
       breaking: false,
       indholdstype: "Partner",
       marking: {
-        sponsor: "Sparekassen Sjælland-Fyn",
-        labelTekst: "Finansieret af Sparekassen Sjælland-Fyn",
+        sponsor: "Eksempel Partner A",
+        labelTekst: "Finansieret af Eksempel Partner A",
         aftaleId: "sa-sparekassen",
       },
       daysAgo: 8,
@@ -748,8 +748,8 @@ async function main() {
 
     // --- SPONSORERET / ANNONCE (Mærkning: Sponsoreret) ---
     {
-      slug: "vestsjaellands-bilcenter-udvider-med-nyt-elbilvaerksted",
-      titel: "Vestsjællands Bilcenter åbner topmoderne lade- og servicecenter for elbiler",
+      slug: "eksempel-partner-b-udvider-med-nyt-elbilvaerksted",
+      titel: "Eksempel Partner B åbner lade- og servicecenter for elbiler (demodata)",
       manchet: "Det nye anlæg på Trafikcenter Allé kan servicere op til otte elbiler samtidigt med certificerede teknikere.",
       sectionSlug: "handel",
       areaSlug: "slagelse-by",
@@ -759,7 +759,7 @@ async function main() {
       breaking: false,
       indholdstype: "Sponsoreret",
       marking: {
-        sponsor: "Vestsjællands Bilcenter",
+        sponsor: "Eksempel Partner B",
         labelTekst: "ANNONCE",
       },
       daysAgo: 1,
@@ -776,7 +776,7 @@ async function main() {
       breaking: false,
       indholdstype: "Sponsoreret",
       marking: {
-        sponsor: "Vestsjællands Bilcenter",
+        sponsor: "Eksempel Partner B",
         labelTekst: "ANNONCE",
       },
       daysAgo: 4,
@@ -793,7 +793,7 @@ async function main() {
       breaking: false,
       indholdstype: "Sponsoreret",
       marking: {
-        sponsor: "Vestsjællands Bilcenter",
+        sponsor: "Eksempel Partner B",
         labelTekst: "ANNONCE",
       },
       daysAgo: 9,
@@ -864,8 +864,8 @@ async function main() {
       marking: {
         godkendtAf: "Carsten Lysdal",
         kilder: [
-          "https://slagelse.dk/politik/dagsordener-og-referater/byraad/2026-09-28",
-          "Referat godkendt af Slagelse Byrådssekretariat 29. september 2026",
+          "https://example.com/eksempel/byraad-dagsorden",
+          "Eksempelreference (demodata)",
         ],
       },
       hasQuoteWithSource: true,
@@ -886,7 +886,7 @@ async function main() {
       marking: {
         godkendtAf: "Rikke Møller",
         kilder: [
-          "https://politi.dk/midt-og-vestsjaellands-politi/doegnrapporter/2026-09-29",
+          "https://example.com/eksempel/doegnrapport",
           "Pressevagten, Midt- og Vestsjællands Politi",
         ],
       },
@@ -908,7 +908,7 @@ async function main() {
       marking: {
         godkendtAf: "Rikke Møller",
         kilder: [
-          "https://udbud.dk/bekendtgoerelser/2026-slagelse-idraet-09",
+          "https://example.com/eksempel/udbud",
           "Slagelse Ejendomscenter Udbudskontor",
         ],
       },
@@ -929,7 +929,7 @@ async function main() {
       marking: {
         godkendtAf: "Jonas Vestergaard",
         kilder: [
-          "https://dmi.dk/danmark/vestsjaelland-regionaludsigt-2026",
+          "https://example.com/eksempel/vejrudsigt",
           "DMI Regional vejrudsigt for Storebælt",
         ],
       },
@@ -955,8 +955,8 @@ async function main() {
       daysAgo: 2,
     },
     {
-      slug: "region-sjaelland-indkalder-til-borgermoede-om-fremtidens-sygehuse",
-      titel: "Pressemeddelelse: Region Sjælland inviterer til borgermøde om Slagelse Sygehus",
+      slug: "eksempel-region-indkalder-til-borgermoede-om-sygehuse",
+      titel: "Pressemeddelelse: Eksempel Region inviterer til borgermøde om sygehusplaner (demodata)",
       manchet: "Borgere kan stille spørgsmål til regionsrådspolitikere om nye sengeafsnit og akutmodtagelsens kapacitet.",
       sectionSlug: "politik",
       areaSlug: "slagelse-by",
@@ -966,13 +966,13 @@ async function main() {
       breaking: false,
       indholdstype: "PR",
       marking: {
-        afsender: "Region Sjælland Presseenhed",
+        afsender: "Eksempel Region Presseenhed",
       },
       daysAgo: 6,
     },
     {
-      slug: "teaterforening-modtager-realdania-stoette-til-renovering",
-      titel: "Pressemeddelelse: Korsør Teaterforening tildeles 800.000 kr. fra Realdania",
+      slug: "teaterforening-modtager-stoette-fra-eksempel-fond",
+      titel: "Pressemeddelelse: Korsør Teaterforening tildeles et eksempelbeløb fra Eksempel Fond (demodata)",
       manchet: "Midlerne skal anvendes til restaurering af den historiske balkon og moderne lydisolering.",
       sectionSlug: "scene-og-film",
       areaSlug: "korsoer",
@@ -1065,7 +1065,7 @@ async function main() {
         id: "b4",
         type: "paragraph",
         data: {
-          content: `<p>Flere lokale aktører har udtalt sig positivt om initiativet. Redaktionen har talt med berørte parter, der understreger betydningen af gennemskuelighed og lokal forankring.</p>`,
+          content: `<p>Dette afsnit er udfyldningstekst i demodata. Indholdet er opdigtet og bygger ikke på research eller rigtige kilder.</p>`,
         },
       },
     ];
@@ -1075,9 +1075,9 @@ async function main() {
         id: "b5",
         type: "quote",
         data: {
-          quote: "Vi har arbejdet målrettet på at finde en balanceret løsning for hele kommunen.",
-          attribution: "Kommunal talsmand",
-          kildeUrl: "https://slagelse.dk/presse/udtalelser-2026",
+          quote: "Dette er et eksempelcitat til demonstration og stammer ikke fra en rigtig person.",
+          attribution: "Eksempel Talsperson (fiktiv)",
+          kildeUrl: "https://example.com/eksempel/udtalelse",
           dato: "2026-09-29",
         },
       });
@@ -1179,8 +1179,8 @@ async function main() {
   const nextMonth = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
   const demoCampaigns = [
     {
-      titel: "Harboe Fonden - Støtte til lokalsport",
-      annoncoer: "Harboe Bryggeri A/S",
+      titel: "Eksempel Fond - Støtte til lokalsport",
+      annoncoer: "Eksempel Partner C",
       format: "IN_FEED_BANNER",
       status: "Aktiv",
       startDato: now,
@@ -1192,16 +1192,16 @@ async function main() {
       maksVisninger: 10000,
       kreativData: {
         overskrift: "Støtter det lokale foreningsliv i Skælskør & Slagelse",
-        manchet: "Søg Harboe Fonden til jeres næste klubprojekt eller idrætsfacilitet i kommunen.",
+        manchet: "Søg Eksempel Fond til jeres næste klubprojekt eller idrætsfacilitet i kommunen.",
         ctaTekst: "Ansøg fonden nu",
-        linkUrl: "https://harboe.com/fond",
+        linkUrl: "https://eksempel-partner-c.example/fond",
         badgeTekst: "ANNONCE",
         farve: "#FCE8A6",
       },
     },
     {
       titel: "Slagelse Vinfestival 2026",
-      annoncoer: "Slagelse Vin & Madkultur",
+      annoncoer: "Eksempel Partner D",
       format: "EVENT_POST",
       status: "Aktiv",
       startDato: now,
@@ -1215,13 +1215,13 @@ async function main() {
         overskrift: "Smag på over 120 vine på Schweizerpladsen",
         manchet: "Lørdag den 12. oktober. Billet inkluderer smageglas og adgang til alle stande.",
         ctaTekst: "Køb forsalgsbillet",
-        linkUrl: "https://slagelse-vin.dk",
+        linkUrl: "https://eksempel-partner-d.example",
         badgeTekst: "ANNONCE",
       },
     },
     {
-      titel: "Munkholm Erhvervspark - Iværksætterhub",
-      annoncoer: "Munkholm Erhvervspark A/S",
+      titel: "Eksempel Partner E - Iværksætterhub",
+      annoncoer: "Eksempel Partner E",
       format: "NATIVE_PREMIUM",
       status: "Aktiv",
       startDato: now,
@@ -1235,7 +1235,7 @@ async function main() {
         overskrift: "Nyt kontor- og værkstedsfællesskab åbner i Slagelse Nord",
         manchet: "Fleksible lejemål fra 35 m² til håndværkere, kreative og videnstunge virksomheder.",
         ctaTekst: "Læs om faciliteterne",
-        linkUrl: "https://munkholm-erhverv.dk",
+        linkUrl: "https://eksempel-partner-e.example",
         badgeTekst: "ANNONCE",
       },
     },
@@ -1258,7 +1258,8 @@ async function main() {
 
   // --- DEMO SUBMISSIONS (CMS-07, P-15, A-07) ---
   const korsoerGeo = await db.geoTag.findFirst({ where: { instansId: instance.id, slug: "korsoer" } });
-  const antvorskovGeo = await db.geoTag.findFirst({ where: { instansId: instance.id, slug: "antvorskov" } });
+  // Antvorskov Ruiner ligger ved Slagelse: der findes intet GeoTag "antvorskov" (areas), så referencen peger på Slagelse By.
+  const antvorskovGeo = await db.geoTag.findFirst({ where: { instansId: instance.id, slug: "slagelse-by" } });
   const skaelskoerGeo = await db.geoTag.findFirst({ where: { instansId: instance.id, slug: "skaelskoer" } });
 
   const demoSubmissions = [
@@ -1510,7 +1511,7 @@ async function seedNetworkSites(
         { id: "b1", type: "paragraph", data: { content: `<p><strong>${siteCfg.kommune}:</strong> ${art.manchet}</p>` } },
         { id: "b2", type: "paragraph", data: { content: `<p>Sagen har vakt stor interesse i lokalsamfundet i ${siteCfg.kommune}, hvor både borgere, foreninger og lokale erhvervsdrivende følger udviklingen tæt.</p>` } },
         { id: "b3", type: "heading", data: { text: "Lokal betydning og baggrund", level: 2 } },
-        { id: "b4", type: "paragraph", data: { content: `<p>Redaktionen på ${siteCfg.navn} har talt med kilder i ${art.areaSlug ? art.areaSlug.replace(/-/g, " ") : siteCfg.kommune}, som understreger, at initiativet kan få mærkbar betydning for områdets fremtid.</p>` } },
+        { id: "b4", type: "paragraph", data: { content: `<p>Dette afsnit er udfyldningstekst i demodata. Indholdet er opdigtet og bygger ikke på research eller rigtige kilder.</p>` } },
       ];
 
       if (art.hasQuoteWithSource) {
@@ -1518,9 +1519,9 @@ async function seedNetworkSites(
           id: "b5",
           type: "quote",
           data: {
-            quote: "Vi arbejder hver dag for at skabe de bedste rammer for vores lokalsamfund og fællesskab.",
-            attribution: `Lokal talsperson, ${siteCfg.kommune}`,
-            kildeUrl: `https://${siteCfg.domaene}/om-mediet/kontakt`,
+            quote: "Dette er et eksempelcitat til demonstration og stammer ikke fra en rigtig person.",
+            attribution: "Eksempel Talsperson (fiktiv)",
+            kildeUrl: "https://example.com/eksempel/udtalelse",
             dato: "2026-09-30",
           },
         });

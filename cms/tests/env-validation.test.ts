@@ -69,3 +69,42 @@ test("advarsler: SQLite i produktion, ugyldig REDIS_URL, manglende AUTH_TRUST_HO
   const ok = checkEnv({ ...good, AUTH_TRUST_HOST: "true", REDIS_URL: "redis://default:pw@redis.railway.internal:6379" } as unknown as NodeJS.ProcessEnv);
   assert.ok(!ok.warnings.some((w) => w.includes("AUTH_TRUST_HOST") || w.includes("REDIS_URL")));
 });
+
+// ── T5 P2-2: kant og tillid ──────────────────────────────────────────────────────────────────────
+
+test("TRUST_CLOUDFLARE uden ORIGIN_SECRET er en startfejl i produktion (CF-Connecting-IP kan ellers forfalskes)", () => {
+  const bad = checkEnv({ ...good, TRUST_CLOUDFLARE: "1" } as unknown as NodeJS.ProcessEnv);
+  assert.equal(bad.ok, false);
+  assert.ok(bad.invalid.some((m) => m.includes("TRUST_CLOUDFLARE") && m.includes("ORIGIN_SECRET")), bad.invalid.join(" | "));
+  assert.throws(() => assertEnv({ ...good, TRUST_CLOUDFLARE: "true" } as unknown as NodeJS.ProcessEnv), EnvError);
+  const blank = checkEnv({ ...good, TRUST_CLOUDFLARE: "1", ORIGIN_SECRET: "   " } as unknown as NodeJS.ProcessEnv);
+  assert.equal(blank.ok, false, "tom/mellemrums-hemmelighed tæller som manglende");
+  const ok = checkEnv({ ...good, TRUST_CLOUDFLARE: "1", ORIGIN_SECRET: "o".repeat(32) } as unknown as NodeJS.ProcessEnv);
+  assert.equal(ok.ok, true, ok.invalid.join(" | "));
+  const off = checkEnv({ ...good, TRUST_CLOUDFLARE: "0" } as unknown as NodeJS.ProcessEnv);
+  assert.equal(off.ok, true, "TRUST_CLOUDFLARE=0 kræver ikke origin-lås");
+});
+
+test("ORIGIN_SECRET: advarsel når den mangler, fejl når den er for kort, advarsel om delt IP-bucket bag Cloudflare", () => {
+  const none = checkEnv(good);
+  assert.ok(none.warnings.some((w) => w.startsWith("ORIGIN_SECRET mangler")));
+  const short = checkEnv({ ...good, ORIGIN_SECRET: "kort" } as unknown as NodeJS.ProcessEnv);
+  assert.equal(short.ok, false);
+  assert.ok(short.invalid.some((m) => m.includes("ORIGIN_SECRET")));
+  const lockOnly = checkEnv({ ...good, ORIGIN_SECRET: "o".repeat(32) } as unknown as NodeJS.ProcessEnv);
+  assert.ok(lockOnly.ok);
+  assert.ok(lockOnly.warnings.some((w) => w.includes("delt") || w.includes("deler")), lockOnly.warnings.join(" | "));
+  const full = checkEnv({ ...good, ORIGIN_SECRET: "o".repeat(32), TRUST_CLOUDFLARE: "1" } as unknown as NodeJS.ProcessEnv);
+  assert.ok(!full.warnings.some((w) => w.includes("ORIGIN_SECRET mangler") || w.includes("rate-limit-bucket")));
+  const hops = checkEnv({ ...good, ORIGIN_SECRET: "o".repeat(32), TRUSTED_PROXY_HOPS: "2" } as unknown as NodeJS.ProcessEnv);
+  assert.ok(!hops.warnings.some((w) => w.includes("rate-limit-bucket")));
+});
+
+test("advarsler: Turnstile uden nøgle og TRUST_FORWARDED_HOST; uden for produktion ingen støj eller fejl", () => {
+  assert.ok(checkEnv(good).warnings.some((w) => w.startsWith("TURNSTILE_SECRET_KEY mangler")));
+  assert.ok(!checkEnv({ ...good, TURNSTILE_SECRET_KEY: "t" } as unknown as NodeJS.ProcessEnv).warnings.some((w) => w.startsWith("TURNSTILE")));
+  assert.ok(checkEnv({ ...good, TRUST_FORWARDED_HOST: "1" } as unknown as NodeJS.ProcessEnv).warnings.some((w) => w.includes("TRUST_FORWARDED_HOST")));
+  const dev = checkEnv({ NODE_ENV: "development", TRUST_CLOUDFLARE: "1" } as unknown as NodeJS.ProcessEnv);
+  assert.equal(dev.ok, true);
+  assert.deepEqual(dev.invalid, []);
+});

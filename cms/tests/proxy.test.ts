@@ -6,7 +6,7 @@ import { MemoryRateLimitStore, resetRateLimitStoreForTests, setRateLimitStore } 
 import { resetBanStateForTests } from "../lib/bot/ban";
 
 const CHROME = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
-const ENV_KEYS = ["NODE_ENV", "ORIGIN_SECRET", "CSP_REPORT_ONLY", "CACHE_PUBLIC_HTML", "TRUSTED_PROXY_HOPS", "TRUST_CLOUDFLARE", "PAGE_RATE_LIMIT_PER_MIN"] as const;
+const ENV_KEYS = ["NODE_ENV", "ORIGIN_SECRET", "CSP_REPORT_ONLY", "CACHE_PUBLIC_HTML", "TRUSTED_PROXY_HOPS", "TRUST_CLOUDFLARE", "TRUST_FORWARDED_HOST", "PAGE_RATE_LIMIT_PER_MIN"] as const;
 const saved: Record<string, string | undefined> = {};
 const env = process.env as Record<string, string | undefined>;
 
@@ -25,6 +25,7 @@ beforeEach(() => {
   delete env.CACHE_PUBLIC_HTML;
   delete env.PAGE_RATE_LIMIT_PER_MIN;
   delete env.TRUST_CLOUDFLARE;
+  delete env.TRUST_FORWARDED_HOST;
   delete env.TRUSTED_PROXY_HOPS;
   setRateLimitStore(new MemoryRateLimitStore());
   resetBanStateForTests();
@@ -138,4 +139,16 @@ test("proxy: gamle æøå-URL'er omdirigeres stadig (301) med sikkerhedsheadere"
   assert.equal(res.status, 301);
   assert.match(res.headers.get("location") ?? "", /doegnrapport-test/);
   assert.equal(res.headers.get("x-content-type-options"), "nosniff");
+});
+
+test("T5 P2-1: cache-nøgle og Vary følger Host — en klient-styret X-Forwarded-Host ignoreres som standard", async () => {
+  const spoofed = await proxy(req("/", { headers: { host: "naestvedlokalt.dk", "x-forwarded-host": "slagelselokalt.dk" } }));
+  assert.equal(spoofed.headers.get("cache-tag"), "host:naestvedlokalt.dk", "falsk X-Forwarded-Host må ikke vælge by");
+  assert.equal(spoofed.headers.get("vary"), "Host");
+
+  // Eksplicit tillid (TRUST_FORWARDED_HOST=1): højre element (betroet proxy) bruges, og Vary dækker begge headere.
+  env.TRUST_FORWARDED_HOST = "1";
+  const trusted = await proxy(req("/", { headers: { host: "internal.railway.app", "x-forwarded-host": "klient-styret.test, slagelselokalt.dk" } }));
+  assert.equal(trusted.headers.get("cache-tag"), "host:slagelselokalt.dk");
+  assert.equal(trusted.headers.get("vary"), "Host, X-Forwarded-Host");
 });

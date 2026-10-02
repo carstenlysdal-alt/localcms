@@ -4,10 +4,11 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { blocksSchema } from "@/lib/blocks/schema";
 import { db } from "@/lib/db";
-import { assertPublishableMarking, CONTENT_TYPES, isAiRestrictedCategory } from "@/lib/marking";
+import { loadCategoryTree } from "@/lib/category-tree";
+import { AI_TEXT_GENERATING_USES, AI_USE_NONE, assertPublishableMarking, CONTENT_TYPES, isAiRestrictedCategoryTree, normalizeAiUse } from "@/lib/marking";
 import { can, canEditArticle, PERMISSIONS } from "@/lib/permissions";
 import { canTransition, isArticleStatus } from "@/lib/workflow";
 import { honorAmountForAssignment } from "@/lib/assignments";
@@ -34,7 +35,7 @@ function jsonFromForm(value: FormDataEntryValue | null) {
 }
 
 export async function saveArticle(articleId: string | null, _: ArticleFormState, formData: FormData): Promise<ArticleFormState> {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) return { error: "Du har ikke adgang til at gemme artikler." };
 
   const values = articleSchema.safeParse(Object.fromEntries(formData));
@@ -46,6 +47,7 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
   if (articleId && !current) return { error: "Artiklen findes ikke." };
   if (current && !canEditArticle(session.user, current)) return { error: "Du kan kun redigere dine egne artikler." };
 
+  const canControlFrontpage = can(session.user, PERMISSIONS.FRONTPAGE_EDIT);
   const requestedStatus = formData.get("targetStatus");
   let nextStatus = current?.status ?? "Idé";
   if (typeof requestedStatus === "string" && requestedStatus) {
@@ -55,14 +57,18 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
     nextStatus = requestedStatus;
   }
 
-  const aiBrug = formData.getAll("aiBrug").filter((value): value is string => typeof value === "string");
-  if (nextStatus === "Publiceret" && aiBrug.length === 0) return { error: "AI-brug skal være registreret før publicering." };
+  // AI-brug: aktivt valg ("Ingen AI brugt" ELLER konkret brug). Uden valg gemmes en tom liste (ikke taget stilling),
+  // som ikke kan publiceres — så en artikel uden AI ikke tvinges til en falsk afkrydsning.
+  const aiUse = normalizeAiUse(formData.getAll("aiBrug").filter((value): value is string => typeof value === "string"), { requireChoice: nextStatus === "Publiceret" });
+  if (!aiUse.ok) return { error: aiUse.error };
+  const aiBrug = aiUse.value;
+  const currentMarking = current?.marking && typeof current.marking === "object" && !Array.isArray(current.marking) ? (current.marking as Record<string, unknown>) : {};
   let marking: unknown = null;
   if (values.data.indholdstype === "Partner") {
     marking = {
       sponsor: String(formData.get("markingSponsor") ?? ""),
       labelTekst: String(formData.get("markingLabel") ?? ""),
-      aftaleId: String(formData.get("markingAftaleId") ?? "") || undefined,
+      aftaleId: String(formData.get("markingAftaleId") ?? ""),
     };
   } else if (values.data.indholdstype === "Sponsoreret") {
     marking = {
@@ -74,10 +80,27 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
       afsender: String(formData.get("markingAfsender") ?? ""),
     };
   } else if (values.data.indholdstype === "AI-assisteret") {
+    // "Godkendt af" er IKKE fri tekst: ved publicering sættes den til den godkendende (publicerende) bruger, slået op i
+    // databasen. Indtil da bevares evt. tidligere værdi; et felt i formularen ignoreres (kan ikke forfalske en godkender).
+    const approved = nextStatus === "Publiceret";
     marking = {
-      godkendtAf: String(formData.get("markingGodkendtAf") ?? ""),
+      godkendtAf: approved ? session.user.name : typeof currentMarking.godkendtAf === "string" ? currentMarking.godkendtAf : "",
+      ...(approved ? { godkendtAfUserId: session.user.id } : typeof currentMarking.godkendtAfUserId === "string" ? { godkendtAfUserId: currentMarking.godkendtAfUserId } : {}),
       kilder: String(formData.get("markingKilder") ?? "").split("\n").map((s) => s.trim()).filter(Boolean),
+      ...(currentMarking.maskinleveret === true ? { maskinleveret: true } : {}),
     };
+  }
+
+  // Kildeverifikation (T6 nr. 25): kladder fra Q&A/interview/meddeler bærer `uverificeretKilde`. Flaget bevares gennem gem
+  // og fjernes kun når redaktøren afkrydser, at kildens identitet er verificeret; publicering kræver at det er fjernet.
+  if (typeof currentMarking.uverificeretKilde === "boolean") {
+    const verified = formData.get("kildeVerificeret") === "on";
+    const carried: Record<string, unknown> = { type: currentMarking.type, uverificeretKilde: !verified };
+    marking = marking && typeof marking === "object" ? { ...(marking as Record<string, unknown>), ...carried } : carried;
+  }
+
+  if (values.data.indholdstype === "AI-assisteret" && aiBrug.length === 1 && aiBrug[0] === AI_USE_NONE) {
+    return { error: "Et AI-assisteret indhold kan ikke registreres med 'Ingen AI brugt'. Vælg den faktiske AI-brug eller skift indholdstype." };
   }
 
   if (values.data.indholdstype === "AI-assisteret") {
@@ -93,6 +116,9 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
 
   if (nextStatus === "Publiceret") {
     if (!can(session.user, PERMISSIONS.ARTICLE_PUBLISH)) return { error: "Kun en redaktør med publiceringsret kan publicere." };
+    if (marking && typeof marking === "object" && (marking as { uverificeretKilde?: unknown }).uverificeretKilde === true) {
+      return { error: "Kildens identitet er ikke verificeret. Afkryds 'Kildens identitet er verificeret' (i sidebjælken), når redaktionen har kontrolleret kilden." };
+    }
     try { assertPublishableMarking(values.data.indholdstype, marking); } catch (error) { return { error: error instanceof Error ? error.message : "Mærkningen er ugyldig." }; }
   }
 
@@ -101,10 +127,17 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
   const requestedAuthorId = values.data.forfatterId || session.user.authorId;
   const requestedCategoryId = values.data.kategoriId || null;
 
-  if (values.data.indholdstype === "AI-assisteret" && requestedCategoryId) {
-    const cat = await db.category.findFirst({ where: { id: requestedCategoryId, instansId: session.user.instansId } });
-    if (cat && isAiRestrictedCategory(cat)) {
-      return { error: "Artikler i kategorierne Krimi og retsvæsen samt Sundhed må ikke være AI-assisterede uden journalistisk gennemskrivning." };
+  // AI-spærring (T5 P2-7): afgøres på kategoriens id og HELE forældrekæden (slug/navn), uafhængigt af indholdstype.
+  // Udkast/omskrivning med AI er forbudt i Krimi og retsvæsen/Sundhed, også for "Uafhængig" artikler.
+  if (requestedCategoryId) {
+    const tree = await loadCategoryTree(session.user.instansId, requestedCategoryId);
+    if (tree && isAiRestrictedCategoryTree(tree)) {
+      if (values.data.indholdstype === "AI-assisteret") {
+        return { error: "Artikler i kategorierne Krimi og retsvæsen samt Sundhed må ikke være AI-assisterede uden journalistisk gennemskrivning." };
+      }
+      if (aiBrug.some((use) => AI_TEXT_GENERATING_USES.includes(use))) {
+        return { error: "AI-brug til udkast eller omskrivning er ikke tilladt i Krimi og retsvæsen samt Sundhed." };
+      }
     }
   }
 
@@ -128,11 +161,13 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
     seoTitel: values.data.seoTitel || null,
     seoBeskrivelse: values.data.seoBeskrivelse || null,
     blocks: blocks.data as Prisma.InputJsonValue,
-    aiBrug: (aiBrug.length ? aiBrug : ["Ingen"]) as Prisma.InputJsonValue,
+    aiBrug: aiBrug as Prisma.InputJsonValue,
     marking: marking === null ? Prisma.JsonNull : marking,
     status: nextStatus,
-    pinned: formData.get("pinned") === "on",
-    breaking: formData.get("breaking") === "on",
+    // Forsidestyring (T5 P2-4): kun FRONTPAGE_EDIT må sætte "fastgjort"/"breaking". Andre bevarer den eksisterende værdi
+    // (false ved ny artikel), så en forfatter ikke kan skubbe sin artikel i hero uden forsideredaktørens beslutning.
+    pinned: canControlFrontpage ? formData.get("pinned") === "on" : current?.pinned ?? false,
+    breaking: canControlFrontpage ? formData.get("breaking") === "on" : current?.breaking ?? false,
     publiceretTid: nextStatus === "Publiceret" ? current?.publiceretTid ?? new Date() : current?.publiceretTid,
     tags: { set: tagIds.map((id) => ({ id })) },
     geoTags: { set: geoTagIds.map((id) => ({ id })) },
@@ -160,6 +195,15 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
         });
         return published;
       });
+    } else if (current && current.status !== nextStatus) {
+      // Statusskift gemmes altid som revision (hvem, hvornår, fra/til) — også andre end publicering.
+      article = await db.$transaction(async (tx) => {
+        const updated = await tx.article.update({ where: { id: current.id }, data });
+        await tx.articleRevision.create({
+          data: { articleId: updated.id, userId: session.user.id, snapshot: JSON.parse(JSON.stringify(updated)) as Prisma.InputJsonValue, note: `Status: ${current.status} → ${nextStatus}` },
+        });
+        return updated;
+      });
     } else if (current) {
       article = await db.article.update({ where: { id: current.id }, data });
     } else {
@@ -186,8 +230,9 @@ export async function saveArticle(articleId: string | null, _: ArticleFormState,
 }
 
 export async function toggleArticleFlag(articleId: string, flag: "pinned" | "breaking") {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.FRONTPAGE_EDIT)) throw new Error("Ingen adgang til forsidestyring.");
+  if (flag !== "pinned" && flag !== "breaking") throw new Error("Ukendt markering.");
   const article = await db.article.findFirst({ where: { id: articleId, instansId: session.user.instansId }, select: { pinned: true, breaking: true } });
   if (!article) throw new Error("Artiklen findes ikke.");
   await db.article.update({ where: { id: articleId }, data: { [flag]: !article[flag] } });
@@ -206,7 +251,7 @@ export async function addArticleCorrection(
   _prevState: CorrectionActionState,
   formData: FormData
 ): Promise<CorrectionActionState> {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
     return { error: "Du har ikke adgang til at tilføje rettelser." };
   }
@@ -229,22 +274,16 @@ export async function addArticleCorrection(
     return { error: "Angiv en fyldestgørende rettelsestekst (mindst 5 tegn)." };
   }
 
-  const rawDato = formData.get("dato");
-  let dato = new Date();
-  if (typeof rawDato === "string" && rawDato.trim()) {
-    const parsedDate = new Date(rawDato);
-    if (!isNaN(parsedDate.getTime())) {
-      dato = parsedDate;
-    }
-  }
-
+  // Rettelsens dato er ALTID tidspunktet for oprettelsen (T5 P2-5): en rettelse kan ikke bagdateres, og
+  // oprettelsen registreres med brugerens id. Et evt. "dato"-felt i formularen ignoreres.
   try {
     await db.correction.create({
       data: {
         articleId,
         instansId: session.user.instansId,
         tekst: rawTekst.trim(),
-        dato,
+        dato: new Date(),
+        oprettetAf: session.user.id,
       },
     });
 
@@ -256,21 +295,27 @@ export async function addArticleCorrection(
 
     return { success: "Rettelsen er tilføjet og fremgår nu i artiklen samt i rettelsesloggen." };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Kunne ikke tilføje rettelsen." };
+    console.error("[rettelser] kunne ikke oprette rettelse:", err);
+    return { error: "Kunne ikke tilføje rettelsen." };
   }
 }
 
+/**
+ * Fjerner en rettelse fra den offentlige log. Rettelser slettes ALDRIG fysisk (Pressenævnet-relevant spor): de markeres
+ * som fjernet med tidspunkt og bruger. Kræver redaktørrettighed (publicering eller redigering af alle artikler) —
+ * en forfatter kan tilføje rettelser, men ikke fjerne dem.
+ */
 export async function deleteArticleCorrection(
   correctionId: string,
   articleId: string
 ): Promise<CorrectionActionState> {
-  const session = await auth();
-  if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE)) {
-    return { error: "Du har ikke adgang til at slette rettelser." };
+  const session = await getFreshSession();
+  if (!session?.user || !can(session.user, PERMISSIONS.ARTICLE_CREATE) || !(can(session.user, PERMISSIONS.ARTICLE_PUBLISH) || can(session.user, PERMISSIONS.ARTICLE_EDIT_ALL))) {
+    return { error: "Kun en redaktør med publicerings- eller redigeringsret kan fjerne en rettelse." };
   }
 
   const correction = await db.correction.findFirst({
-    where: { id: correctionId, instansId: session.user.instansId },
+    where: { id: correctionId, instansId: session.user.instansId, fjernetTid: null },
     include: { article: { include: { kategori: true } } },
   });
 
@@ -279,8 +324,9 @@ export async function deleteArticleCorrection(
   }
 
   try {
-    await db.correction.delete({
-      where: { id: correctionId },
+    await db.correction.update({
+      where: { id: correction.id },
+      data: { fjernetTid: new Date(), fjernetAf: session.user.id },
     });
 
     revalidatePath(`/redaktion/artikler/${articleId}`);
@@ -289,9 +335,9 @@ export async function deleteArticleCorrection(
       revalidatePath(`/${correction.article.kategori.slug}/${correction.article.slug}`);
     }
 
-    return { success: "Rettelsen er fjernet." };
+    return { success: "Rettelsen er fjernet fra den offentlige log (registreret med bruger og tidspunkt)." };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Kunne ikke fjerne rettelsen." };
+    console.error("[rettelser] kunne ikke fjerne rettelse:", err);
+    return { error: "Kunne ikke fjerne rettelsen." };
   }
 }
-

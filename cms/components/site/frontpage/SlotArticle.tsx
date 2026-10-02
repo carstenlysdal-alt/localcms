@@ -76,7 +76,7 @@ export function SlotArticle({ assignment, article, variant, headingLevel = 3, pr
           <div className="fp-line-body">
             <div className="fp-slot-label">{labelFor(assignment, article)}</div>
             <Heading className="fp-line-title" data-max-chars={maxTitle}>
-              {article.breaking && <span className="site-card-breaking">BREAKING</span>}
+              {article.breaking && <span className="site-card-breaking">LIGE NU</span>}
               <Link href={article.href}>{article.titel}</Link>
             </Heading>
             {v === "liste" && (article.undersektion || article.omraade) && (

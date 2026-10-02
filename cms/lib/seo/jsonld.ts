@@ -221,6 +221,31 @@ function personNode(base: string, f: NonNullable<ArticleLdInput["forfatter"]>): 
   };
 }
 
+/** AI-brug udtrukket som liste (tom/"Ingen" -> []). */
+function aiUses(aiBrug: unknown): string[] {
+  return Array.isArray(aiBrug) ? aiBrug.filter((v): v is string => typeof v === "string" && v.trim() !== "" && v !== "Ingen") : [];
+}
+
+/**
+ * Ensartet, maskinlæsbar mærkning for ALLE indholdstyper (T6 nr. 5/14): `additionalProperty` med indholdstypen, den
+ * synlige mærkning (hvis ikke Uafhængig) og eventuel AI-brug — også for Uafhængig artikler hvor AI er brugt.
+ */
+function markingProperties(a: ArticleLdInput, labels: { sponsor?: string; afsender?: string; godkendtAf?: string }): JsonLdNode[] {
+  const props: JsonLdNode[] = [{ "@type": "PropertyValue", propertyID: "indholdstype", name: "Indholdstype", value: a.indholdstype }];
+  const label = str(a.marking?.labelTekst);
+  const text =
+    a.indholdstype === "Partner" ? `${label ?? "Partnerindhold"}${labels.sponsor ? `: ${labels.sponsor}` : ""}`
+    : a.indholdstype === "Sponsoreret" ? `${label ?? "Sponsoreret indhold"}${labels.sponsor ? `: ${labels.sponsor}` : ""}`
+    : a.indholdstype === "PR" ? `Pressemeddelelse${labels.afsender ? ` fra ${labels.afsender}` : ""}`
+    : a.indholdstype === "Brugerindsendt" ? `Indsendt materiale${labels.afsender ? ` fra ${labels.afsender}` : ""}`
+    : a.indholdstype === "AI-assisteret" ? `AI-assisteret${labels.godkendtAf ? `, godkendt af ${labels.godkendtAf}` : ""}`
+    : undefined;
+  if (text) props.push({ "@type": "PropertyValue", propertyID: "maerkning", name: "Mærkning", value: text });
+  const uses = aiUses(a.aiBrug);
+  if (uses.length > 0) props.push({ "@type": "PropertyValue", propertyID: "ai-brug", name: "AI-brug", value: uses.join(", ") });
+  return props;
+}
+
 export function newsArticleNode(
   a: ArticleLdInput,
   site: LdSite,
@@ -246,24 +271,28 @@ export function newsArticleNode(
   switch (a.indholdstype) {
     case "Partner":
       if (sponsor) extra.sponsor = { "@type": "Organization", name: sponsor };
+      extra.backstory = `Partnerindhold${sponsor ? ` finansieret af ${sponsor}` : ""}. Indholdet er tydeligt mærket som partnerindhold.`;
       author = byline ?? orgAuthor;
       break;
     case "Sponsoreret":
       if (sponsor) {
         extra.sponsor = { "@type": "Organization", name: sponsor };
       }
+      extra.backstory = `Sponsoreret indhold${sponsor ? ` fra ${sponsor}` : ""}.`;
       author = byline ?? (sponsor ? { "@type": "Organization", name: sponsor } : orgAuthor);
       break;
     case "Brugerindsendt":
       if (afsender) author = { "@type": guessAgentType(afsender), name: afsender };
       else author = byline ?? orgAuthor;
       extra.contributor = { "@type": "Organization", name: site.navn, url: `${base}/` };
+      extra.backstory = `Indsendt materiale${afsender ? ` fra ${afsender}` : ""}, redigeret af redaktionen.`;
       break;
     case "PR":
       if (afsender) {
         author = { "@type": "Organization", name: afsender };
         extra.provider = { "@type": "Organization", name: afsender };
       } else author = byline ?? orgAuthor;
+      extra.backstory = `Pressemeddelelse${afsender ? ` fra ${afsender}` : ""}.`;
       break;
     case "AI-assisteret": {
       const godkender = godkendtAf ? { "@type": "Person", name: godkendtAf } : undefined;
@@ -276,7 +305,10 @@ export function newsArticleNode(
     }
     default:
       author = byline ?? orgAuthor;
+      // Uafhængig med AI-brug (fx sproglig korrektur): oplys det maskinlæsbart og i klartekst.
+      if (aiUses(a.aiBrug).length > 0) extra.backstory = `Redaktionelt indhold med AI-støtte (${aiUses(a.aiBrug).join(", ").toLowerCase()}), gennemset af redaktionen.`;
   }
+  extra.additionalProperty = markingProperties(a, { sponsor, afsender, godkendtAf });
 
   const description = metaDescription(a.seoBeskrivelse || a.manchet);
   const published = isoWithOffset(a.publiceretTid ?? a.opdateretTid ?? null);

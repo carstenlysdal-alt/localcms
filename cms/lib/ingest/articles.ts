@@ -2,7 +2,9 @@ import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "../db";
 import { blocksSchema } from "../blocks/schema";
-import { isAiRestrictedCategory } from "../marking";
+import { loadCategoryTree } from "../category-tree";
+import { isAiRestrictedCategoryTree } from "../marking";
+import { resolveGeoIds } from "./geo";
 import { slugify } from "../slug";
 import { ARTICLE_STATUSES } from "../workflow";
 import { textToParagraphHtml } from "../validation/text";
@@ -69,22 +71,17 @@ export async function createIngestDraft(opts: { instansId: string; ingestKeyId: 
     throw new IngestRejection("AI-udkast baseret på politi-/112-kilder (Krimi) kan ikke leveres via API'et; de kræver journalistisk gennemskrivning. Lever i stedet et signal (POST /api/ingest/signals).", 403);
   }
 
-  let kategoriId: string | null = null;
-  if (input.sektion) {
-    const category = await db.category.findFirst({ where: { instansId, slug: input.sektion }, include: { parent: true } });
-    if (!category) throw new IngestRejection(`Ukendt sektion '${input.sektion}' i denne instans.`, 422);
-    if (isAiRestrictedCategory(category) || isAiRestrictedCategory(category.parent)) {
-      throw new IngestRejection("AI-assisterede artikler er ikke tilladt i Krimi og retsvæsen eller Sundhed uden journalistisk gennemskrivning.", 403);
-    }
-    kategoriId = category.id;
+  // Sektionen er påkrævet og skal kunne afgøres: uden den kan Krimi/Sundhed-spærringen ikke håndhæves (T7 §7).
+  if (!input.sektion) throw new IngestRejection("`sektion` er påkrævet: angiv kategori-sluggen for den sektion kladden hører til.", 422);
+  const category = await db.category.findFirst({ where: { instansId, slug: input.sektion }, select: { id: true } });
+  if (!category) throw new IngestRejection(`Ukendt sektion '${input.sektion}' i denne instans.`, 422);
+  // Hele forældrekæden tjekkes (id-baseret): et barn af Krimi/Sundhed er også spærret.
+  if (isAiRestrictedCategoryTree(await loadCategoryTree(instansId, category.id))) {
+    throw new IngestRejection("AI-assisterede artikler er ikke tilladt i Krimi og retsvæsen eller Sundhed uden journalistisk gennemskrivning.", 403);
   }
+  const kategoriId = category.id;
 
-  let geoIds: string[] = [];
-  if (input.omraader?.length) {
-    const tags = await db.geoTag.findMany({ where: { instansId } });
-    const wanted = input.omraader.map((o) => o.toLowerCase());
-    geoIds = tags.filter((t) => wanted.includes(t.slug) || wanted.includes(t.navn.toLowerCase())).map((t) => t.id);
-  }
+  const geoIds = input.omraader?.length ? await resolveGeoIds(instansId, input.omraader) : [];
 
   const blocks = buildBlocks(input);
   const kilder = input.sources.map((s) => ({ url: s.url, dato: s.dato, ...(s.titel ? { titel: s.titel } : {}), ...(s.udgiver ? { udgiver: s.udgiver } : {}), ...(s.sourceType ? { sourceType: s.sourceType } : {}) }));

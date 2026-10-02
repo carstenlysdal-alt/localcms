@@ -96,7 +96,8 @@ export function InterviewListClient({ interviews }: { interviews: InterviewItem[
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <button
+              {item.token && (
+<button
                 type="button"
                 onClick={() => handleCopyLink(item.token)}
                 style={{
@@ -115,6 +116,7 @@ export function InterviewListClient({ interviews }: { interviews: InterviewItem[
                 {copiedToken === item.token ? <Check size={14} style={{ color: "#16a34a" }} /> : <Copy size={14} />}
                 <span>{copiedToken === item.token ? "Kopieret!" : "Kopier kildelink"}</span>
               </button>
+)}
 
               {hasArticle ? (
                 <Link

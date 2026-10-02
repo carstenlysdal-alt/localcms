@@ -78,7 +78,8 @@ export function addModule(modules: readonly ModuleInstance[], type: ModuleTypeId
     type,
     slots: def.slots.default,
     region: "full",
-    visible: true,
+    // Signal-moduler (maskinindsamlet) er skjulte som standard; redaktøren slår dem til bevidst.
+    visible: def.dataSource !== "Signal",
     mode: "forslag",
     config: def.isBreak ? { placement: "sequence" } : {},
   };

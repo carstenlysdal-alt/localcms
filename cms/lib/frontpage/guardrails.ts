@@ -63,6 +63,20 @@ export function commercialCap(filled: number, kvoteloftProcent: number): number 
   return Math.max(0, Math.floor((filled * kvoteloftProcent) / 100));
 }
 
+/**
+ * Kvoteloft for annoncer (ad-break): hver visning af en annoncekampagne tæller som én kommerciel placering ("Annonce"),
+ * på lige fod med Partner/Sponsoreret/PR. Returnerer hvor mange annonceenheder (af `adUnits`) der må vises, så
+ * kommercielle placeringer højst udgør `kvoteloftProcent` af ALLE placeringer (artikelslots + annoncer).
+ * Når 7-dages-kvoten allerede er nået (`quotaExceeded`), vises ingen annoncer.
+ */
+export function adBreakAllowance(input: { filledArticleSlots: number; commercialArticleSlots: number; adUnits: number; kvoteloftProcent: number; quotaExceeded: boolean }): number {
+  if (input.quotaExceeded) return 0;
+  for (let n = Math.max(0, input.adUnits); n > 0; n--) {
+    if (input.commercialArticleSlots + n <= commercialCap(input.filledArticleSlots + n, input.kvoteloftProcent)) return n;
+  }
+  return 0;
+}
+
 /** Krav der gælder uanset modul: tenant, status, mærkning, AI-begrænsning. */
 export function basicEligibility(c: Candidate, ctx: GuardContext): Violation[] {
   const out: Violation[] = [];

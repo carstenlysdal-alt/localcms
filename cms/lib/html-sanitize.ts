@@ -24,30 +24,68 @@ export type SanitizeOptions = {
   linkRel?: string[];
 };
 
-function decodeBasicEntities(v: string): string {
-  return v
-    .replace(/&#x([0-9a-f]+);?/gi, (_, h) => String.fromCodePoint(Math.min(parseInt(h, 16), 0x10ffff)))
-    .replace(/&#(\d+);?/g, (_, d) => String.fromCodePoint(Math.min(parseInt(d, 10), 0x10ffff)))
-    .replace(/&colon;/gi, ":")
-    .replace(/&tab;/gi, "\t")
-    .replace(/&newline;/gi, "\n")
-    .replace(/&amp;/gi, "&");
+/** Navngivne entiteter vi dekoder (alle kræver afsluttende ;). Resten bevares som tekst. */
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0",
+  colon: ":", tab: "\t", newline: "\n", lpar: "(", rpar: ")", sol: "/", bsol: "\\", period: ".", semi: ";", num: "#",
+};
+
+/**
+ * Dekoder EN gang, præcis som en browser dekoder en attributværdi (numeriske entiteter må mangle ;,
+ * navngivne kræver den). Ét regex-gennemløb, så `&#38;amp;` giver `&amp;` og ikke `&`.
+ */
+function decodeOnce(v: string): string {
+  return v.replace(/&(?:#x([0-9a-f]+);?|#(\d+);?|([a-z][a-z0-9]*);)/gi, (whole, hex: string | undefined, dec: string | undefined, name: string | undefined) => {
+    if (hex !== undefined || dec !== undefined) {
+      const n = hex !== undefined ? parseInt(hex, 16) : parseInt(dec as string, 10);
+      return Number.isFinite(n) && n >= 0 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff) ? String.fromCodePoint(n) : "\ufffd";
+    }
+    const hit = NAMED_ENTITIES[(name as string).toLowerCase()];
+    return hit === undefined ? whole : hit;
+  });
 }
 
-/** Returnerer en sikker href eller null. Tillader http(s), mailto, tel, relative og #anker. */
+/** Dekoder til fikspunkt (maks. 6 gennemløb) — bruges KUN til skematjekket, aldrig til output. */
+function decodeToFixpoint(v: string): string {
+  let cur = v;
+  for (let i = 0; i < 6; i++) {
+    const next = decodeOnce(cur);
+    if (next === cur) return cur;
+    cur = next;
+  }
+  return cur;
+}
+
+/** Fjerner tegn en browser ignorerer i/omkring et skema (C0/C1-kontroltegn, mellemrum, usynlige tegn). */
+function compactForScheme(v: string): string {
+  return v.replace(/[\u0000-\u0020\u007f-\u009f\u00ad\u200b-\u200f\u2028\u2029\u2060\ufeff]+/g, "");
+}
+
+const ALLOWED_SCHEME = /^(https?:|mailto:|tel:)/i;
+const ANY_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
+ * Returnerer en sikker href (dekodet EN gang, klar til escAttr) eller null. Tillader http(s), mailto, tel,
+ * relative stier og #anker. Skemaet tjekkes på både den enkeltdekodede og den fuldt (fikspunkt-)dekodede værdi,
+ * så `java&amp;#115;cript:`, `&amp;colon;` og lignende dobbeltkodninger afvises.
+ */
 export function safeHref(raw: string | null | undefined): string | null {
   if (!raw) return null;
-  const decoded = decodeBasicEntities(raw);
-  const compact = decoded.replace(/[\u0000- \u007f-\u009f]+/g, "");
-  if (!compact) return null;
-  if (/^(https?:|mailto:|tel:)/i.test(compact)) return decoded.trim();
-  if (/^[a-z][a-z0-9+.-]*:/i.test(compact)) return null; // javascript:, data:, vbscript: …
-  if (compact.startsWith("//")) return null;
-  return decoded.trim();
+  const decoded = decodeOnce(raw);
+  for (const candidate of [decoded, decodeToFixpoint(raw)]) {
+    const compact = compactForScheme(candidate);
+    if (!compact) return null;
+    if (ALLOWED_SCHEME.test(compact)) continue;
+    if (ANY_SCHEME.test(compact)) return null; // javascript:, data:, vbscript: …
+    if (compact.startsWith("//") || compact.startsWith("\\")) return null;
+  }
+  const result = decoded.trim();
+  return result ? result : null;
 }
 
+/** Escaper en allerede dekodet værdi til en dobbeltciteret attribut. ALLE & escapes, så browseren ikke dekoder igen. */
 function escAttr(v: string): string {
-  return v.replace(/&(?!(?:[a-z]+|#\d+|#x[0-9a-f]+);)/gi, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return v.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function escText(v: string): string {
@@ -103,14 +141,14 @@ export function sanitizeHtml(input: string | null | undefined, options: Sanitize
         if (tag === "a" && name === "href") {
           href = safeHref(value);
         } else if (tag === "a" && name === "title") {
-          attrs.push(`title="${escAttr(value)}"`);
+          attrs.push(`title="${escAttr(decodeOnce(value))}"`);
         } else if (tag === "time" && name === "datetime") {
           if (/^[0-9T:+\-.Z ]{4,40}$/.test(value)) attrs.push(`datetime="${escAttr(value)}"`);
         } else if ((tag === "abbr" && name === "title") || (tag === "q" && name === "cite") || (tag === "blockquote" && name === "cite")) {
           if (name === "cite") {
             const c = safeHref(value);
             if (c) attrs.push(`cite="${escAttr(c)}"`);
-          } else attrs.push(`title="${escAttr(value)}"`);
+          } else attrs.push(`title="${escAttr(decodeOnce(value))}"`);
         }
       }
     }

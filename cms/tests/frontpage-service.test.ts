@@ -85,7 +85,7 @@ before(async () => {
       },
     });
   for (let i = 0; i < 12; i++) articleIds.push((await mkArticle(A, i)).id);
-  partnerId = (await mkArticle(A, 20, { indholdstype: "Partner", marking: { sponsor: "Fjordbyg A/S", labelTekst: "Partner: Fjordbyg A/S" } })).id;
+  partnerId = (await mkArticle(A, 20, { indholdstype: "Partner", marking: { sponsor: "Fjordbyg A/S", labelTekst: "Partner: Fjordbyg A/S", aftaleId: "sa-test" } })).id;
   draftArticleId = (await mkArticle(A, 21, { status: "Kladde", publiceretTid: null })).id;
   await mkArticle(B, 0);
 });

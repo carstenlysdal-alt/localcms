@@ -1,6 +1,7 @@
 import { headers, cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { trustedHost } from "./trusted-host";
 import { db } from "./db";
 import type { Instance } from "@prisma/client";
 
@@ -101,7 +102,8 @@ export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site>
       const h = await headers();
       // x-site er kun et udviklingsværktøj; i produktion må klienten ikke vælge tenant.
       const override = !isProduction ? h.get("x-site") : null;
-      host = override ?? h.get("x-forwarded-host")?.split(",")[0]?.trim() ?? h.get("host") ?? undefined;
+      // Vært: Host (eller betroet X-Forwarded-Host, se lib/trusted-host.ts) — aldrig en klient-styrbar X-Forwarded-Host.
+      host = override ?? trustedHost(h) ?? undefined;
     } catch {
       // Statisk generering eller uden for request-kontekst
       host = undefined;
@@ -160,7 +162,7 @@ export async function getNetworkLinks(): Promise<NetworkSiteLink[]> {
   let proto: string | null = null;
   try {
     const h = await headers();
-    host = h.get("x-forwarded-host")?.split(",")[0]?.trim() ?? h.get("host");
+    host = trustedHost(h);
     proto = h.get("x-forwarded-proto");
   } catch {
     host = null;

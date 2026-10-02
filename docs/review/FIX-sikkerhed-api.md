@@ -32,7 +32,7 @@ Rate limiter: `lib/ratelimit/index.ts` (pluggable `RateLimitStore`).
 ## 3. Hemmeligheder der bør roteres
 
 - `AUTH_SECRET` i lokal `.env` hvis den er delt/brugt andre steder; sæt en ny unik værdi pr. miljø (`openssl rand -base64 32`).
-- Demo-adgangskoden `cms-demo-2026` har været hardkodet i seed + docs: ændr adgangskoden på alle 17 demo-brugere i enhver delt/staging-database (dev.db-hashes er stadig for den gamle kode).
+- En gammel, hardkodet demo-adgangskode har været brugt i seed + docs (nu fjernet): ændr adgangskoden på alle 17 demo-brugere i enhver delt/staging-database (dev.db-hashes er stadig for den gamle kode).
 - Gammel Knowledge-API-nøgle i aI-library-historikken (commits 553b2a8, 1ab0bd1) — uændret fund fra review (T9), ikke en del af denne ændring.
 - Ingen nøgler er skrevet i kode eller docs; ingest-nøgler lever kun som sha256 i databasen.
 

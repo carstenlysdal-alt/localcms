@@ -180,3 +180,49 @@ test("creditLabel og guessAgentType", () => {
   assert.equal(guessAgentType("Tappernøje Borgerforening"), "Organization");
   assert.equal(guessAgentType("Anna Jensen"), "Person");
 });
+
+// ── T6 nr. 5/14: ensartet, maskinlæsbar mærkning på tværs af indholdstyper ───────────────────────
+
+test("alle indholdstyper får indholdstype-property; mærkede typer får også mærkning og forklarende tekst", () => {
+  const t = (indholdstype: string, marking: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) =>
+    newsArticleNode({ ...baseArticle, indholdstype, marking, ...extra }, site, cfg, base) as Rec;
+  const props = (n: Rec) => Object.fromEntries((n.additionalProperty as Array<{ propertyID: string; value: string }>).map((p) => [p.propertyID, p.value]));
+
+  const uafh = t("Uafhængig");
+  assert.deepEqual(props(uafh), { indholdstype: "Uafhængig" });
+  assert.equal(uafh.backstory, undefined, "ingen forklaring uden mærkning/AI");
+
+  const partner = t("Partner", { sponsor: "Eksempel Partner A", labelTekst: "Finansieret af Eksempel Partner A" });
+  assert.equal(props(partner).indholdstype, "Partner");
+  assert.match(props(partner).maerkning, /Finansieret af Eksempel Partner A/);
+  assert.match(partner.backstory, /Partnerindhold finansieret af Eksempel Partner A/, "Partner har nu en forklarende tekst");
+
+  const spons = t("Sponsoreret", { sponsor: "Eksempel Partner B", labelTekst: "ANNONCE" });
+  assert.match(props(spons).maerkning, /ANNONCE/);
+  assert.match(spons.backstory, /Eksempel Partner B/);
+
+  const pr = t("PR", { afsender: "Eksempel Afsender" });
+  assert.equal(props(pr).maerkning, "Pressemeddelelse fra Eksempel Afsender");
+  assert.match(pr.backstory, /Pressemeddelelse/);
+
+  const bruger = t("Brugerindsendt", { afsender: "Borgerforeningen" });
+  assert.match(props(bruger).maerkning, /Indsendt materiale fra Borgerforeningen/);
+  assert.match(bruger.backstory, /Indsendt/);
+
+  const ai = t("AI-assisteret", { godkendtAf: "Morten Kaas", kilder: ["https://x.dk/a"] }, { aiBrug: ["Udkast", "Sproglig korrektur"] });
+  assert.match(props(ai).maerkning, /godkendt af Morten Kaas/);
+  assert.equal(props(ai)["ai-brug"], "Udkast, Sproglig korrektur");
+  assert.match(ai.backstory, /AI/);
+});
+
+test("Uafhængig med AI-brug markeres (backstory + ai-brug); 'Ingen' og tom liste gør ikke", () => {
+  const t = (aiBrug: unknown) => newsArticleNode({ ...baseArticle, aiBrug }, site, cfg, base) as Rec;
+  const withAi = t(["Sproglig korrektur"]);
+  assert.match(withAi.backstory, /AI-støtte \(sproglig korrektur\)/);
+  assert.ok(withAi.additionalProperty.some((p: Rec) => p.propertyID === "ai-brug" && p.value === "Sproglig korrektur"));
+  for (const none of [["Ingen"], [], undefined, null]) {
+    const n = t(none);
+    assert.equal(n.backstory, undefined);
+    assert.ok(!n.additionalProperty.some((p: Rec) => p.propertyID === "ai-brug"));
+  }
+});

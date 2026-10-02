@@ -5,7 +5,7 @@ import { Save, Send } from "lucide-react";
 import { saveArticle, type ArticleFormState } from "@/app/redaktion/artikler/actions";
 import { BlockEditor } from "./block-editor";
 import type { Block } from "@/lib/blocks/schema";
-import { CONTENT_TYPES, type Marking } from "@/lib/marking";
+import { AI_USAGE_VALUES, AI_USE_NONE, CONTENT_TYPES, type Marking } from "@/lib/marking";
 
 type Option = { id: string; navn: string };
 type ArticleValue = {
@@ -17,12 +17,17 @@ type ArticleValue = {
 
 type MediaOption = { id: string; url: string; altTekst: string | null; billedtekst: string | null; filnavn: string | null };
 
-export function ArticleForm({ article, categories, authors, tags, geoTags, media, transitions, canPublish }: {
+export function ArticleForm({ article, categories, authors, tags, geoTags, media, transitions, canPublish, canControlFrontpage = false }: {
   article: ArticleValue; categories: Option[]; authors: Option[]; tags: Option[]; geoTags: Option[]; media: MediaOption[]; transitions: string[]; canPublish: boolean;
+  /** Kun med FRONTPAGE_EDIT må "breaking"/"fastgjort" sættes (håndhæves igen i saveArticle). */
+  canControlFrontpage?: boolean;
 }) {
   const action = saveArticle.bind(null, article.id);
   const [state, formAction, pending] = useActionState<ArticleFormState, FormData>(action, {});
   const [contentType, setContentType] = useState(article.indholdstype);
+  // AI-brug: aktivt valg. "Ingen AI brugt" udelukker konkret brug (og omvendt).
+  const [aiNone, setAiNone] = useState(article.aiBrug.includes(AI_USE_NONE));
+  const [aiUses, setAiUses] = useState<string[]>(article.aiBrug.filter((v) => v !== AI_USE_NONE));
   return (
     <form action={formAction} className="editor-form">
       <div className="editor-main">
@@ -71,19 +76,34 @@ export function ArticleForm({ article, categories, authors, tags, geoTags, media
           {contentType === "AI-assisteret" && (
             <div className="commercial-fields">
               <p className="help-text">Obligatorisk før publicering (del 9 §2).</p>
-              <div className="field"><label htmlFor="markingGodkendtAf">Godkendt af (journalist/redaktør)</label><input className="input" id="markingGodkendtAf" name="markingGodkendtAf" defaultValue={"godkendtAf" in (article.marking ?? {}) ? (article.marking as { godkendtAf: string }).godkendtAf : ""} required /></div>
+              <div className="field"><label htmlFor="markingGodkendtAf">Godkendt af</label><input className="input" id="markingGodkendtAf" value={"godkendtAf" in (article.marking ?? {}) && (article.marking as { godkendtAf: string }).godkendtAf ? (article.marking as { godkendtAf: string }).godkendtAf : "Sættes til den der publicerer"} readOnly aria-describedby="godkendt-hjaelp" /><p className="help-text" id="godkendt-hjaelp">Godkenderen er den bruger, der publicerer artiklen. Feltet kan ikke redigeres.</p></div>
               <div className="field"><label htmlFor="markingKilder">Kilder (én URL/reference pr. linje)</label><textarea className="input" id="markingKilder" name="markingKilder" rows={3} defaultValue={"kilder" in (article.marking ?? {}) ? ((article.marking as { kilder: string[] }).kilder ?? []).join("\n") : ""} placeholder="https://..." required /></div>
             </div>
           )}
         </section>
-        <section className="sidebar-section"><h2>AI-brug</h2><fieldset className="checkbox-grid"><legend style={{ fontSize: 11, opacity: 0.6 }}>Markér hvad AI har været brugt til</legend>{["Sproglig korrektur", "Omskrivning", "Transskribering", "Udkast"].map((item) => <label key={item}><input type="checkbox" name="aiBrug" value={item} defaultChecked={article.aiBrug.includes(item)} /> {item}</label>)}</fieldset></section>
+        {article.marking && typeof (article.marking as { uverificeretKilde?: unknown }).uverificeretKilde === "boolean" && (
+          <section className="sidebar-section"><h2>Kildeverifikation</h2>
+            <label className="check-row"><input type="checkbox" name="kildeVerificeret" defaultChecked={(article.marking as unknown as { uverificeretKilde: boolean }).uverificeretKilde === false} /> Kildens identitet er verificeret</label>
+            <p className="help-text">Kladden stammer fra en henvendelse, hvor kildens identitet ikke er kontrolleret. Artiklen kan ikke publiceres, før redaktionen har verificeret kilden.</p>
+          </section>
+        )}
+        <section className="sidebar-section"><h2>AI-brug</h2><fieldset className="checkbox-grid"><legend style={{ fontSize: 11, opacity: 0.6 }}>Vælg hvad AI har været brugt til — eller at AI ikke er brugt. Påkrævet før publicering.</legend>
+          <label><input type="checkbox" name="aiBrug" value={AI_USE_NONE} checked={aiNone} onChange={(event) => { setAiNone(event.target.checked); if (event.target.checked) setAiUses([]); }} /> Ingen AI brugt</label>
+          {AI_USAGE_VALUES.map((item) => <label key={item}><input type="checkbox" name="aiBrug" value={item} checked={aiUses.includes(item)} disabled={aiNone} onChange={(event) => setAiUses((prev) => event.target.checked ? [...prev, item] : prev.filter((v) => v !== item))} /> {item}</label>)}
+        </fieldset></section>
         <section className="sidebar-section"><h2>SEO og publicering</h2>
           <div className="field"><label htmlFor="slug">Slug</label><input className="input" id="slug" name="slug" defaultValue={article.slug} required /></div>
           <div className="field"><label htmlFor="seoTitel">SEO-titel</label><input className="input" id="seoTitel" name="seoTitel" defaultValue={article.seoTitel} /></div>
           <div className="field"><label htmlFor="seoBeskrivelse">Metabeskrivelse</label><textarea className="input" id="seoBeskrivelse" name="seoBeskrivelse" defaultValue={article.seoBeskrivelse} /></div>
           <div className="field"><label htmlFor="sprog">Sprog</label><input className="input" id="sprog" name="sprog" defaultValue={article.sprog} /></div>
-          <label className="check-row"><input type="checkbox" name="breaking" defaultChecked={article.breaking} /> Breaking</label>
-          <label className="check-row"><input type="checkbox" name="pinned" defaultChecked={article.pinned} /> Fastgjort på forsiden</label>
+          {canControlFrontpage ? (
+            <>
+              <label className="check-row"><input type="checkbox" name="breaking" defaultChecked={article.breaking} /> Hastenyhed (breaking)</label>
+              <label className="check-row"><input type="checkbox" name="pinned" defaultChecked={article.pinned} /> Fastgjort på forsiden</label>
+            </>
+          ) : (
+            <p className="help-text">Hastenyhed og fastgørelse på forsiden sættes af forsideredaktionen.</p>
+          )}
         </section>
       </aside>
     </form>

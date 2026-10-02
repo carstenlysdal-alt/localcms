@@ -58,11 +58,13 @@ Alternativt server action `createIngestKeyAction(name, scopes, days)` (`app/reda
 | `kilde` | påkrævet (visningsnavn) |
 | `kildeUrl` | påkrævet, http(s) |
 | `sourceType` | enum: `kommune_dagsorden, politi, beredskab_112, trafik, vejr, forening, klub, lokalt_medie, kommune_pressemeddelelse, andet` |
-| `geo` | streng (slug/navn/postnr) eller objekt `{omraade?, postnr?, by?, kommune?}`. Matches mod instansens egne `GeoTag` (slug -> navn -> postnr i slug/navn). Intet match: gemmes som tekst-hint (`omraadeTekst`) |
+| `geo` | streng (slug/navn/postnr) eller objekt `{omraade?, postnr?, by?, kommune?}`. Matches mod instansens egne `GeoTag` i rækkefølgen 1) præcis slug, 2) præcist navn, 3) normaliseret navn uden "By"/"Kommune" (`by: "Næstved"` rammer `Næstved By`, kun hvis entydigt), 4) postnummer via instansens postnummertabel (`lib/ingest/geo.ts`, `POSTNR_TABLE`). Intet match: gemmes som tekst-hint (`omraadeTekst`). Send helst den præcise GeoTag-slug i `geo.omraade` |
 | `publishedAt` | valgfri ISO-8601 |
-| `meta` | valgfri, op til 20 skalarer (gemmes ikke endnu; reserveret) |
+| `meta` | valgfri, op til 20 skalarer. Gemmes i `Signal.meta` (vises aldrig offentligt). En ren meta-ændring opdaterer rækken uden at røre ved læst/godkendt/version |
 
 Ukendte felter afvises (400, strict) — herunder `breaking`, `notable`, `instansId`. Signaler gemmes altid med `maskinindsamlet = true`, `breaking = false`, `notable = false`; redaktionen ser dem som "Maskinindsamlet · ikke vurderet" på `/redaktion/signaler`.
+
+**Godkendelse før offentlig visning (T5 P1-3).** Et signal er altid *ugodkendt* når det oprettes. Forsidemodulerne "Fra kommunen"/"Fra politiet" viser KUN signaler en redaktør med rettigheden `signal.approve` har godkendt (knappen "Godkend til forsiden" på `/redaktion/signaler`), kun inden for modulets aldersgrænse (`config.maxAgeHours`, standard 72 t for kommunen og 24 t for politiet) og kun modulets område (`config.omraadeSlug`). Signalmoduler er skjulte som standard og skal slås til af en redaktør. Opdateres et signal fra kilden (ændret overskrift, tekst, kilde, URL, type eller område), får det ny version, markeres ulæst og mister sin godkendelse, så det skal vurderes igen. `politi`/`beredskab_112` vises aldrig automatisk.
 
 **Dedupe/idempotens** (pr. instans):
 1. `(instansId, externalId)` findes -> uændret indhold = `duplicate` (`duplicateOf: "externalId"`), ændret = `updated` (version + 1).
@@ -111,9 +113,10 @@ Garantier (håndhævet i `lib/ingest/articles.ts`, testet):
 - **Status tvinges** til workflowets første tilstand (`Idé`, `ARTICLE_STATUSES[0]`), `indholdstype = "AI-assisteret"`, `publiceretTid = null`, `pinned/breaking = false`, ingen forfatter. Feltet `status`, `publiceretTid`, `pinned`, `breaking`, `marking`, `forfatterId`, `instansId` i body giver **422**. `indholdstype` må kun være `AI-assisteret`.
 - `aiBrug` påkrævet (min. 1 af `Sproglig korrektur, Omskrivning, Transskribering, Udkast` — samme værdier som redaktørens felt; `Ingen` afvises).
 - `sources[]` påkrævet (min. 1): hver med `url` (http/https) og `dato`. `quote`-blokke kræver `kildeUrl` og `dato`.
-- **Spærret i Krimi og Sundhed**: `sektion` (eller dens overkategori) = Krimi og retsvæsen/Sundhed -> 403 (`isAiRestrictedCategory`, samme regel som editoren). Kilder med `sourceType` `politi` eller `beredskab_112` -> 403 (lever dem som signal i stedet).
+- **`sektion` er påkrævet** (kategori-slug i instansen): uden den kan Krimi/Sundhed-spærringen ikke håndhæves -> 400 (kontrakten er `strict`); ukendt slug -> 422.
+- **Spærret i Krimi og Sundhed**: `sektion` eller en af dens forældre (hele kæden, id-baseret) = Krimi og retsvæsen/Sundhed -> 403 (`isAiRestrictedCategoryTree`, samme regel som editoren). Kilder med `sourceType` `politi` eller `beredskab_112` -> 403 (lever dem som signal i stedet).
 - Tekst er ren tekst: HTML fjernes; `paragraph`-blokke gemmes som escapet `<p>…</p>`.
-- `marking = { godkendtAf: "", kilder:[urls], maskinleveret:true }` — `godkendtAf` er tom, så `assertPublishableMarking` blokerer publicering, indtil en redaktør har udfyldt godkender. `provenance` (JSON på artiklen) gemmer nøgle-prefix, agent, kilder med dato og signal-id'er.
+- `marking = { godkendtAf: "", kilder:[urls], maskinleveret:true }` — `godkendtAf` er tom, så `assertPublishableMarking` blokerer publicering; når en redaktør publicerer, sættes `godkendtAf` server-side til den publicerende bruger (ikke fri tekst). `provenance` (JSON på artiklen) gemmer nøgle-prefix, agent, kilder med dato og signal-id'er.
 - Idempotent på `(instansId, externalId)`: gentagelse giver `200 duplicate` og **overskriver aldrig** redaktørens version.
 - Ingen direkte PUBLISH: der findes ingen kodesti fra API'et til `Publiceret`. Veje til publicering: redaktør åbner kladden, gennemgår -> eksisterende `canTransition` (kræver `ARTICLE_PUBLISH` for `Godkendelse`/`Publiceret`).
 

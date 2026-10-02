@@ -4,7 +4,8 @@
  * Next.js renderer alle offentlige sider dynamisk (getCurrentSite() læser Host-headeren), så sidernes egne svar har
  * `Cache-Control: private, no-store`. proxy.ts overskriver det med en delt-cache-venlig header for præcis de
  * forespørgsler der er sikre at cache'e — og kun dem. CDN'en (Cloudflare) nøgler på fuld URL inkl. vært, og vi sender
- * `Vary: Host` for en ordens skyld, så tenant-data aldrig blandes på tværs af byer.
+ * `Vary: Host` (og `X-Forwarded-Host`, hvis TRUST_FORWARDED_HOST er slået til — se lib/trusted-host.ts), så tenant-data aldrig
+ * blandes på tværs af byer.
  *
  * ALDRIG cache'bart:
  *  - andet end GET/HEAD

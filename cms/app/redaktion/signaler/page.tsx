@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { CheckCheck, Plus, Settings } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
-import { markAllRead, createSignal } from "./actions";
+import { createSignal, markAllRead, toggleSignalApprovalAction } from "./actions";
 
 function relativeTime(date: Date) {
   const diff = Date.now() - date.getTime();
@@ -18,15 +18,15 @@ function relativeTime(date: Date) {
 const KILDER = ["Alle", "Ritzau", "Reuters", "AP", "Intern"];
 
 export default async function SignalerPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = await getAuthorizedUser();
+  if (!user) return null;
   const params = await searchParams;
   const kilde = typeof params.kilde === "string" ? params.kilde : "";
   const visLaeste = params.laest === "1";
 
   const signals = await db.signal.findMany({
     where: {
-      instansId: session.user.instansId,
+      instansId: user.instansId,
       ...(kilde && kilde !== "Alle" ? { kilde } : {}),
       ...(visLaeste ? {} : {}),
     },
@@ -36,7 +36,8 @@ export default async function SignalerPage({ searchParams }: { searchParams: Pro
 
   const ulaeste = signals.filter((s) => !s.laest).length;
   const visninger = visLaeste ? signals : signals.filter((s) => !s.laest);
-  const canManage = can(session.user, PERMISSIONS.ARTICLE_CREATE);
+  const canManage = can(user, PERMISSIONS.ARTICLE_CREATE);
+  const canApprove = can(user, PERMISSIONS.SIGNAL_APPROVE);
 
   return (
     <main className="admin-main">
@@ -60,6 +61,9 @@ export default async function SignalerPage({ searchParams }: { searchParams: Pro
 
       <p className="text-muted" style={{ marginBottom: "var(--space-4)" }}>
         Alt din live-overvågning fanger, nyeste først — på tværs af alle kilder.
+      </p>
+      <p className="help-text" style={{ marginBottom: "var(--space-4)" }}>
+        Maskinindsamlede signaler vises først på forsiden, når en redaktør har godkendt dem. Gennemlæs overskriften for personoplysninger og sigtede, før du godkender — især fra politi og 112. Ændres et signal fra kilden, skal det godkendes igen.
       </p>
 
       {/* Kildefilter */}
@@ -89,7 +93,7 @@ export default async function SignalerPage({ searchParams }: { searchParams: Pro
             </div>
             <div style={{ display: "flex", gap: "var(--space-4)" }}>
               <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13 }}><input type="checkbox" name="notable" /> Notable</label>
-              <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13 }}><input type="checkbox" name="breaking" /> Breaking</label>
+              <label style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 13 }}><input type="checkbox" name="breaking" /> Hastenyhed</label>
             </div>
             <div><button className="btn btn-primary" type="submit">Tilføj signal</button></div>
           </form>
@@ -109,9 +113,10 @@ export default async function SignalerPage({ searchParams }: { searchParams: Pro
               </div>
               <div className="signal-content">
                 <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
-                  {signal.breaking && <span className="tag" style={{ background: "var(--color-danger)", color: "#fff", borderRadius: 9999, fontSize: 9 }}>Breaking</span>}
+                  {signal.breaking && <span className="tag" style={{ background: "var(--color-danger)", color: "#fff", borderRadius: 9999, fontSize: 9 }}>Hastenyhed</span>}
                   {signal.notable && <span className="tag tag-success">Notable</span>}
-                  {signal.maskinindsamlet && <span className="tag" title="Indsamlet automatisk af en agent — ikke redaktionelt vurderet">Maskinindsamlet · ikke vurderet{signal.sourceType ? ` · ${signal.sourceType.replace(/_/g, " ")}` : ""}</span>}
+                  {signal.maskinindsamlet && !signal.godkendtTid && <span className="tag" title="Indsamlet automatisk af en agent — ikke redaktionelt vurderet">Maskinindsamlet · ikke vurderet{signal.sourceType ? ` · ${signal.sourceType.replace(/_/g, " ")}` : ""}</span>}
+                  {signal.maskinindsamlet && signal.godkendtTid && <span className="tag tag-success" title="En redaktør har godkendt signalet til visning på forsiden">Godkendt til forsiden{signal.sourceType ? ` · ${signal.sourceType.replace(/_/g, " ")}` : ""}</span>}
                 </div>
                 <p className="signal-headline">{signal.overskrift}</p>
                 {signal.brødtekst && <p className="signal-body">{signal.brødtekst}</p>}
@@ -122,6 +127,13 @@ export default async function SignalerPage({ searchParams }: { searchParams: Pro
                 <Link className="btn btn-secondary" style={{ fontSize: 11, padding: "3px 10px" }} href={`/redaktion/chat?signal=${encodeURIComponent(signal.overskrift)}`}>
                   Skriv
                 </Link>
+                {canApprove && signal.maskinindsamlet && (
+                  <form action={toggleSignalApprovalAction.bind(null, signal.id, Boolean(signal.godkendtTid))}>
+                    <button className="btn btn-secondary" type="submit" style={{ fontSize: 11, padding: "3px 10px" }}>
+                      {signal.godkendtTid ? "Træk godkendelse tilbage" : "Godkend til forsiden"}
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           ))

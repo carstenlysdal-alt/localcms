@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { pageMeta } from "@/lib/seo/page-meta";
 import Link from "next/link";
 import { getCurrentSite } from "@/lib/site";
+import { resolveOwnerConfig } from "@/lib/owner-config";
 import { Breadcrumbs } from "@/components/site/Breadcrumbs";
 import { ShieldCheck, Handshake, AlertCircle, MessageSquare, Bot, Megaphone, CheckCircle2 } from "lucide-react";
 
@@ -14,6 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function EditorialPrinciplesPage() {
   const site = await getCurrentSite();
+  const owner = resolveOwnerConfig(site);
 
   return (
     <div className="site-page-container" style={{ padding: "24px 0 64px 0" }}>
@@ -49,7 +51,7 @@ export default async function EditorialPrinciplesPage() {
           </p>
           <p className="site-block-paragraph">
             Ingen annoncør, partner, kommune eller kilde kan købe sig til positiv omtale eller forhindre
-            kritisk dækning. Vi er tilmeldt Pressenævnet og følger de vejledende regler for god presseskik.
+            kritisk dækning.{owner.pressenaevnetTilmeldt ? " Vi er tilmeldt Pressenævnet og følger de vejledende regler for god presseskik." : ""}
           </p>
         </section>
 

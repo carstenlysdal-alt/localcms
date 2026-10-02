@@ -228,7 +228,8 @@ export function MeddelerListClient({ meddelere, sager }: MeddelerListClientProps
 
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <span style={{ fontSize: "12px", color: "#64748b" }}>{m._count.sager} sager indsendt</span>
-                  <button
+                  {m.token && (
+<button
                     type="button"
                     onClick={() => handleCopyLink(m.token)}
                     style={{
@@ -247,6 +248,7 @@ export function MeddelerListClient({ meddelere, sager }: MeddelerListClientProps
                     {copiedToken === m.token ? <Check size={14} style={{ color: "#16a34a" }} /> : <Copy size={14} />}
                     <span>{copiedToken === m.token ? "Kopieret!" : "Kopier panel-link"}</span>
                   </button>
+)}
                 </div>
               </div>
             ))

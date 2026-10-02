@@ -56,7 +56,7 @@ export function ArticleTable({ articles, canManageFrontpage }: { articles: Row[]
             </div>
             <div className="article-card-body">
               <div className="article-card-title">
-                {article.breaking && <span className="badge badge-breaking">Breaking</span>}
+                {article.breaking && <span className="badge badge-breaking">Hastenyhed</span>}
                 {article.pinned && !article.breaking && <Pin size={12} style={{ color: "var(--color-accent-2-600)", flexShrink: 0 }} />}
                 <Link className="article-title-link" href={`/redaktion/artikler/${article.id}`}>{article.titel}</Link>
               </div>

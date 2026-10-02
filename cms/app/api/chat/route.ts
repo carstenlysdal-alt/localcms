@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit, rateLimitHeaders } from "@/lib/ratelimit";
-import { readJsonBody } from "@/lib/http";
+import { isSameOrigin, readJsonBody } from "@/lib/http";
 import { getBreaker, isBreakerFailure } from "@/lib/resilience";
 import { cleanText } from "@/lib/validation/text";
 import { normalizeHistory, type ChatTurn } from "@/lib/chat";
@@ -28,8 +28,11 @@ function json(body: unknown, status: number, extra: Record<string, string> = {})
 }
 
 export async function POST(req: Request) {
+  // Forsvar i dybden (T5 P3-6): cookie-auth kræver same-origin og en rigtig JSON-forespørgsel (ikke form/text-plain).
+  if (!isSameOrigin(req)) return json({ error: "Ugyldig oprindelse." }, 403);
+  if (!/^application\/json\b/i.test(req.headers.get("content-type") ?? "")) return json({ error: "Forventer application/json." }, 415);
   const user = await getAuthorizedUser();
-  if (!user) return json({ error: "Unauthorized" }, 401);
+  if (!user) return json({ error: "Ikke autoriseret." }, 401);
 
   const limited = await rateLimit({ bucket: "chat", key: user.id, limit: 20, windowMs: 10 * 60_000 });
   if (!limited.ok) return json({ error: "For mange beskeder. Vent lidt og prøv igen." }, 429, rateLimitHeaders(limited));

@@ -135,7 +135,7 @@ export function ChatInterface({ sessionId, initialMessages }: {
               className="btn btn-primary btn-icon"
               onClick={() => send(input)}
               disabled={!input.trim() || loading}
-              aria-label="Send"
+              aria-label="Send besked"
             >
               {loading ? <Loader2 size={16} className="spin" /> : <ArrowUp size={16} />}
             </button>

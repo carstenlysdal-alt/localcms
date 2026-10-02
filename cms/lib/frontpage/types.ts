@@ -27,7 +27,11 @@ export type ModuleTypeId = (typeof MODULE_TYPE_IDS)[number];
 export const VARIANTS = ["hero", "kort", "kompakt", "liste", "tekstlinje"] as const;
 export type Variant = (typeof VARIANTS)[number];
 
-/** Indholdstyper der tæller som kommercielle/støttefinansierede i kvoteloftet (jf. lib/frontpage-governance.ts). */
+/**
+ * ÉN fælles definition af hvad der tæller som kommercielt/støttefinansieret indhold i kvoteloftet. Bruges af
+ * 7-dages-kvoten (lib/frontpage-governance.ts), forsidens rækværk (lib/frontpage/guardrails.ts) og begge
+ * fastgør-handlinger. Annoncekampagner (ad-break) tæller som typen "Annonce" (se adBreakAllowance i guardrails.ts).
+ */
 export const COMMERCIAL_TYPES: readonly string[] = ["Partner", "Sponsoreret", "PR", "Annonce"];
 export const isCommercialType = (indholdstype: string) => COMMERCIAL_TYPES.includes(indholdstype);
 

@@ -420,11 +420,17 @@ model Signal {
   kildeTidspunkt  DateTime? // hvornår kilden blev udgivet (publishedAt)
   maskinindsamlet Boolean   @default(false) // vises som "Maskinindsamlet – ikke redaktionelt vurderet"
   ingestKeyId     String?   // hvilken ApiKey leverede signalet
+  meta            Json?     // skalare agent-metadata (<= 20 felter); gemmes uændret, vises aldrig offentligt
+  // Redaktionel godkendelse (T5 P1-3): maskinsignaler vises KUN offentligt når en redaktør har godkendt dem.
+  // Nulstilles når indholdet ændres via indtaget (ny version skal vurderes igen).
+  godkendtAf      String?   // User.id på redaktøren der godkendte signalet til forsiden
+  godkendtTid     DateTime?
 
   @@unique([instansId, externalId])
   @@unique([instansId, kildeUrlNorm])
   @@index([instansId, laest])
   @@index([instansId, createdAt])
+  @@index([instansId, godkendtTid])
 }
 
 // ── Rettelser (CMS-01, P-13, A-05) ───────────────────────────────────────────
@@ -437,6 +443,10 @@ model Correction {
   instansId  String
   instans    Instance @relation(fields: [instansId], references: [id])
   createdAt  DateTime @default(now())
+  // Revisionsspor (T5 P2-5): hvem oprettede/fjernede rettelsen. Rettelser slettes aldrig fysisk — de markeres som fjernet.
+  oprettetAf String?   // User.id
+  fjernetTid DateTime?
+  fjernetAf  String?   // User.id
 
   @@index([instansId])
   @@index([articleId])

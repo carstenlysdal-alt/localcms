@@ -241,7 +241,7 @@ export function FrontpageManager({
                 <option value="24">24 timer (1 døgn)</option>
                 <option value="48">48 timer (Standard)</option>
                 <option value="168">7 dage (Ugens tema / Weekend)</option>
-                <option value="0">Permanent (Indtil manuel fjernelse)</option>
+                <option value="720">30 dage (længste varighed)</option>
               </select>
             </div>
 

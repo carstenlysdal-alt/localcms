@@ -29,7 +29,8 @@ export async function registerMeddeler(formData: {
 
     const existing = await db.meddelerProfile.findFirst({ where: { instansId: site.id, kontakt: input.kontakt }, select: { id: true } });
     // Eksisterende profil: token udleveres ALDRIG til en anonym kaldende (ville give kontoovertagelse via e-mail).
-    if (existing) return { success: false, error: "Der findes allerede en profil med denne e-mailadresse. Brug dit gemte personlige link." };
+    // Neutralt svar (T5 P3-3): afslører ikke om e-mailadressen allerede er registreret.
+    if (existing) return { success: false, error: "Tilmeldingen kunne ikke gennemføres. Har du allerede en profil, så brug dit gemte personlige link — ellers kontakt redaktionen." };
 
     const profile = await db.meddelerProfile.create({
       data: {

@@ -14,6 +14,13 @@ export async function generateMetadata(): Promise<Metadata> {
   }), { noindex: true });
 }
 
+const FEJL_TEKSTER: Record<string, string> = {
+  ugyldig: "Tjek e-mailadressen og prøv igen.",
+  "for-mange": "Der er sendt for mange forsøg. Vent lidt og prøv igen.",
+  samtykke: "Du skal give samtykke for at tilmelde dig.",
+  server: "Tilmeldingen lykkedes ikke. Prøv igen om lidt.",
+};
+
 export default async function NyhedsbrevPage({
   searchParams,
 }: {
@@ -22,7 +29,8 @@ export default async function NyhedsbrevPage({
   const site = await getCurrentSite();
   const query = searchParams ? await searchParams : {};
   const status = typeof query.tilmelding === "string" ? query.tilmelding : null;
-  const besked = typeof query.besked === "string" ? query.besked.slice(0, 160) : null;
+  // `besked` er en KODE (T5 P3-10), aldrig fri tekst fra URL'en: ukendte koder giver standardteksten.
+  const besked = typeof query.besked === "string" ? (FEJL_TEKSTER[query.besked.slice(0, 40)] ?? null) : null;
 
   const areas = await db.geoTag.findMany({
     where: { instansId: site.id },

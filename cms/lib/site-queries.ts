@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { slugCandidates } from "@/lib/seo/url";
 import { searchVariants } from "@/lib/slug";
+import { isPostgresUrl, searchOr } from "@/lib/search";
 import { Prisma } from "@prisma/client";
 import { calculateArticleScore, ArticleDistributionInput } from "@/lib/distribution-engine";
 
@@ -568,6 +569,7 @@ export async function getArticleBySlug(instansId: string, sectionSlug: string, s
       tags: true,
       geoTags: true,
       corrections: {
+        where: { fjernetTid: null }, // fjernede rettelser vises ikke offentligt (men slettes aldrig fysisk)
         orderBy: { dato: "desc" },
       },
     },
@@ -747,11 +749,10 @@ function buildSearchWordFilters(query: string): Prisma.ArticleWhereInput[] {
       // SQLite LIKE er kun case-insensitiv for ASCII: tilføj også version med stort begyndelsesbogstav (Å, Ø, Æ).
       variants.add(v.charAt(0).toUpperCase() + v.slice(1));
     }
+    // PostgreSQL: contains er case-SENSITIV uden mode — brug ILIKE (T5 P2-6). Varianterne (diakritik) beholdes.
+    const postgres = isPostgresUrl();
     return {
-      OR: Array.from(variants).flatMap((v) => [
-        { titel: { contains: v } },
-        { manchet: { contains: v } },
-      ]),
+      OR: Array.from(variants).flatMap((v) => (postgres ? searchOr<Prisma.ArticleWhereInput>(["titel", "manchet"], v, true) : ([{ titel: { contains: v } }, { manchet: { contains: v } }] as Prisma.ArticleWhereInput[]))),
     };
   });
 }

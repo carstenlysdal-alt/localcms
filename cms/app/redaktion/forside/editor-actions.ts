@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { calculateSupportedContentQuota } from "@/lib/frontpage-governance";
 import { composeFrontpage } from "@/lib/frontpage/compose";
 import { listArticleSlots, parseModules, validateLayoutModules } from "@/lib/frontpage/layout-schema";
-import { MODULE_TYPE_IDS, type SlotAssignment, type Violation } from "@/lib/frontpage/types";
+import { MODULE_TYPE_IDS, isCommercialType, type SlotAssignment, type Violation } from "@/lib/frontpage/types";
 import {
   approveSnapshot,
   createProposal,
@@ -279,7 +279,7 @@ export async function applyPinsAction(input: unknown): Promise<ActionResult<{ cr
       skipped.push("En artikel findes ikke eller er ikke publiceret.");
       continue;
     }
-    if (["Partner", "Sponsoreret", "PR"].includes(article.indholdstype) && quota.isExceeded) {
+    if (isCommercialType(article.indholdstype) && quota.isExceeded) {
       skipped.push(`"${article.titel}" kan ikke fastgøres: kvoteloftet er nået.`);
       continue;
     }

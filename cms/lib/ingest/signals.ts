@@ -1,32 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { db } from "../db";
-import { slugify } from "../slug";
 import { normalizeUrl } from "../validation/text";
-import type { IngestGeo, IngestItemResult } from "./schema";
+import { resolveGeo } from "./geo";
+import type { IngestItemResult } from "./schema";
 import { signalInputSchema } from "./schema";
 import type { z } from "zod";
 
 type ParsedSignal = z.output<typeof signalInputSchema>;
-
-/** Slå en geo-angivelse op i instansens GeoTags (slug -> navn -> postnr i slug/navn). Aldrig på tværs af instanser. */
-export async function resolveGeo(instansId: string, geo: IngestGeo | undefined): Promise<{ omraadeId: string | null; omraadeTekst: string | null }> {
-  if (!geo) return { omraadeId: null, omraadeTekst: null };
-  const candidates = typeof geo === "string" ? [geo] : [geo.omraade, geo.by, geo.kommune].filter((v): v is string => Boolean(v));
-  const postnr = typeof geo === "string" ? (/^\d{4}$/.test(geo) ? geo : undefined) : geo.postnr;
-  const tags = await db.geoTag.findMany({ where: { instansId }, select: { id: true, navn: true, slug: true } });
-
-  for (const candidate of candidates) {
-    const slug = slugify(candidate);
-    const hit = tags.find((t) => t.slug === slug) ?? tags.find((t) => t.navn.toLowerCase() === candidate.toLowerCase());
-    if (hit) return { omraadeId: hit.id, omraadeTekst: null };
-  }
-  if (postnr) {
-    const hit = tags.find((t) => t.slug === postnr || t.navn.includes(postnr));
-    if (hit) return { omraadeId: hit.id, omraadeTekst: null };
-  }
-  const hint = [...candidates, postnr].filter(Boolean).join(" / ");
-  return { omraadeId: null, omraadeTekst: hint ? hint.slice(0, 200) : null };
-}
 
 /**
  * Idempotent upsert af ét signal for en given instans.
@@ -34,6 +14,9 @@ export async function resolveGeo(instansId: string, geo: IngestGeo | undefined):
  *  2. normaliseret kildeUrl findes    -> "duplicate" (intet overskrives; mangler rækken externalId, knyttes den)
  *  3. ellers opret.
  * Signaler er altid `maskinindsamlet`, `breaking=false`, `notable=false` — agenter kan ikke eskalere til breaking.
+ * Et nyt signal er ALTID ugodkendt (godkendtAf/godkendtTid = null): det vises først offentligt efter en redaktørs godkendelse.
+ * Et ændret signal (ny version) nulstilles til ulæst OG ugodkendt, så en agent ikke kan ændre teksten under en eksisterende
+ * godkendelse. `meta` (skalarer) gemmes uændret og vises aldrig offentligt.
  */
 export async function upsertSignal(instansId: string, ingestKeyId: string, input: ParsedSignal): Promise<IngestItemResult> {
   const kildeUrlNorm = normalizeUrl(input.kildeUrl);
@@ -51,6 +34,7 @@ export async function upsertSignal(instansId: string, ingestKeyId: string, input
     omraadeTekst: geo.omraadeTekst,
     kildeTidspunkt,
   };
+  const meta = input.meta && Object.keys(input.meta).length > 0 ? (input.meta as Prisma.InputJsonValue) : Prisma.JsonNull;
 
   const byExternal = await db.signal.findUnique({ where: { instansId_externalId: { instansId, externalId: input.externalId } } });
   if (byExternal) {
@@ -61,6 +45,12 @@ export async function upsertSignal(instansId: string, ingestKeyId: string, input
       byExternal.sourceType !== data.sourceType ||
       byExternal.omraadeId !== data.omraadeId ||
       (byExternal.kildeUrl ?? null) !== data.kildeUrl;
+    const metaChanged = JSON.stringify(byExternal.meta ?? null) !== JSON.stringify(input.meta && Object.keys(input.meta).length > 0 ? input.meta : null);
+    if (!changed && metaChanged) {
+      // Kun metadata ændret: gem uden at røre ved læst-/godkendelsesstatus eller version.
+      await db.signal.update({ where: { id: byExternal.id }, data: { meta, ingestKeyId } });
+      return { status: "updated", id: byExternal.id, externalId: input.externalId };
+    }
     if (!changed) return { status: "duplicate", id: byExternal.id, externalId: input.externalId, duplicateOf: "externalId" };
     // kildeUrlNorm opdateres kun hvis den ikke kolliderer med en anden række.
     let nextNorm = byExternal.kildeUrlNorm;
@@ -68,7 +58,10 @@ export async function upsertSignal(instansId: string, ingestKeyId: string, input
       const clash = await db.signal.findUnique({ where: { instansId_kildeUrlNorm: { instansId, kildeUrlNorm } }, select: { id: true } });
       if (!clash) nextNorm = kildeUrlNorm;
     }
-    const updated = await db.signal.update({ where: { id: byExternal.id }, data: { ...data, kildeUrlNorm: nextNorm, version: { increment: 1 }, ingestKeyId } });
+    const updated = await db.signal.update({
+      where: { id: byExternal.id },
+      data: { ...data, meta, kildeUrlNorm: nextNorm, version: { increment: 1 }, ingestKeyId, laest: false, godkendtAf: null, godkendtTid: null },
+    });
     return { status: "updated", id: updated.id, externalId: input.externalId };
   }
 
@@ -82,7 +75,7 @@ export async function upsertSignal(instansId: string, ingestKeyId: string, input
 
   try {
     const created = await db.signal.create({
-      data: { ...data, instansId, externalId: input.externalId, kildeUrlNorm, maskinindsamlet: true, notable: false, breaking: false, ingestKeyId },
+      data: { ...data, meta, instansId, externalId: input.externalId, kildeUrlNorm, maskinindsamlet: true, notable: false, breaking: false, ingestKeyId, godkendtAf: null, godkendtTid: null },
     });
     return { status: "created", id: created.id, externalId: input.externalId };
   } catch (error) {

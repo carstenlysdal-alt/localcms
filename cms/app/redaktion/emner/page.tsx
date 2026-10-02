@@ -3,6 +3,8 @@ import { Plus, Search, Settings } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
+import type { Prisma } from "@prisma/client";
+import { searchOr } from "@/lib/search";
 
 function formatTime(date: Date) {
   const diff = Date.now() - date.getTime();
@@ -24,7 +26,7 @@ export default async function EmnerPage({ searchParams }: { searchParams: Promis
   const topics = await db.topic.findMany({
     where: {
       instansId: session.user.instansId,
-      ...(query ? { titel: { contains: query } } : {}),
+      ...(query ? { OR: searchOr<Prisma.TopicWhereInput>(["titel"], query) } : {}),
     },
     orderBy: { updatedAt: "desc" },
   });

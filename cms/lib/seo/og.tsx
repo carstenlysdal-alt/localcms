@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { OG_FORMATS, type OgFormat } from "./jsonld";
 import { fetchWithTimeout } from "../http";
+import { findUpload } from "../media-storage";
 
 export const OG_CACHE = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
@@ -101,6 +102,12 @@ const RASTER_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"]);
 export async function loadCoverBuffer(url: string | null | undefined): Promise<Buffer | null> {
   if (!url) return null;
   try {
+    if (url.startsWith("/uploads/")) {
+      // Redaktionens uploads ligger i UPLOAD_DIR/volume (ikke i public/): slå op via lagringslaget (T5 P3-7).
+      const stored = await findUpload(decodeURIComponent(url.split("?")[0]).slice("/uploads/".length));
+      if (!stored || !/^image\/(jpeg|png|webp|avif|gif)$/i.test(stored.contentType)) return null;
+      return await readFile(stored.path);
+    }
     if (url.startsWith("/") && !url.startsWith("//")) {
       const clean = decodeURIComponent(url.split("?")[0]);
       const ext = path.extname(clean).toLowerCase();

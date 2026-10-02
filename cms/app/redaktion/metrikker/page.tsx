@@ -1,14 +1,16 @@
-import { auth } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Clock, Eye, Flame, ShieldAlert, Sparkles, TrendingUp, CheckCircle2, Compass } from "lucide-react";
 import Link from "next/link";
 import { distributeArticles, ArticleDistributionInput } from "@/lib/distribution-engine";
+import { NoAccess } from "@/components/admin/no-access";
+import { PAGE_PERMISSIONS } from "@/lib/redaktion-access";
 
 export default async function MetrikkerPage() {
-  const session = await auth();
-  if (!session?.user) return null;
+  const user = await getAuthorizedUser([...PAGE_PERMISSIONS.metrikker]);
+  if (!user) return <NoAccess area="metrikker" />;
 
-  const instansId = session.user.instansId;
+  const instansId = user.instansId;
 
   // 1. Hent alle artikler med metrics og relationer
   const articles = await db.article.findMany({
