@@ -78,6 +78,32 @@ body { background: var(--color-bg); color: var(--color-text); }
 .login-card .card-title { font-size: 34px; margin-bottom: var(--space-4); }
 .login-card .field { margin-top: var(--space-3); }
 
+/* Min konto / brugeradministration */
+.account-grid { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: var(--space-8); align-items: start; }
+@media (max-width: 900px) { .account-grid { grid-template-columns: 1fr; } }
+.account-card, .account-card:hover { background: var(--color-surface); }
+.account-card::after, .secret-card::after { display: none; }
+.account-card .field { margin-top: var(--space-2); }
+.account-notes { list-style: disc; margin: 0 0 var(--space-3); padding-left: var(--space-4); display: grid; gap: var(--space-1); font-size: 13px; }
+.help-text { color: var(--color-neutral-500); font-size: 12px; margin: 6px 0 0; }
+.pw-strength { margin-top: 6px; }
+.pw-strength-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.pw-strength-seg { height: 4px; border-radius: 2px; background: var(--color-divider); }
+.pw-strength-1 { background: var(--color-danger); }
+.pw-strength-2 { background: var(--color-warning); }
+.pw-strength-3 { background: var(--color-success); }
+.pw-errors { list-style: disc; margin: 6px 0 0; padding-left: var(--space-4); }
+.secret-card { border-left: 5px solid var(--color-accent); background: var(--color-accent-100); }
+.secret-value { display: block; font-family: var(--font-mono); font-size: 18px; letter-spacing: 0.04em; padding: var(--space-2) var(--space-3); background: var(--color-surface); border: 1px dashed var(--color-accent); border-radius: var(--radius-md); user-select: all; overflow-wrap: anywhere; }
+.users-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+@media (max-width: 1100px) { .users-grid { grid-template-columns: 1fr; } }
+.users-table th, .users-table td { white-space: normal; }
+.users-table .tag { white-space: nowrap; }
+.users-table th:first-child, .users-table td:first-child { width: auto; }
+.user-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); align-items: center; }
+.user-actions select.input { width: auto; min-width: 150px; padding-right: 28px; }
+.btn-sm { padding: 5px 10px; }
+
 /* Article editor */
 .editor-page { min-height: 100vh; }
 .editor-topbar { min-height: 90px; display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-6); border-bottom: 2px solid var(--color-divider); }

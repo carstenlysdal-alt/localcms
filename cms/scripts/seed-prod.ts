@@ -3,7 +3,8 @@
  *   1. de 6 by-instanser (Slagelse, Næstved, Holbæk, Køge, Roskilde, Ringsted) — eksisterende instanser røres ikke
  *   2. standardroller (lib/default-roles.ts) — nye roller oprettes, eksisterende får kun rettigheder lagt til
  *   3. ÉN første administrator fra ADMIN_EMAIL med en tilfældig adgangskode, der printes ÉN gang til stdout
- *      (kun når brugeren oprettes; findes brugeren, ændres intet og intet printes)
+ *      (kun når brugeren oprettes; findes brugeren, ændres intet og intet printes). Brugeren oprettes med
+ *      mustChangePassword=true, så første login tvinger valg af en ny adgangskode.
  * Ingen demo-data og aldrig en kendt adgangskode.
  *
  *   npm run seed:prod                    # kræver NODE_ENV=production (sættes på Railway-servicen)
@@ -13,10 +14,10 @@
  */
 import { randomBytes } from "node:crypto";
 import path from "node:path";
-import { hash } from "bcryptjs";
 import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { DEFAULT_ROLES } from "../lib/default-roles";
+import { hashPassword } from "../lib/password";
 import { ALL_NETWORK_SITES } from "../lib/network-sites";
 import { NETWORK_SITES } from "../prisma/network-seed-data";
 
@@ -127,7 +128,9 @@ export async function seedProduction(
       data: {
         email,
         navn: opts.adminName?.trim() || "Administrator",
-        passwordHash: await hash(password, 12),
+        passwordHash: await hashPassword(password),
+        // Første login tvinger skift af engangs-adgangskoden (lib/auth.ts: getAuthorizedUser / redaktion-layout).
+        mustChangePassword: true,
         roleId: roleIds.get(ADMIN_ROLE)!,
         instansId: instance.id,
       },
@@ -160,7 +163,7 @@ async function main() {
     console.log(`[seed:prod] roller: ${res.roles.created.length} oprettet, ${res.roles.updated.length} opdateret`);
     if (res.admin.created) {
       console.log(`[seed:prod] administrator oprettet: ${res.admin.email} (${res.admin.instance})`);
-      console.log("[seed:prod] ENGANGS-ADGANGSKODE (vises kun nu — gem den i en password manager og skift den ved første login):");
+      console.log("[seed:prod] ENGANGS-ADGANGSKODE (vises kun nu — gem den i en password manager; CMS'et tvinger dig til at vælge en ny ved første login):");
       console.log(res.admin.password);
     } else {
       console.log(`[seed:prod] administrator ${res.admin.email} findes allerede — uændret, ingen adgangskode udskrevet.`);

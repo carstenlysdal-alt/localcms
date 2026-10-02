@@ -1,14 +1,16 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { compare, hash } from "bcryptjs";
+import { compare } from "bcryptjs";
 import { z } from "zod";
 import { db } from "./db";
 import { clearLoginFailures, getClientIp, isLoginLocked, recordLoginFailure } from "./ratelimit";
 import { can, type Permission } from "./permissions";
+import { hashPassword } from "./password";
+import { isSessionStale } from "./session-validity";
 
 // Dummy-hash så svartiden er ens, uanset om e-mailen findes (forhindrer bruger-enumerering via timing).
 let dummyHash: Promise<string> | undefined;
-const getDummyHash = () => (dummyHash ??= hash("dummy-password-for-timing", 12));
+const getDummyHash = () => (dummyHash ??= hashPassword("dummy-password-for-timing"));
 
 export const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
 export const SESSION_UPDATE_AGE_SECONDS = 60 * 60;
@@ -40,7 +42,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: { role: true },
         });
         const passwordOk = await compare(parsed.data.password.slice(0, 200), user?.passwordHash ?? (await getDummyHash()));
-        if (!user || !passwordOk) {
+        // Deaktiverede brugere afvises med samme fejl som forkert kode (røber ikke kontoens tilstand).
+        if (!user || !passwordOk || user.deaktiveretTid) {
           await recordLoginFailure(parsed.data.email, ip);
           return null;
         }
@@ -59,14 +62,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
+        // authTime sættes kun ved login (ikke ved forlængelse) — se lib/session-validity.ts.
+        token.authTime = Date.now();
         token.roleId = user.roleId;
         token.roleName = user.roleName;
         token.instansId = user.instansId;
         token.authorId = user.authorId;
         token.permissions = user.permissions;
+        return token;
       }
+      // Eksisterende session: afvis (return null → ingen session) hvis brugeren er slettet/deaktiveret, eller hvis
+      // adgangskoden er skiftet/nulstillet efter at sessionen blev udstedt. Fejler opslaget, ender sessionen også (fail-closed).
+      if (!token.sub) return null;
+      const row = await db.user.findUnique({ where: { id: token.sub }, select: { passwordChangedAt: true, deaktiveretTid: true } });
+      if (!row || row.deaktiveretTid || isSessionStale(token.authTime, row.passwordChangedAt)) return null;
       return token;
     },
     session({ session, token }) {
@@ -77,6 +88,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.instansId = token.instansId as string;
         session.user.authorId = token.authorId as string | null;
         session.user.permissions = (token.permissions as string[]) ?? [];
+        session.user.authTime = typeof token.authTime === "number" ? token.authTime : undefined;
       }
       return session;
     },
@@ -91,7 +103,42 @@ export type AuthorizedUser = {
   authorId: string | null;
   roleName: string;
   permissions: string[];
+  /** True indtil brugeren har skiftet en midlertidig adgangskode. */
+  mustChangePassword: boolean;
 };
+
+export type AuthorizeOptions = {
+  /** Kun "Min konto"-kodeskiftet må sætte denne: lader en bruger med midlertidig adgangskode igennem. */
+  allowPasswordChange?: boolean;
+};
+
+export type SessionState =
+  | { status: "anonymous" }
+  | { status: "must-change-password"; user: AuthorizedUser }
+  | { status: "ok"; user: AuthorizedUser };
+
+/**
+ * Slår den indloggede bruger op i DATABASEN og afviser: ukendt/deaktiveret bruger, og session udstedt før
+ * seneste kodeskift (stjålen/gammel session). Tvungen kodeskift afgøres af kalderen (se getAuthorizedUser).
+ */
+export async function getSessionState(): Promise<SessionState> {
+  const session = await auth();
+  const id = session?.user?.id;
+  if (!id) return { status: "anonymous" };
+  const user = await db.user.findUnique({ where: { id }, include: { role: true } });
+  if (!user || user.deaktiveretTid || isSessionStale(session.user.authTime, user.passwordChangedAt)) return { status: "anonymous" };
+  const authorized: AuthorizedUser = {
+    id: user.id,
+    name: user.navn,
+    email: user.email,
+    instansId: user.instansId,
+    authorId: user.authorId,
+    roleName: user.role.navn,
+    permissions: Array.isArray(user.role.permissions) ? (user.role.permissions as string[]) : [],
+    mustChangePassword: user.mustChangePassword,
+  };
+  return { status: user.mustChangePassword ? "must-change-password" : "ok", user: authorized };
+}
 
 /**
  * Server-side autorisation uafhængig af proxy.ts og af JWT-indholdet.
@@ -100,22 +147,12 @@ export type AuthorizedUser = {
  * (JWT'en bærer ellers rettighederne fra login-tidspunktet).
  * Returnerer null hvis ikke logget ind, bruger ikke findes, eller `permission` mangler.
  */
-export async function getAuthorizedUser(permission?: Permission | Permission[]): Promise<AuthorizedUser | null> {
-  const session = await auth();
-  const id = session?.user?.id;
-  if (!id) return null;
-  const user = await db.user.findUnique({ where: { id }, include: { role: true } });
-  if (!user) return null;
-  const permissions = Array.isArray(user.role.permissions) ? (user.role.permissions as string[]) : [];
-  const result: AuthorizedUser = {
-    id: user.id,
-    name: user.navn,
-    email: user.email,
-    instansId: user.instansId,
-    authorId: user.authorId,
-    roleName: user.role.navn,
-    permissions,
-  };
+export async function getAuthorizedUser(permission?: Permission | Permission[], options: AuthorizeOptions = {}): Promise<AuthorizedUser | null> {
+  const state = await getSessionState();
+  if (state.status === "anonymous") return null;
+  // Tvungen kodeskift: ALLE sider og actions nægtes, indtil der er valgt en ny adgangskode (kun kodeskiftet selv slipper igennem).
+  if (state.status === "must-change-password" && !options.allowPasswordChange) return null;
+  const result = state.user;
   if (permission) {
     const needed = Array.isArray(permission) ? permission : [permission];
     // Kræver mindst ÉN af de angivne rettigheder (OR) — bruges til fallback-roller.

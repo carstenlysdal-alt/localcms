@@ -7,6 +7,8 @@ declare module "next-auth" {
     instansId: string;
     authorId: string | null;
     permissions: string[];
+    /** ms siden epoch for login (sættes i jwt-callback); bruges til at afvise sessioner udstedt før et kodeskift. */
+    authTime?: number;
   }
 
   interface Session {
@@ -21,5 +23,6 @@ declare module "next-auth/jwt" {
     instansId?: string;
     authorId?: string | null;
     permissions?: string[];
+    authTime?: number;
   }
 }

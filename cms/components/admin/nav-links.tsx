@@ -18,6 +18,7 @@ import {
   Mic,
   Radio,
   Rss,
+  Users,
   WalletCards,
 } from "lucide-react";
 
@@ -41,11 +42,14 @@ const links = [
   { href: "/redaktion/honorar", label: "Honorar", icon: WalletCards },
 ];
 
-export function NavLinks() {
+const usersLink = { href: "/redaktion/brugere", label: "Brugere", icon: Users };
+
+export function NavLinks({ canManageUsers = false }: { canManageUsers?: boolean }) {
   const path = usePathname();
+  const items = canManageUsers ? [...links, usersLink] : links;
   return (
     <nav className="sidebar-nav" aria-label="Primær navigation">
-      {links.map(({ href, label, icon: Icon }) => (
+      {items.map(({ href, label, icon: Icon }) => (
         <Link
           key={href}
           href={href}

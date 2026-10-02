@@ -47,6 +47,8 @@ test("seedProduction opretter instanser, roller og én admin med engangsadgangsk
   assert.equal(user.role.navn, "Ansvarshavende redaktør");
   assert.equal(user.instans.domaene, "slagelselokalt.dk");
   assert.equal(await compare(first.admin.password!, user.passwordHash), true);
+  assert.equal(user.mustChangePassword, true, "første login skal tvinge skift af engangs-adgangskoden");
+  assert.equal(user.passwordChangedAt, null);
   assert.equal(await db.instance.count(), 6);
   assert.equal(await db.user.count(), 1);
 

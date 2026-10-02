@@ -241,3 +241,28 @@ export async function clearLoginFailures(email: string) {
   const store = await resolveRateLimitStore();
   await store.reset(`login-fail:email:${email}`);
 }
+
+// ── Lockout ved forkert nuværende adgangskode i "Skift adgangskode" (pr. bruger og pr. IP) ────────────────────
+
+export const PASSWORD_CHANGE_MAX_FAILURES = 5;
+export const PASSWORD_CHANGE_WINDOW_MS = 15 * 60_000;
+
+/** Fail-closed som login: kan vi ikke tælle forsøg pålideligt, nægter vi frem for at åbne for gætteri på den nuværende kode. */
+export async function isPasswordChangeLocked(userId: string, ip: string, now = Date.now()) {
+  const store = await resolveRateLimitStore();
+  if (store.isDegraded?.() && failClosedEnabled()) return true;
+  const byUser = await store.peek(`pwchange-fail:user:${userId}`, now);
+  const byIp = await store.peek(`pwchange-fail:ip:${ip}`, now);
+  return Boolean((byUser && byUser.count >= PASSWORD_CHANGE_MAX_FAILURES) || (byIp && byIp.count >= PASSWORD_CHANGE_MAX_FAILURES * 4));
+}
+
+export async function recordPasswordChangeFailure(userId: string, ip: string, now = Date.now()) {
+  const store = await resolveRateLimitStore();
+  await store.hit(`pwchange-fail:user:${userId}`, PASSWORD_CHANGE_WINDOW_MS, now);
+  await store.hit(`pwchange-fail:ip:${ip}`, PASSWORD_CHANGE_WINDOW_MS, now);
+}
+
+export async function clearPasswordChangeFailures(userId: string) {
+  const store = await resolveRateLimitStore();
+  await store.reset(`pwchange-fail:user:${userId}`);
+}

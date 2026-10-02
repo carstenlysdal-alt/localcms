@@ -10,16 +10,27 @@ import { db } from "../../lib/db";
  * Kald den FØR modulet under test importeres (dynamisk import), og kun én gang pr. testfil (hver fil er egen proces).
  * Kræver `--experimental-test-module-mocks` (sat af scripts/test-runner.ts).
  */
-export const session: { userId: string | null; staleJwtPermissions: string[] } = { userId: null, staleJwtPermissions: [] };
+export const session: { userId: string | null; staleJwtPermissions: string[]; authTime: number | null; signInProviders: string[] } = {
+  userId: null,
+  staleJwtPermissions: [],
+  /** ms-tidspunkt for login i JWT'en (lib/session-validity.ts); null = token uden authTime (som før funktionen fandtes). */
+  authTime: null,
+  /** Hvilke providers signIn() er kaldt med (kun navnet — aldrig credentials). */
+  signInProviders: [],
+};
 
 export function installNextMocks() {
+  // AuthError hænger på default-eksporten (node:test kan ikke blande defaultExport og namedExports for CJS).
   mock.module("next-auth", {
-    defaultExport: () => ({
+    defaultExport: Object.assign(() => ({
       handlers: {},
-      auth: async () => (session.userId ? { user: { id: session.userId, permissions: session.staleJwtPermissions } } : null),
-      signIn: async () => undefined,
+      auth: async () => (session.userId ? { user: { id: session.userId, permissions: session.staleJwtPermissions, ...(session.authTime !== null ? { authTime: session.authTime } : {}) } } : null),
+      signIn: async (provider: string) => {
+        session.signInProviders.push(provider);
+        return undefined;
+      },
       signOut: async () => undefined,
-    }),
+    }), { AuthError: class AuthError extends Error {} }),
   });
   mock.module("next/cache", { namedExports: { revalidatePath: () => undefined, revalidateTag: () => undefined } });
   mock.module("next/navigation", {

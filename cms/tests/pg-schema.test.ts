@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { checkInSync, PG_SCHEMA, SOURCE_SCHEMA, toPostgresSchema } from "../scripts/gen-pg-schema";
-import { pendingMigrationSql } from "../scripts/pg-migration";
+import { migrationNames, pendingMigrationSql } from "../scripts/pg-migration";
 
 const modelNames = (schema: string) => [...schema.matchAll(/^model\s+(\w+)\s*\{/gm)].map((m) => m[1]);
 
@@ -33,11 +33,12 @@ test("skemaændringer uden PostgreSQL-migration opdages (kør: npm run prisma:pg
   assert.equal(pendingMigrationSql(), "");
 });
 
-test("første migration opretter alle tabeller og migration_lock er postgresql", () => {
+test("migrationerne tilsammen opretter alle tabeller og migration_lock er postgresql", () => {
   const dir = path.resolve(__dirname, "../prisma/postgres/migrations");
   const lock = readFileSync(path.join(dir, "migration_lock.toml"), "utf8");
   assert.match(lock, /provider\s*=\s*"postgresql"/);
-  const sql = readFileSync(path.join(dir, "20261001000000_init/migration.sql"), "utf8");
+  // Nye modeller kommer i senere migrationer (additivt), så alle migrationer læses samlet.
+  const sql = migrationNames().map((name) => readFileSync(path.join(dir, name, "migration.sql"), "utf8")).join("\n");
   for (const model of modelNames(readFileSync(PG_SCHEMA, "utf8"))) {
     assert.ok(sql.includes(`CREATE TABLE "${model}"`), `migration mangler tabellen ${model}`);
   }

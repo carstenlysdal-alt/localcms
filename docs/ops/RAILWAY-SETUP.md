@@ -135,3 +135,16 @@ railway run -s Postgres -- sh -c 'pg_restore --no-owner --clean --if-exists -d "
 - Staging-miljøet fordobler grundforbruget; sæt det i dvale/slet det, når det ikke bruges.
 - `DATABASE_PUBLIC_URL` (TCP-proxy) giver egress-omkostning ved dumps; brug den kun til drift.
 - Anthropic-omkostninger er separate og styres af `ANTHROPIC_API_KEY` (sæt forbrugsloft hos Anthropic).
+
+## 11. Mistet adgangskode og brugere
+
+- Almindeligt skift: log ind og brug `/redaktion/konto` ("Min konto"). Kræver mindst 12 tegn; andre sessioner logges ud.
+- En administrator med `users.manage` kan oprette brugere og nulstille andres adgangskode i `/redaktion/brugere` (engangsadgangskode vises én gang og skal ændres ved første login).
+- Ingen administrator kan logge ind (nødudgang) — nulstil via terminal. Scriptet kræver en registreret SSH-nøgle (`railway ssh keys add`; første gang skal serverens fingeraftryk bekræftes med `yes`):
+  ```bash
+  railway ssh --project <projekt-id> --environment production --service lysdalcms -- npm run user:reset-password -- --email <admin-e-mail> --force
+  ```
+  Scriptet udskriver en ny midlertidig adgangskode **én gang**, sætter `mustChangePassword=true` og logger handlingen i `AuditLog`. Gem adgangskoden med det samme i en adgangskodemanager. Omdirigér ikke output til en delt placering.
+- Efter nulstilling vælger brugeren selv en adgangskode i `/redaktion/konto`; gamle sessioner er ugyldige.
+- Lockout: 5 forkerte nuværende adgangskoder pr. 15 minutter pr. bruger; udløber automatisk.
+- Kør ikke `seed:prod` igen for at få en ny adgangskode: den udskriver kun en adgangskode, når admin-brugeren oprettes første gang.

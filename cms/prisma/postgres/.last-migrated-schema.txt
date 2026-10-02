@@ -86,12 +86,35 @@ model User {
   instans      Instance  @relation(fields: [instansId], references: [id])
   authorId     String?   @unique // kobling til Forfatter-profil, hvis redaktionel
   author       Author?   @relation(fields: [authorId], references: [id])
+  /// Midlertidig adgangskode (ny bruger / nulstilling / seed:prod): al adgang spærres, indtil brugeren har valgt en ny.
+  mustChangePassword Boolean @default(false)
+  /// Sessioner (JWT) udstedt FØR dette tidspunkt afvises (lib/session-validity.ts) — dræber stjålne sessioner ved kodeskift/nulstilling.
+  passwordChangedAt  DateTime?
+  /// Deaktiveret bruger: kan ikke logge ind og eksisterende sessioner afvises. Brugeren slettes aldrig (revisioner, opgaver, honorar peger på den).
+  deaktiveretTid     DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   articleRevisions ArticleRevision[]
   createdAssignments Assignment[] @relation("AssignmentCreator")
   approvedHonorEntries HonorEntry[] @relation("HonorApprover")
+}
+
+/// Revisionsspor for administrative handlinger (brugere, roller, adgangskoder). Aldrig hemmeligheder i `detail`.
+/// Bevidst uden relationer: sporet skal overleve, at en bruger/instans ændres, og må aldrig blokere en sletning.
+model AuditLog {
+  id          String   @id @default(cuid())
+  instansId   String
+  actorId     String?  // null = driftsværktøj (CLI)
+  actorLabel  String?  // e-mail på udførende, som den var dengang
+  action      String   // fx "user.create", "user.reset_password"
+  targetId    String?
+  targetLabel String?  // e-mail på berørt bruger
+  detail      Json?    // små, ikke-hemmelige nøgler, fx { fromRole, toRole }
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([instansId, createdAt])
 }
 
 model Author {
