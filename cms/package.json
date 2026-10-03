@@ -38,7 +38,7 @@
     "user:grant-access": "tsx scripts/grant-access.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.115.0",
+    "@anthropic-ai/sdk": "^0.129.0",
     "@auth/prisma-adapter": "^2.11.3",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -49,15 +49,15 @@
     "@tiptap/starter-kit": "^3.31.4",
     "bcryptjs": "^3.0.3",
     "ioredis": "^6.0.0",
-    "lucide-react": "^1.28.0",
+    "lucide-react": "^1.49.0",
     "next": "^16.3.8",
     "next-auth": "^5.0.0-beta.32",
     "pg": "^8.23.1",
     "prisma": "^6.19.3",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "sharp": "^0.35.5",
-    "zod": "^4.4.3"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
@@ -71,7 +71,7 @@
     "knip": "^6.39.0",
     "lint-staged": "^17.6.0",
     "tailwindcss": "^4",
-    "tsx": "^4.23.5",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
