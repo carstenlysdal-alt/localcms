@@ -484,3 +484,7 @@ scoreLocality(item: LocalityInput, ctx: LocalityContext, cfg: LocalityConfig): {
 6. `cheerio` (HTML_MONITOR) og en PDF-parser: ja/nej/hvornår (D9)?
 7. `ingestOwner` pr. kilde (D18): skal LocalRating overtage politi/dagsordener/trafik/DMI fra aI-library, og hvornår slukkes den tilsvarende aI-library-agent?
 8. Må AI-klassifikation (`triage`) køre på sideindhold fra discovery (undtagen `aiHostile`), eller kun på metadata (titel/URL)? Default: kun metadata + regelbaseret.
+
+
+## 12. Manuel hentning (ejerens beslutning, ADR-016)
+Indtil ejeren slår automatik til, hentes kilder **kun med en knap**. Cron-endpointet `/api/cron/localrating` bygges, men afviser kald (`409`) medmindre både `LOCALRATING_AUTOPOLL=1` og `LocalRatingConfig.autoPollEnabled=true`. Knapper: "Hent nu" (pr. kilde), "Hent alle aktive" (valgfrit filter), "Test", "Opdag nye kilder". Kun aktive, godkendte kilder med gyldig URL hentes. Cooldown pr. kilde, maks. 3 samtidige hentninger pr. instans, fremdrift via `ProductionJob`, audit pr. knaptryk, SSRF og `rightsLevel` uændret. Alle "poll-interval"-felter er **vejledende metadata**, indtil automatik aktiveres.

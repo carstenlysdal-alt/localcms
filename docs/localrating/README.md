@@ -129,6 +129,9 @@ Afvigelser skrives her (krav: konsistens med planen). Hvert punkt har et default
 | 25 | **`HTML_MONITOR`** (registrenes "web/change monitor") ændrer Fase 0-udkastets "ingen HTML-scraping": ændringsdetektion/liste-udtræk fra *konfigureret* URL med typet config; kræver `cheerio` (D9 ændret) | Optalt: 104 af 167 rækker (Næstved 61, Slagelse 43) har en "Adgang"-tekst uden API/RSS/Atom/seed/licens/manuel (web/monitor/søg) – alternativet er at lade dem være manuelle | `10-…` §1, §11a, D9 |
 | 26 | **Ingen URL'er i registrene** og kun T8-verificerede feeds er kendt; nøgle-/aftalekrav (CVR, Rejseplanen, Vejdirektoratet DATEX II, Ritzau-licens m.fl.) er **uverificerede** | Importen opretter rækker uden URL (kan ikke aktiveres); URL-overlay + `sources:check` + D30 | `10-…` §11a, §11g, D30 |
 
+### Tilføjet 3. okt. 2026 – ejerens beslutning: kilder hentes kun manuelt (ADR-016)
+**Kilderne trigges foreløbig med en knap og kører ikke af sig selv.** Cron/automatisk polling bygges, men er slået fra (global flag + pr. instans, begge default fra). Knapper: "Hent nu" pr. kilde, "Hent alle aktive", "Test", "Opdag nye kilder"; rating og generering er også kun knap-udløste. Se `adr/ADR-016.md`, `10-…` §11 (f) og `12-…` (D33).
+
 ## 8. Status pr. leverance (Fase 0)
 
 | Leverance | Status |

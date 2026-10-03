@@ -142,3 +142,5 @@ Spor kommunikerer gennem **typede kontrakter** (`04-…` §2) og `lib/localratin
 - **Allerede under Fase 2:** `score`-modellens rene matematik + golden-tests (kræver intet fra ingest).
 - **Under Fase 4:** guardrails/porterede tests kan starte, så snart funktionerne er udtrukket af Y (rene).
 - **Fase 7** parallelt med Fase 5/6.
+
+| D33 | **Besluttet:** kilder hentes kun manuelt (knap); automatik slået fra (global flag + pr. instans) | Besluttet (ADR-016) | Fase 2 |
