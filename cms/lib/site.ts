@@ -39,10 +39,12 @@ export function parseSiteColors(farver: unknown): SiteFarver {
 import {
   ALL_NETWORK_SITES,
   DEFAULT_TAGLINES,
+  domainForKey,
   siteOrigin,
   type NetworkSiteLink,
   type NetworkSiteSummary,
 } from "./network-sites";
+import { PREVIEW_COOKIE, isPreviewHost, previewHostsFromEnv } from "./preview";
 export { ALL_NETWORK_SITES, DEFAULT_TAGLINES, type NetworkSiteLink, type NetworkSiteSummary };
 
 const DEV_FALLBACK_DOMAIN = "slagelselokalt.dk";
@@ -53,6 +55,8 @@ export type SiteDomainResolution = {
   /** Må vi falde tilbage til standardinstansen hvis opslaget fejler? Aldrig i produktion uden konfiguration. */
   allowFallback: boolean;
   fallbackDomain: string | null;
+  /** Værten er en preview-vært (PREVIEW_HOSTS): byen vælges via cookien lk_by; ellers standardbyen, ellers første instans. */
+  preview?: boolean;
 };
 
 /**
@@ -61,15 +65,34 @@ export type SiteDomainResolution = {
  * - *.localhost: {by}lokalt.localhost -> {by}lokalt.dk
  * - bar localhost/127.0.0.1: DEFAULT_SITE_DOMAIN; cookie kun uden for produktion
  * - ukendt vært: i produktion 404 (eller FALLBACK_SITE_DOMAIN hvis sat), i udvikling standardinstans
+ * - preview-vært (KUN hvis den står i `previewHosts`, dvs. env PREVIEW_HOSTS): byen vælges af `previewCookie` (lk_by, en by-nøgle fra
+ *   hvidlisten); uden gyldig cookie bruges FALLBACK_SITE_DOMAIN, og getCurrentSite falder til sidst tilbage til første instans.
+ *   Alle andre værter påvirkes ikke af previewHosts/previewCookie.
  */
 export function resolveSiteDomain(
   host: string | null | undefined,
-  options: { isProduction: boolean; devCookie?: string | null; defaultDomain?: string | null; fallbackDomain?: string | null },
+  options: {
+    isProduction: boolean;
+    devCookie?: string | null;
+    defaultDomain?: string | null;
+    fallbackDomain?: string | null;
+    previewHosts?: readonly string[];
+    previewCookie?: string | null;
+  },
 ): SiteDomainResolution {
   const { isProduction } = options;
   const defaultDomain = options.defaultDomain || null;
   const fallbackDomain = options.fallbackDomain || null;
   const name = host ? host.split(":")[0].replace(/^www\./, "").toLowerCase().trim() : "";
+
+  if (name && options.previewHosts && options.previewHosts.length > 0 && isPreviewHost(name, options.previewHosts)) {
+    return {
+      domain: domainForKey(options.previewCookie) ?? fallbackDomain,
+      allowFallback: true,
+      fallbackDomain: fallbackDomain || defaultDomain || null,
+      preview: true,
+    };
+  }
 
   const bareLocal = !name || name === "localhost" || name === "127.0.0.1" || name === "[::1]";
   if (bareLocal) {
@@ -96,6 +119,8 @@ export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site>
   const isProduction = process.env.NODE_ENV === "production";
   let host = overrideHost;
   let devCookieSite: string | undefined;
+  let previewCookie: string | undefined;
+  const previewHosts = previewHostsFromEnv();
 
   if (!host) {
     try {
@@ -119,12 +144,23 @@ export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site>
     }
   }
 
+  // Preview-vært (PREVIEW_HOSTS): byen kommer fra cookien lk_by (sat af proxy.ts ved ?by=). Kun dér læses cookien.
+  if (previewHosts.length > 0 && isPreviewHost(host, previewHosts)) {
+    try {
+      previewCookie = (await cookies()).get(PREVIEW_COOKIE)?.value;
+    } catch {
+      previewCookie = undefined;
+    }
+  }
+
   // Direkte domæne (fx test med overrideHost="naestvedlokalt.dk") bruges uændret.
   const resolution = resolveSiteDomain(host, {
     isProduction,
     devCookie: devCookieSite,
     defaultDomain: process.env.DEFAULT_SITE_DOMAIN,
     fallbackDomain: process.env.FALLBACK_SITE_DOMAIN,
+    previewHosts,
+    previewCookie,
   });
 
   let instance = resolution.domain
@@ -133,6 +169,11 @@ export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site>
 
   if (!instance && resolution.allowFallback && resolution.fallbackDomain) {
     instance = await db.instance.findFirst({ where: { domaene: resolution.fallbackDomain } });
+  }
+
+  // Preview-vært uden cookie og uden (eksisterende) standardby: første instans, så preview altid viser noget.
+  if (!instance && resolution.preview) {
+    instance = await db.instance.findFirst({ orderBy: { createdAt: "asc" } });
   }
 
   if (!instance) {
@@ -155,7 +196,7 @@ export const getCurrentSite = cache(async (overrideHost?: string): Promise<Site>
 
 /**
  * Links til alle byer i netværket, med origin beregnet ud fra den aktuelle vært
- * (https://{domæne} i produktion, http://{by}lokalt.localhost:PORT lokalt).
+ * (https://{domæne} i produktion, http://{by}lokalt.localhost:PORT lokalt). På en preview-vært får hvert link `previewBy`.
  */
 export async function getNetworkLinks(): Promise<NetworkSiteLink[]> {
   let host: string | null = null;
@@ -167,7 +208,13 @@ export async function getNetworkLinks(): Promise<NetworkSiteLink[]> {
   } catch {
     host = null;
   }
-  return ALL_NETWORK_SITES.map((s) => ({ ...s, origin: siteOrigin(s.domaene, host, proto) }));
+  // På en preview-vært findes byernes domæner ikke endnu: linkene peger på samme vært med ?by=<nøgle> (se networkHref).
+  const preview = isPreviewHost(host);
+  return ALL_NETWORK_SITES.map((s) => ({
+    ...s,
+    origin: siteOrigin(s.domaene, host, proto),
+    ...(preview ? { previewBy: s.key } : {}),
+  }));
 }
 
 export async function getAllNetworkSites() {

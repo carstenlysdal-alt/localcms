@@ -11,6 +11,7 @@
  *  - andet end GET/HEAD
  *  - /redaktion, /login, /api (hver rute sætter selv sin header), /_next (egne regler), /uploads, token-sider
  *    (/qa /interview /meddeler /partner), /gemte /profil /velkommen /soeg-uden-q
+ *  - ALT på en preview-vært (PREVIEW_HOSTS): svaret afhænger af cookien lk_by (valgt by) og må aldrig i en delt cache
  *  - forespørgsler med session-cookie (authjs.* / next-auth.*) eller Authorization-header
  *  - svar der sætter cookies (kontrolleres i proxy ved svartid)
  */
@@ -89,8 +90,11 @@ export function decideCachePolicy(input: {
   cookieHeader?: string | null;
   hasAuthorization?: boolean;
   search?: string;
+  /** Værten er en preview-vært (lib/preview.ts): aldrig cache'bar, fordi svaret varierer pr. cookie (lk_by). */
+  previewHost?: boolean;
   config?: CacheEnvConfig;
 }): CacheDecision {
+  if (input.previewHost) return { cacheable: false, cls: "never", reason: "preview-host" };
   const config = input.config ?? resolveCacheConfig();
   if (!config.enabled) return { cacheable: false, cls: "never", reason: "disabled" };
   const method = input.method.toUpperCase();
@@ -113,6 +117,13 @@ export function decideCachePolicy(input: {
 export function cacheHeader(sMaxAge: number, swr: number): string {
   return `public, max-age=0, s-maxage=${sMaxAge}, stale-while-revalidate=${swr}`;
 }
+
+/** Svar-headere på en preview-vært: aldrig delt cache, varierer pr. cookie, og må ikke indekseres/følges. */
+export const PREVIEW_RESPONSE_HEADERS: Readonly<Record<string, string>> = {
+  "Cache-Control": "private, no-store",
+  Vary: "Host, Cookie",
+  "X-Robots-Tag": "noindex, nofollow",
+};
 
 /** Cache-Tag til målrettet CDN-purge pr. by (se purge.ts). */
 export function cacheTagForHost(host: string): string {

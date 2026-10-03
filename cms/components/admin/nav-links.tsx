@@ -7,7 +7,11 @@ import { NAV_ICONS } from "./nav-icons";
 import { activeHref, type NavGroup } from "./nav-model";
 import { CityDot } from "@/components/ui/CityDot";
 
-export type NavCity = { by: string; href: string; current: boolean };
+/**
+ * `preview`: delt preview-adresse (PREVIEW_HOSTS): byerne findes ikke på egne domæner endnu, så alle seks er links til byens OFFENTLIGE
+ * forside (`/?by=<nøgle>`), og brugerens egen by mærkes "Din by". Der tilbydes aldrig redigering på tværs af instanser.
+ */
+export type NavCity = { by: string; href: string; current: boolean; preview?: boolean };
 
 /**
  * Sidebarens navigation: grupperede links (allerede filtreret efter rettigheder på serveren), by-liste med prikker.
@@ -43,7 +47,14 @@ export function NavLinks({ groups, cities = [] }: { groups: NavGroup[]; cities?:
           <ul className="shell-nav-list">
             {cities.map((city) => (
               <li key={city.by}>
-                {city.current ? (
+                {city.preview ? (
+                  <a className={`shell-link shell-link-city${city.current ? " is-current" : ""}`} href={city.href} aria-current={city.current ? "true" : undefined}>
+                    <CityDot city={city.by} />
+                    <span className="shell-link-text">{city.by}</span>
+                    {city.current ? <span className="shell-link-note">Din by</span> : <ExternalLink size={14} aria-hidden="true" className="shell-link-ext" />}
+                    <span className="sr-only">{city.current ? "(åbner din bys offentlige forside som forhåndsvisning)" : "(åbner byens offentlige forside som forhåndsvisning)"}</span>
+                  </a>
+                ) : city.current ? (
                   <span className="shell-link shell-link-city is-current" aria-current="true">
                     <CityDot city={city.by} />
                     <span className="shell-link-text">{city.by}</span>

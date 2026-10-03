@@ -1,8 +1,10 @@
+import { isPreviewHost, previewHostsFromEnv } from "../preview";
 import { trustedHost } from "../trusted-host";
 
 /**
  * Host-kanonisering. Kun apex-domænet (`site.domaene`) må indekseres.
  * www.* redirectes i next.config.ts; ukendte værter får noindex (og robots Disallow: /).
+ * Preview-værter (PREVIEW_HOSTS, lib/preview.ts) er ALTID ukendte (known=false), uanset hvilken by de viser: de må aldrig indekseres.
  */
 
 export type HostClassification = {
@@ -18,12 +20,13 @@ export function isLocalDevHost(name: string): boolean {
 }
 
 /** Ren funktion (testbar). */
-export function classifyHost(rawHost: string | null | undefined, siteDomain: string): HostClassification {
+export function classifyHost(rawHost: string | null | undefined, siteDomain: string, previewHosts: readonly string[] = []): HostClassification {
   const host = (rawHost ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
   const isLocal = isLocalDevHost(host);
   const isWww = host.startsWith("www.");
   const apex = host.replace(/^www\./, "");
   const domain = siteDomain.replace(/^www\./, "").toLowerCase();
+  if (previewHosts.length > 0 && isPreviewHost(host, previewHosts)) return { host, isWww, isLocal, known: false };
   return { host, isWww, isLocal, known: !host || isLocal || apex === domain };
 }
 
@@ -32,7 +35,7 @@ export async function getHostStatus(siteDomain: string): Promise<HostClassificat
   try {
     const { headers } = await import("next/headers");
     const h = await headers();
-    return classifyHost(trustedHost(h), siteDomain);
+    return classifyHost(trustedHost(h), siteDomain, previewHostsFromEnv());
   } catch {
     return classifyHost(null, siteDomain);
   }

@@ -1,19 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { trustedHost } from "@/lib/trusted-host";
-import { ALL_NETWORK_SITES, siteOrigin, resolveSwitchPath } from "@/lib/network-sites";
+import { ALL_NETWORK_SITES, previewHref, siteOrigin, resolveSwitchPath } from "@/lib/network-sites";
+import { isPreviewHost } from "@/lib/preview";
 
 /**
  * Bagudkompatibel byskifte-rute. Selve byskifteren bruger nu almindelige links til
  * målbyens domæne; denne rute findes kun, så gamle links/bogmærker ikke giver 404.
  *
  * Sikkerhed: målet kan KUN være en by fra ALL_NETWORK_SITES (hvidliste), stien skal være
- * en relativ sti på samme site ("/…", aldrig "//" eller "http…"), og der sættes ingen cookie.
+ * en relativ sti på samme site ("/…", aldrig "//" eller "http…"), og der sættes ingen cookie. På en preview-vært
+ * (lib/preview.ts) omdirigeres der til "/?by=<nøgle>" på samme vært.
  */
 export function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const requested = (searchParams.get("site") ?? "").toLowerCase().trim();
   const target = ALL_NETWORK_SITES.find(
-    (s) => s.domaene === requested || s.navn.toLowerCase() === requested || localName(s.domaene) === requested,
+    (s) => s.domaene === requested || s.navn.toLowerCase() === requested || localName(s.domaene) === requested || s.key === requested,
   );
 
   if (!target) {
@@ -24,6 +26,10 @@ export function GET(request: NextRequest) {
   const safePath = isSafeRelativePath(rawPath) ? resolveSwitchPath(rawPath.split("?")[0].split("#")[0]) : "/";
 
   const host = trustedHost(request.headers);
+  // Preview-vært (PREVIEW_HOSTS): byens domæne findes ikke endnu -> samme vært med ?by=<nøgle> (proxyen sætter cookien).
+  if (target.key && isPreviewHost(host)) {
+    return new NextResponse(null, { status: 307, headers: { Location: previewHref(target.key) } });
+  }
   const origin = siteOrigin(target.domaene, host, request.headers.get("x-forwarded-proto"));
   return NextResponse.redirect(`${origin}${safePath}`, 307);
 }

@@ -3,6 +3,7 @@ import { Activity, BarChart3, BookOpen, CheckCircle2, Clock, Eye, Flame, Megapho
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getNetworkLinks } from "@/lib/site";
+import { networkHref } from "@/lib/network-sites";
 import { distributeArticles, type ArticleDistributionInput } from "@/lib/distribution-engine";
 import { NoAccess } from "@/components/admin/no-access";
 import { PAGE_PERMISSIONS } from "@/lib/redaktion-access";
@@ -217,7 +218,8 @@ export default async function MetrikkerPage({ searchParams }: { searchParams?: P
   const cityTabs = network.map((site) => {
     const current = Boolean(instance && (site.domaene === instance.domaene.toLowerCase() || site.navn === instance.navn));
     return {
-      href: current ? `/redaktion/metrikker${rangeQuery}` : `${site.origin}/redaktion/metrikker${rangeQuery}`,
+      // På en delt preview-adresse (site.previewBy) findes de andre byers domæner ikke: link til byens offentlige forside i stedet.
+      href: current ? `/redaktion/metrikker${rangeQuery}` : site.previewBy ? networkHref(site) : `${site.origin}/redaktion/metrikker${rangeQuery}`,
       label: site.by,
       active: current,
       lead: <CityDot city={site.by} />,

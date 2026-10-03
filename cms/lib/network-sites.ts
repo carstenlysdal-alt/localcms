@@ -3,9 +3,25 @@ export type NetworkSiteSummary = {
   domaene: string;
   by: string;
   accent: string;
+  /** Kanonisk by-nøgle (slagelse, naestved, holbaek, koege, roskilde, ringsted) — se cityKey(). */
+  key?: string;
 };
 
-export const ALL_NETWORK_SITES: NetworkSiteSummary[] = [
+/**
+ * Kanonisk by-nøgle ud fra et instans-domæne: "naestvedlokalt.dk" -> "naestved".
+ * Bruges til ?by=<nøgle> på preview-værter (lib/preview.ts) og i create-admin/plus-adressering.
+ * Én definition: alt andet (cookie, switcher, tests) går gennem denne funktion.
+ */
+export function cityKey(domaene: string): string {
+  return domaene
+    .trim()
+    .toLowerCase()
+    .replace(/^www\./, "")
+    .replace(/\.dk$/, "")
+    .replace(/lokalt$/, "");
+}
+
+const NETWORK_BASE: Array<Omit<NetworkSiteSummary, "key">> = [
   { navn: "SlagelseLokalt", domaene: "slagelselokalt.dk", by: "Slagelse", accent: "#9E3D1B" },
   { navn: "NæstvedLokalt", domaene: "naestvedlokalt.dk", by: "Næstved", accent: "#1F5663" },
   { navn: "HolbækLokalt", domaene: "holbaeklokalt.dk", by: "Holbæk", accent: "#4F5B1E" },
@@ -13,6 +29,24 @@ export const ALL_NETWORK_SITES: NetworkSiteSummary[] = [
   { navn: "KøgeLokalt", domaene: "koegelokalt.dk", by: "Køge", accent: "#8A5A00" },
   { navn: "RoskildeLokalt", domaene: "roskildelokalt.dk", by: "Roskilde", accent: "#6A3553" },
 ];
+
+export const ALL_NETWORK_SITES: NetworkSiteSummary[] = NETWORK_BASE.map((s) => ({ ...s, key: cityKey(s.domaene) }));
+
+/** Tilladte by-nøgler (hvidliste) — den eneste mængde ?by= og cookien lk_by kan pege på. */
+export const NETWORK_KEYS: readonly string[] = ALL_NETWORK_SITES.map((s) => s.key as string);
+
+/** Validerer en rå ?by=/cookie-værdi mod hvidlisten. Returnerer nøglen eller null (ukendt/ugyldig ignoreres). */
+export function parseCityKey(raw: string | null | undefined): string | null {
+  if (typeof raw !== "string" || raw.length > 32) return null;
+  const key = raw.trim().toLowerCase();
+  return NETWORK_KEYS.includes(key) ? key : null;
+}
+
+/** Instans-domænet for en gyldig by-nøgle ("naestved" -> "naestvedlokalt.dk"), ellers null. */
+export function domainForKey(raw: string | null | undefined): string | null {
+  const key = parseCityKey(raw);
+  return key ? (ALL_NETWORK_SITES.find((s) => s.key === key)?.domaene ?? null) : null;
+}
 
 export const DEFAULT_TAGLINES: Record<string, string> = {
   "slagelselokalt.dk": "Lokaljournalistik, der sætter fællesskabet først",
@@ -28,6 +62,11 @@ export const DEFAULT_TAGLINES: Record<string, string> = {
 export type NetworkSiteLink = NetworkSiteSummary & {
   /** Absolut origin for målbyen, fx https://naestvedlokalt.dk eller http://naestvedlokalt.localhost:3000 */
   origin: string;
+  /**
+   * Kun sat på en preview-vært (PREVIEW_HOSTS, lib/preview.ts): by-nøglen, så linket bliver "/?by=<nøgle>" på SAMME vært
+   * i stedet for målbyens (endnu ikke eksisterende) domæne. Udeladt på rigtige domæner — adfærden er uændret dér.
+   */
+  previewBy?: string;
 };
 
 /** Er hosten en lokal udviklingsvært (localhost, *.localhost, 127.0.0.1, [::1])? */
@@ -96,8 +135,23 @@ export function resolveSwitchPath(pathname: string, sectionPaths: string[] = [])
   return "/";
 }
 
-/** Færdigt href til en by i netværket: målbyens origin + sti hvis den findes dér, ellers forsiden. */
-export function networkHref(site: { domaene: string; origin?: string }, pathname = "/", sectionPaths: string[] = []): string {
+/** Preview-link til en by på samme vært: altid byens forside (cookien lk_by sættes af proxyen, og URL'en renses). */
+export function previewHref(key: string): string {
+  return `/?by=${encodeURIComponent(key)}`;
+}
+
+/**
+ * Færdigt href til en by i netværket: målbyens origin + sti hvis den findes dér, ellers forsiden.
+ * På en preview-vært (site.previewBy sat, eller `options.previewBy`) bliver det i stedet "/?by=<nøgle>" på samme vært.
+ */
+export function networkHref(
+  site: { domaene: string; origin?: string; previewBy?: string },
+  pathname = "/",
+  sectionPaths: string[] = [],
+  options: { previewBy?: string | null } = {},
+): string {
+  const previewKey = parseCityKey(options.previewBy ?? site.previewBy);
+  if (previewKey) return previewHref(previewKey);
   const origin = site.origin ?? `https://${site.domaene}`;
   const path = resolveSwitchPath(pathname, sectionPaths);
   return path === "/" ? `${origin}/` : `${origin}${path}`;

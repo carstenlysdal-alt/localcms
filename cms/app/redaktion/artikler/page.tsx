@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { can, canEditArticle, PERMISSIONS } from "@/lib/permissions";
 import { searchOr } from "@/lib/search";
 import { getNetworkLinks } from "@/lib/site";
+import { networkHref } from "@/lib/network-sites";
 import { ALL_STATUSES, buildWhere, listHref, parseListParams, type ListTab } from "@/lib/editor/list-query";
 import { loadArticleValue, loadEditorOptions } from "@/lib/editor/load";
 
@@ -109,7 +110,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
             return own ? (
               <span key={n.domaene} className="cms-tab is-city" aria-current="true"><span className="cms-city-dot" data-city={slugifyCity(n.by)} aria-hidden="true" /> {n.by}</span>
             ) : (
-              <a key={n.domaene} className="cms-tab is-city" href={`${n.origin}/redaktion/artikler`} rel="noopener noreferrer" title={`Skift til ${n.by} (egen login)`}><span className="cms-city-dot" data-city={slugifyCity(n.by)} aria-hidden="true" /> {n.by}</a>
+              <a key={n.domaene} className="cms-tab is-city" href={n.previewBy ? networkHref(n) : `${n.origin}/redaktion/artikler`} rel="noopener noreferrer" title={n.previewBy ? `Se ${n.by}s offentlige forside (forhåndsvisning)` : `Skift til ${n.by} (egen login)`}><span className="cms-city-dot" data-city={slugifyCity(n.by)} aria-hidden="true" /> {n.by}</a>
             );
           })}
         </nav>

@@ -9,7 +9,9 @@ import { declaredBodyTooLarge, PUBLIC_BODY_MAX_BYTES } from "@/lib/http";
 import { rateLimit } from "@/lib/ratelimit";
 import { tightenLimit } from "@/lib/bot/detect";
 import { originLockAllows, ORIGIN_SECRET_HEADER } from "@/lib/origin-lock";
-import { cacheTagForHost, decideCachePolicy } from "@/lib/cache/policy";
+import { cacheTagForHost, decideCachePolicy, PREVIEW_RESPONSE_HEADERS } from "@/lib/cache/policy";
+import { parseCityKey } from "@/lib/network-sites";
+import { isPreviewHost, PREVIEW_COOKIE, PREVIEW_PARAM, previewCookieOptions, previewParamApplies } from "@/lib/preview";
 import {
   baseSecurityHeaders,
   buildCsp,
@@ -25,6 +27,8 @@ import {
  *  1) Ondsindede stier (/wp-admin, /.env, /.git, *.php …): lille 404 + strike; eskalerende bans (lib/bot/ban.ts).
  *  2) Aktiv ban + grov lokal sidegrænse pr. IP (strammere for skrabere/headless/tom UA).
  *  3) /redaktion/** kræver session-cookie (ellers redirect til /login).
+ *  3b) Preview-vært (env PREVIEW_HOSTS, lib/preview.ts): ?by=<by-nøgle> sætter cookien lk_by og 303-omdirigerer til samme URL uden
+ *      parameteren. Aldrig for /redaktion, /login, /api eller andre værter. Alle svar på en preview-vært er private/no-store + noindex.
  *  4) Ældre URL'er med rå/percent-kodede æ/ø/å 301-omdirigeres til ASCII-slug.
  *  5) Sikkerhedsheadere + CSP med nonce pr. forespørgsel; Cache-Control for anonym HTML (lib/cache/policy.ts).
  *
@@ -60,6 +64,18 @@ function applySecurityHeaders(response: NextResponse, request: NextRequest, path
   for (const [k, v] of Object.entries(baseSecurityHeaders({ hsts, frameSelf }))) response.headers.set(k, v);
   if (CROSS_ORIGIN_PREFIXES.some((p) => pathname.startsWith(p))) response.headers.set("Cross-Origin-Resource-Policy", "cross-origin");
   if (cspValue) response.headers.set(cspHeaderName(reportOnly), cspValue);
+}
+
+/** Preview-vært: aldrig delt cache (svaret varierer pr. cookie lk_by) og aldrig indeksering. Statiske /_next-filer røres ikke. */
+function applyPreviewHeaders(response: NextResponse, pathname: string) {
+  if (pathname.startsWith("/_next/")) return;
+  for (const [k, v] of Object.entries(PREVIEW_RESPONSE_HEADERS)) response.headers.set(k, v);
+}
+
+/** Relativ Location uden protokol-relativ (//vært) eller backslash-tricks: kun en sti på samme vært. */
+function sameHostLocation(pathname: string, search: string): string {
+  const path = pathname.startsWith("/") && !pathname.startsWith("//") && !pathname.includes("\\") ? pathname : "/";
+  return `${path}${search}`;
 }
 
 export async function proxy(request: NextRequest) {
@@ -124,6 +140,31 @@ export async function proxy(request: NextRequest) {
   const reportOnly = isCspReportOnly();
   const wantsCsp = !pathname.startsWith("/api/") && !isAsset(pathname);
 
+  // 3b) Preview-vært: ?by=<nøgle> -> cookie + 303 uden parameteren. Værten afgøres som tenant-valget (lib/trusted-host.ts).
+  const previewRequest = isPreviewHost(trustedHost(request.headers) || request.nextUrl.host);
+  if (
+    previewRequest &&
+    (request.method === "GET" || request.method === "HEAD") &&
+    previewParamApplies(pathname) &&
+    request.nextUrl.searchParams.has(PREVIEW_PARAM)
+  ) {
+    // Kun en nøgle fra hvidlisten sætter cookien; ugyldigt/ukendt ignoreres (siden vises uændret, cookien røres ikke).
+    const key = parseCityKey(request.nextUrl.searchParams.get(PREVIEW_PARAM));
+    if (key) {
+      const rest = new URLSearchParams(request.nextUrl.searchParams);
+      rest.delete(PREVIEW_PARAM);
+      const query = rest.toString();
+      // Absolut URL ud fra request.url (samme mønster som login-redirecten): Next afviser en relativ Location i proxyen.
+      const target = new URL(sameHostLocation(pathname, query ? `?${query}` : ""), request.url);
+      const redirect = NextResponse.redirect(target, 303);
+      const proto = (request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || request.nextUrl.protocol).replace(/:$/, "").toLowerCase();
+      redirect.cookies.set(PREVIEW_COOKIE, key, previewCookieOptions(proto === "https"));
+      applySecurityHeaders(redirect, request, pathname, null, reportOnly);
+      applyPreviewHeaders(redirect, pathname);
+      return redirect;
+    }
+  }
+
   // 3) /redaktion kræver session
   if (pathname === "/redaktion" || pathname.startsWith("/redaktion/")) {
     const hasSession = Boolean(
@@ -136,6 +177,7 @@ export async function proxy(request: NextRequest) {
       const redirect = NextResponse.redirect(loginUrl);
       applySecurityHeaders(redirect, request, pathname, null, reportOnly);
       redirect.headers.set("Cache-Control", "private, no-store");
+      if (previewRequest) applyPreviewHeaders(redirect, pathname);
       return redirect;
     }
   } else {
@@ -146,6 +188,7 @@ export async function proxy(request: NextRequest) {
       url.pathname = ascii;
       const redirect = NextResponse.redirect(url, 301);
       applySecurityHeaders(redirect, request, pathname, null, reportOnly);
+      if (previewRequest) applyPreviewHeaders(redirect, pathname);
       return redirect;
     }
   }
@@ -184,6 +227,7 @@ export async function proxy(request: NextRequest) {
     cookieHeader: request.headers.get("cookie"),
     hasAuthorization: request.headers.has("authorization"),
     search: request.nextUrl.search,
+    previewHost: previewRequest,
   });
   if (decision.cacheable && decision.cacheControl) {
     response.headers.set("Cache-Control", decision.cacheControl);
@@ -193,6 +237,7 @@ export async function proxy(request: NextRequest) {
   } else if (pathname.startsWith("/redaktion") || pathname === "/login") {
     response.headers.set("Cache-Control", "private, no-store");
   }
+  if (previewRequest) applyPreviewHeaders(response, pathname);
   return response;
 }
 

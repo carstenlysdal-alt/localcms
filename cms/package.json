@@ -31,7 +31,9 @@
     "start:railway": "prisma migrate deploy --schema prisma/postgres/schema.prisma && next start -H 0.0.0.0 -p ${PORT:-3000}",
     "seed:prod": "tsx scripts/seed-prod.ts",
     "sections:sync": "tsx scripts/sync-sections.ts",
-    "user:reset-password": "tsx scripts/reset-password.ts"
+    "areas:sync": "tsx scripts/sync-areas.ts",
+    "user:reset-password": "tsx scripts/reset-password.ts",
+    "user:create-admin": "tsx scripts/create-admin.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

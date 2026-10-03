@@ -50,6 +50,7 @@ Mål: CMS'et kører som ét Railway-service `lysdalcms` i projektet **Lysdal-loc
 | `SEO_SITE_CONFIG` | valgfri | JSON pr. domæne (sameAs, logo, adresse m.m.; se `lib/seo/config.ts`) |
 | `UPLOAD_DIR` | ved volume | `/data/uploads` (se afsnit 5) |
 | `FALLBACK_SITE_DOMAIN` | kun test/staging | `slagelselokalt.dk` — lader et ukendt domæne (fx `*.up.railway.app`) vise den by. **Fjern i produktion**, ellers viser alle ukendte værter Slagelse (duplicate content). |
+| `PREVIEW_HOSTS` | kun mens du ingen domæner har | kommaseparerede hostnavne (fx `lysdalcms-production.up.railway.app`, uden `https://`/sti/port), hvor ALLE seks byer kan ses via `?by=<by>` (se afsnit 13). Rigtige by-domæner ignoreres. **Fjern når domænerne er koblet på.** |
 | `DATABASE_POOL_SIZE` | valgfri | forbindelser i Prisma-puljen (default 10) |
 
 Alt andet fra `cms/.env.example` er valgfrit. `REDIS_URL` mangler -> kun advarsel (rate limits og login-lockout er så proces-lokale).
@@ -198,3 +199,54 @@ Valgfrit (ikke hemmeligt): `railway variable set DEEPSEEK_MODEL=deepseek-chat --
 **Omkostning og model (ikke verificeret):** standardmodellen er `deepseek-chat` med OpenAI-kompatibel function calling. DeepSeeks modelnavne, priser og regionsplacering ændrer sig; tjek deres aktuelle dokumentation og prisside og sæt et forbrugsloft/saldo-advarsel på kontoen, før du går i produktion. Saldo 0 giver HTTP 402, som operatøren viser som "kontoen mangler saldo". Ratelimit i CMS'et (30 beskeder pr. 10 min pr. bruger, højst 9 modelkald pr. besked) gælder uændret.
 
 **Databehandling:** DeepSeek behandler data uden for EU/EØS. Operatøren maskerer e-mail, telefon, CPR-lignende numre og nøgler og udelader kontaktfelter (indsendere, brugere, kilder), men kan ikke genkende navne i fri tekst, som redaktøren selv skriver. Ejeren skal selv vurdere databehandleraftale og overførselsgrundlag (ikke juridisk rådgivning).
+
+## 13. Flere byer på Railway-adressen
+
+Mens ejeren endnu ikke har egne domæner, er der kun ÉN adresse (`lysdalcms-production.up.railway.app`). Med `PREVIEW_HOSTS` kan alle seks byer ses og afprøves dér, uden at de rigtige domæner eller indekseringen berøres.
+
+**1. Slå preview til (Railway-variabler, ingen hemmeligheder):**
+
+```bash
+railway variable set PREVIEW_HOSTS=lysdalcms-production.up.railway.app --service lysdalcms --environment production
+# FALLBACK_SITE_DOMAIN=slagelselokalt.dk er standardbyen, når der ikke er valgt en by (sættes allerede, se afsnit 2)
+```
+
+- `PREVIEW_HOSTS` er en kommasepareret liste over hostnavne. Kun disse værter får by-vælgeren; alle andre værter opfører sig præcis som før. Et rigtigt by-domæne (`naestvedlokalt.dk` m.fl.) på listen ignoreres, og opstartsloggen advarer.
+- Besøg `https://lysdalcms-production.up.railway.app/?by=naestved` (nøgler: `slagelse`, `naestved`, `holbaek`, `koege`, `roskilde`, `ringsted`). Serveren sætter cookien `lk_by` (HttpOnly, Secure, SameSite=Lax, 30 dage) og sender dig videre til samme side uden `?by=`. Derefter viser alle sider den valgte by, indtil du vælger en anden. Uden valg vises `FALLBACK_SITE_DOMAIN`-byen (ellers den første by i databasen). Ukendt `?by=`-værdi ignoreres.
+- Byvælgeren (topbar, mobilmenu, bundlinje, emnelinjen) og byerne i redaktionens sidebar linker på preview-adressen til `/?by=<by>`. Redaktionens by-liste viser byernes **offentlige forsider** og mærker din egen by "Din by": man kan ikke redigere en anden by derfra (se nedenfor).
+- Alt på preview-adressen er `noindex, nofollow` (robots.txt `Disallow: /`, ingen sitemaps, `X-Robots-Tag`) og sendes med `Cache-Control: private, no-store` og `Vary: Cookie`, så ingen cache kan servere én bys side til en anden.
+- Redaktionen (`/redaktion`) følger **brugerens egen by** (instansId på brugeren), aldrig `?by=` eller cookien. API-indtag (`/api/ingest`, nøgle -> instans) og cron-ruterne påvirkes heller ikke.
+- Offentlige formularer (indsend, nyhedsbrev, målinger) gemmes under den by, der er valgt via cookien. Brug ikke preview-adressen som rigtig tilmeldingsside.
+
+**2. Områder (GeoTag) til alle byer** (idempotent, ændrer aldrig eksisterende områder, opfinder aldrig koordinater: nye steder får `lat/lng = null`). Tørkørsel er standard; `--apply` opretter:
+
+```bash
+railway ssh --project <projekt-id> --environment production --service lysdalcms -- npm run areas:sync -- --alle            # tørkørsel
+railway ssh --project <projekt-id> --environment production --service lysdalcms -- npm run areas:sync -- --alle --apply    # opretter
+# én by: --instans naestvedlokalt.dk  (eller instans-id)
+```
+
+Kilde: delområderne fra seed-dataene plus de små byer fra kilderegistrene (Næstved: Herlufmagle, Sandved, Toksværd, Enø, Suså; Slagelse: Antvorskov, Halsskov, Stigsnæs). Sektioner tilføjes på samme måde med `npm run sections:sync -- --alle --apply`.
+
+**3. En administrator pr. by.** E-mail er unik på tværs af alle byer, så hver by skal have sin egen e-mailadresse. Brug **plus-adressering**: `navn+naestved@gmail.com`, `navn+holbaek@gmail.com` osv. havner i samme indbakke, men er forskellige adresser for systemet.
+
+```bash
+railway ssh --project <projekt-id> --environment production --service lysdalcms -- \
+  npm run user:create-admin -- --instans naestvedlokalt.dk --email navn+naestved@gmail.com --navn "Dit Navn" --force
+```
+
+- `--instans` er instans-id, domæne eller by-nøgle (`naestved`). Rollen er `Ansvarshavende redaktør`, brugeren oprettes i netop den by og skal vælge ny adgangskode ved første login.
+- Scriptet udskriver en tilfældig midlertidig adgangskode **én gang** (gem den i en adgangskodemanager). Den logges ingen andre steder; handlingen skrives til `AuditLog` uden hemmeligheder.
+- Findes e-mailen allerede (i en hvilken som helst by), afvises kaldet med en dansk besked og et forslag til plus-adresse.
+- Uden `NODE_ENV=production` kræves `--force` (som `user:reset-password`).
+- Rollerne skal findes (`npm run seed:prod` eller `npm run roles:sync`).
+
+**Log ind og skift by:** man logger ind på `/login` (eller `/redaktion`) på samme adresse; sessionen følger brugerens by. For at redigere en anden by logger man ud og ind med den bys administrator.
+
+**4. Når de rigtige domæner kommer (afsnit 3):**
+
+1. Tilføj byernes domæner under *Networking -> Custom Domain* og i DNS/Cloudflare.
+2. Fjern `PREVIEW_HOSTS` og `FALLBACK_SITE_DOMAIN` (ellers viser ukendte værter stadig en by, og Railway-adressen er stadig en preview-vært).
+3. Byvælger og redaktionens by-liste bruger automatisk de rigtige domæner igen; cookien `lk_by` bliver ubrugt (kan ligge i browseren, har ingen virkning).
+4. Brugere og områder ligger allerede i databasen; intet skal migreres. Tjek `https://<by>/api/ready`, `robots.txt` og at forsiden viser den rigtige by.
+

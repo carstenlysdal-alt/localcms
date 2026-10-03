@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parsePreviewHosts } from "./preview";
 
 /**
  * Miljøvalidering ved serverstart (kaldes fra instrumentation.ts -> register()).
@@ -11,6 +12,8 @@ import { z } from "zod";
  * forfalske CF-Connecting-IP og omgå rate limit/lockout/bans), og ORIGIN_SECRET kortere end 24 tegn.
  * Kun advarsel: REDIS_URL, AUTH_TRUST_HOST/AUTH_URL, DATABASE_URL ikke postgres, uploads på flygtigt filsystem,
  * ORIGIN_SECRET mangler, TURNSTILE_SECRET_KEY mangler, TRUST_FORWARDED_HOST slået til, delt IP-bucket bag Cloudflare.
+ * PREVIEW_HOSTS (valgfri): kommaseparerede hostnavne, hvor byen vælges med ?by=<by> (kun mens ejeren ikke har egne domæner, fx Railway-adressen;
+ * fjernes når domænerne er koblet på). Advarsel hvis en post er et rigtigt by-domæne (den ignoreres) eller ikke et gyldigt hostnavn.
  * Valgfri: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY (+ DEEPSEEK_MODEL, DEEPSEEK_BASE_URL, OPERATOR_PROVIDER) m.fl.
  * AI-operatøren bruger DeepSeek hvis DEEPSEEK_API_KEY er sat, ellers Anthropic (se lib/operator/llm/select.ts).
  * Editor-AI, chat og forside-AI vælger udbyder via AI_PROVIDER / EDITOR_AI_PROVIDER / CHAT_AI_PROVIDER / FRONTPAGE_AI_PROVIDER
@@ -63,6 +66,8 @@ const optionalSchema = z.object({
   TRUST_FORWARDED_HOST: optionalText,
   TRUSTED_PROXY_HOPS: optionalText,
   TURNSTILE_SECRET_KEY: optionalText,
+  PREVIEW_HOSTS: optionalText,
+  FALLBACK_SITE_DOMAIN: optionalText,
 });
 
 const isOn = (v: string | undefined) => v === "1" || v?.toLowerCase() === "true";
@@ -131,6 +136,21 @@ export function checkEnv(env: NodeJS.ProcessEnv = process.env): EnvReport {
   }
   if (isOn(opt.TRUST_FORWARDED_HOST)) {
     warnings.push("TRUST_FORWARDED_HOST=1 — X-Forwarded-Host bruges til tenant-valg; kanten SKAL overskrive/tilføje headeren, ellers kan klienten vælge by (cache poisoning)");
+  }
+  // Preview-værter (lib/preview.ts): by-vælger via ?by= på en delt adresse. Kun til test/staging, før de rigtige domæner er koblet på.
+  if (opt.PREVIEW_HOSTS) {
+    const preview = parsePreviewHosts(opt.PREVIEW_HOSTS);
+    for (const entry of preview.cityDomainConflicts) {
+      warnings.push(`PREVIEW_HOSTS indeholder et rigtigt by-domæne (${entry}) — posten ignoreres. Preview-værter må kun være delte adresser som *.up.railway.app, aldrig byernes egne domæner`);
+    }
+    for (const entry of preview.invalid) {
+      warnings.push(`PREVIEW_HOSTS indeholder en ugyldig post (${entry}) — brug kun hostnavne (fx lysdalcms-production.up.railway.app), uden https://, sti, port eller wildcard`);
+    }
+    if (preview.hosts.length > 0) {
+      warnings.push(
+        `PREVIEW_HOSTS er sat (${preview.hosts.length} vært) — alle seks byer kan ses via ?by=<by> på ${preview.hosts.length === 1 ? "den" : "de"} adresse(r); sitet er noindex dér. Fjern PREVIEW_HOSTS (og FALLBACK_SITE_DOMAIN), når de rigtige domæner er koblet på`,
+      );
+    }
   }
   if (!opt.TURNSTILE_SECRET_KEY) {
     warnings.push("TURNSTILE_SECRET_KEY mangler — formularer har kun honeypot og rate limit (Turnstile er slået fra)");

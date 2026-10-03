@@ -5,6 +5,7 @@ import { getSessionState, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getNetworkLinks } from "@/lib/site";
+import { networkHref } from "@/lib/network-sites";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { ChangePasswordForm } from "@/components/admin/change-password-form";
 import { NavLinks, type NavCity } from "@/components/admin/nav-links";
@@ -61,11 +62,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     getNetworkLinks().catch(() => []),
   ]);
   const groups = buildNav(user, { inbox: inboxCount });
-  const cities: NavCity[] = network.map((site) => ({
-    by: site.by,
-    href: `${site.origin}/redaktion`,
-    current: Boolean(instance && (site.domaene === instance.domaene.toLowerCase() || site.navn === instance.navn)),
-  }));
+  const cities: NavCity[] = network.map((site) => {
+    const current = Boolean(instance && (site.domaene === instance.domaene.toLowerCase() || site.navn === instance.navn));
+    // Delt preview-adresse (site.previewBy): byens offentlige forside i stedet for et (endnu ikke eksisterende) by-domæne.
+    if (site.previewBy) return { by: site.by, href: networkHref(site), current, preview: true };
+    return { by: site.by, href: `${site.origin}/redaktion`, current };
+  });
   const currentCity = cities.find((c) => c.current)?.by;
   const searchPages = groups.flatMap((g) => g.items.map((i) => ({ href: i.href, label: i.label, group: g.label, icon: i.icon })));
   const operator = can(user, PERMISSIONS.OPERATOR_USE);
