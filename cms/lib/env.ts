@@ -210,7 +210,7 @@ export function assertEnv(env: NodeJS.ProcessEnv = process.env): EnvReport {
   const report = checkEnv(env);
   if (!logged) {
     logged = true;
-    for (const w of report.warnings) console.warn(`[env] ADVARSEL: ${w}`);
+    for (const w of report.warnings) console.log(`[env] ADVARSEL: ${w}`);
   }
   if (!report.ok) {
     const err = new EnvError(report);

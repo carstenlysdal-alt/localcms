@@ -29,7 +29,7 @@
     "prisma:pg:check": "tsx scripts/pg-migration.ts --check",
     "prisma:pg:migration": "tsx scripts/pg-migration.ts",
     "build:railway": "npm run prisma:pg:schema && prisma generate --schema prisma/postgres/schema.prisma && next build",
-    "start:railway": "prisma migrate deploy --schema prisma/postgres/schema.prisma && next start -H 0.0.0.0 -p ${PORT:-3000}",
+    "start:railway": "sh scripts/start-railway.sh",
     "seed:prod": "tsx scripts/seed-prod.ts",
     "sections:sync": "tsx scripts/sync-sections.ts",
     "areas:sync": "tsx scripts/sync-areas.ts",
