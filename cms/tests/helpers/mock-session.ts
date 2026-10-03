@@ -10,31 +10,58 @@ import { db } from "../../lib/db";
  * Kald den FØR modulet under test importeres (dynamisk import), og kun én gang pr. testfil (hver fil er egen proces).
  * Kræver `--experimental-test-module-mocks` (sat af scripts/test-runner.ts).
  */
-export const session: { userId: string | null; staleJwtPermissions: string[]; authTime: number | null; signInProviders: string[] } = {
+export const session: {
+  userId: string | null;
+  staleJwtPermissions: string[];
+  authTime: number | null;
+  signInProviders: string[];
+  activeInstansId: string | null;
+  /** callbacks fra lib/auth.ts' NextAuth-konfiguration (de rigtige jwt/session-callbacks), så tests kan køre dem. */
+  callbacks: { jwt: (args: Record<string, unknown>) => Promise<Record<string, unknown> | null>; session: (args: Record<string, unknown>) => unknown } | null;
+} = {
   userId: null,
   staleJwtPermissions: [],
   /** ms-tidspunkt for login i JWT'en (lib/session-validity.ts); null = token uden authTime (som før funktionen fandtes). */
   authTime: null,
   /** Hvilke providers signIn() er kaldt med (kun navnet — aldrig credentials). */
   signInProviders: [],
+  /** Aktiv instans som JWT-claim (token.activeInstansId); null = token udstedt før netværksadgang fandtes (ingen claim → hjemmeinstans). */
+  activeInstansId: null,
+  callbacks: null,
 };
 
 export function installNextMocks() {
   // AuthError hænger på default-eksporten (node:test kan ikke blande defaultExport og namedExports for CJS).
   mock.module("next-auth", {
-    defaultExport: Object.assign(() => ({
+    defaultExport: Object.assign((config?: { callbacks?: typeof session.callbacks }) => {
+      session.callbacks = config?.callbacks ?? null;
+      return {
       handlers: {},
-      auth: async () => (session.userId ? { user: { id: session.userId, permissions: session.staleJwtPermissions, ...(session.authTime !== null ? { authTime: session.authTime } : {}) } } : null),
+      auth: async () => (session.userId ? { user: { id: session.userId, permissions: session.staleJwtPermissions, ...(session.authTime !== null ? { authTime: session.authTime } : {}), ...(session.activeInstansId !== null ? { activeInstansId: session.activeInstansId } : {}) } } : null),
+      // Som Auth.js' unstable_update: kører den RIGTIGE jwt-callback med trigger "update" og gemmer den genvaliderede claim.
+      unstable_update: async (data: Record<string, unknown>) => {
+        if (!session.userId || !session.callbacks) return null;
+        const token = await session.callbacks.jwt({
+          token: { sub: session.userId, ...(session.authTime !== null ? { authTime: session.authTime } : {}), ...(session.activeInstansId !== null ? { activeInstansId: session.activeInstansId } : {}) },
+          trigger: "update",
+          session: data,
+        });
+        if (!token) return null;
+        session.activeInstansId = typeof token.activeInstansId === "string" ? token.activeInstansId : null;
+        return { user: { id: session.userId } };
+      },
       signIn: async (provider: string) => {
         session.signInProviders.push(provider);
         return undefined;
       },
       signOut: async () => undefined,
-    }), { AuthError: class AuthError extends Error {} }),
+      };
+    }, { AuthError: class AuthError extends Error {} }),
   });
   mock.module("next/cache", { namedExports: { revalidatePath: () => undefined, revalidateTag: () => undefined } });
   mock.module("next/navigation", {
     namedExports: {
+      usePathname: () => "/redaktion/artikler",
       redirect: (url: string) => {
         throw new Error(`NEXT_REDIRECT:${url}`);
       },

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus, Tags } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import type { Prisma } from "@prisma/client";
@@ -22,7 +22,7 @@ function formatTime(date: Date) {
 }
 
 export default async function EmnerPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim() : "";

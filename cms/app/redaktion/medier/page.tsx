@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Images, Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { MediaPreview } from "@/components/media/media-preview";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { searchOr } from "@/lib/search";
@@ -28,7 +28,7 @@ const TYPES = [
 ];
 
 export default async function MediaPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim() : "";

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, getAuthorizedUser } from "@/lib/auth";
+import { getAuthorizedUser, getFreshSession } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { createTopic } from "@/lib/topics";
 import { Page, PageHeader } from "@/components/ui/Page";
@@ -23,7 +23,7 @@ async function createTopicAction(data: FormData) {
 }
 
 export default async function NytEmnePage() {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   return (
     <Page width="narrow">

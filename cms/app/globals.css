@@ -104,6 +104,8 @@ body { background: var(--color-bg); color: var(--color-text); }
 .users-table th:first-child, .users-table td:first-child { width: auto; }
 .user-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); align-items: center; }
 .user-actions select.input { width: auto; min-width: 150px; }
+.user-access-option { display: flex; align-items: center; gap: var(--cms-space-2); min-height: var(--cms-touch); cursor: pointer; }
+.user-access-option input { width: 20px; height: 20px; }
 
 /* ── Artikel-editor (ejes af editor-sporet; her kun tokens og skal-afhængige mål) ─ */
 .editor-page { min-height: 100%; }

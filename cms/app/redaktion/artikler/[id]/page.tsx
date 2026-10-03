@@ -4,14 +4,12 @@ import { ChevronLeft } from "lucide-react";
 import { ArticleEditor } from "@/components/editor/article-editor";
 import { ArticleCorrections } from "@/components/editor/article-corrections";
 import { AiDock } from "@/components/editor/ai-dock";
-import { auth, getAuthorizedUser } from "@/lib/auth";
+import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, canEditArticle, PERMISSIONS } from "@/lib/permissions";
 import { loadArticleValue, loadEditorOptions } from "@/lib/editor/load";
 
 export default async function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.user) return null;
   const user = await getAuthorizedUser();
   if (!user) return null;
   const { id } = await params;

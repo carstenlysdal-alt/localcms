@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BriefcaseBusiness, Plus } from "lucide-react";
 import { Prisma } from "@prisma/client";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { searchOr } from "@/lib/search";
@@ -23,7 +23,7 @@ const STATUSES = ["Åben", "Tildelt", "I gang", "Afleveret", "Godkendt", "Annull
 const STATUS_TONE: Record<string, BadgeTone> = { Åben: "info", Tildelt: "planned", "I gang": "review", Afleveret: "draft", Godkendt: "success", Annulleret: "neutral" };
 
 export default async function AssignmentsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.trim() : "";

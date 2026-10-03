@@ -297,6 +297,37 @@
 .shell-link-note { font-size: var(--cms-text-xs); font-weight: 500; color: var(--cms-sidebar-muted); }
 .shell-link-ext { color: var(--cms-sidebar-muted); }
 
+/* Byskifter (netværksadgang): sidebarens by-liste + topbarens "Redigerer: <by>" */
+.shell-cityrow { display: flex; align-items: stretch; gap: 2px; }
+.shell-cityrow > .shell-link { flex: 1; min-width: 0; border: 0; background: transparent; text-align: left; font-family: inherit; cursor: pointer; }
+.shell-cityrow > .shell-link:hover { background: var(--cms-sidebar-hover); }
+.shell-cityrow > .shell-link:disabled { cursor: default; }
+.shell-cityrow > .shell-link.is-current { background: var(--cms-sidebar-hover); opacity: 1; }
+.shell-cityrow > .shell-link.is-locked { cursor: default; color: var(--cms-sidebar-muted); }
+.shell-cityrow > .shell-link.is-locked:hover { background: transparent; }
+.shell-cityrow-view { display: inline-flex; align-items: center; justify-content: center; min-width: var(--cms-touch); min-height: var(--cms-touch); margin-block: -4px; border-radius: var(--cms-radius-sm); color: var(--cms-sidebar-muted); }
+.shell-cityrow-view:hover { background: var(--cms-sidebar-hover); color: var(--cms-sidebar-text-strong); }
+.shell-cityrow-view:focus-visible, .shell-cityrow > .shell-link:focus-visible { outline: 2px solid var(--cms-sidebar-text-strong); outline-offset: -2px; }
+.shell-nav-status { margin: var(--cms-space-1) var(--cms-space-3) 0; min-height: 1em; font-size: var(--cms-text-xs); color: var(--cms-sidebar-muted); }
+@media (pointer: coarse) { .shell-link-city { min-height: var(--cms-touch); } }
+
+.shell-cityswitch { position: relative; display: inline-flex; align-items: center; gap: var(--cms-space-1); }
+.shell-cityswitch-btn { display: inline-flex; align-items: center; gap: var(--cms-space-2); min-height: 40px; padding: 0 var(--cms-space-3); border-radius: var(--cms-radius-sm); border: 1px solid var(--cms-border-strong); background: var(--cms-surface); color: var(--cms-text); font-family: var(--cms-font-display); font-size: var(--cms-text-sm); font-weight: 600; cursor: pointer; }
+.shell-cityswitch-btn.is-static { cursor: default; }
+.shell-cityswitch-btn:hover:not(.is-static) { background: var(--cms-surface-sunken); }
+.shell-cityswitch-btn:focus-visible, .shell-cityswitch-item:focus-visible, .shell-cityswitch-view:focus-visible { outline: none; box-shadow: var(--cms-focus); }
+.shell-cityswitch-kicker { color: var(--cms-text-muted); font-weight: 500; }
+.shell-cityswitch-view { display: inline-flex; align-items: center; gap: var(--cms-space-1); min-height: 40px; padding: 0 var(--cms-space-2); border-radius: var(--cms-radius-sm); color: var(--cms-primary); font-size: var(--cms-text-sm); font-weight: 600; text-decoration: none; }
+.shell-cityswitch-view:hover { background: var(--cms-surface-sunken); }
+.shell-cityswitch-menu { position: absolute; top: calc(100% + var(--cms-space-1)); left: 0; z-index: var(--cms-z-topbar); min-width: 220px; margin: 0; padding: var(--cms-space-1); list-style: none; background: var(--cms-surface); border: 1px solid var(--cms-border); border-radius: var(--cms-radius-md); box-shadow: var(--cms-shadow-md); }
+.shell-cityswitch-item { display: flex; align-items: center; gap: var(--cms-space-2); width: 100%; min-height: var(--cms-touch); padding: 0 var(--cms-space-3); border: 0; border-radius: var(--cms-radius-sm); background: transparent; color: var(--cms-text); font-family: inherit; font-size: var(--cms-text-sm); text-align: left; cursor: pointer; }
+.shell-cityswitch-item:hover:not(:disabled) { background: var(--cms-surface-sunken); }
+.shell-cityswitch-item[aria-current="true"] { font-weight: 700; background: var(--cms-primary-tint); cursor: default; }
+.shell-cityswitch-item:disabled { color: inherit; }
+.shell-cityswitch-itemname { flex: 1; }
+.shell-cityswitch-note { font-size: var(--cms-text-xs); color: var(--cms-text-muted); }
+.shell-cityswitch-error { position: absolute; top: calc(100% + var(--cms-space-1)); left: 0; white-space: nowrap; padding: var(--cms-space-1) var(--cms-space-2); border-radius: var(--cms-radius-sm); background: var(--cms-danger-bg); color: var(--cms-danger-ink); font-size: var(--cms-text-xs); }
+
 /* Brugerblok */
 .shell-user { position: relative; padding: var(--cms-space-3); border-top: 1px solid var(--cms-sidebar-border); }
 .shell-user-button { display: flex; align-items: center; gap: var(--cms-space-3); width: 100%; min-height: 52px; padding: var(--cms-space-2) var(--cms-space-3); border: 0; border-radius: var(--cms-radius-sm); background: transparent; color: var(--cms-sidebar-text); text-align: left; cursor: pointer; font: inherit; transition: background var(--cms-fast) var(--cms-ease); }
@@ -362,6 +393,9 @@
   .shell-search-text, .shell-search .shell-kbd, .shell-aibtn .shell-kbd { display: none; }
   .shell-topbar-spacer { display: none; }
   .shell-aibtn { width: var(--cms-touch); height: var(--cms-touch); padding: 0; justify-content: center; }
+  .shell-cityswitch-kicker, .shell-cityswitch-viewtext { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .shell-cityswitch-btn, .shell-cityswitch-view { min-height: var(--cms-touch); }
+  .shell-cityswitch-menu { left: auto; right: 0; }
   .shell-aibtn-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .shell-content { padding-bottom: calc(var(--cms-bottomnav-h) + env(safe-area-inset-bottom, 0px)); }
   .shell-bottomnav { display: block; position: fixed; inset: auto 0 0 0; z-index: var(--cms-z-bottomnav); height: calc(var(--cms-bottomnav-h) + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--cms-sidebar-bg); border-top: 1px solid var(--cms-sidebar-border); }
@@ -555,3 +589,6 @@ button.ui-chip { font: inherit; font-family: var(--cms-font-display); font-size:
 /* AI-operatørens flydende knap (components/operator) følger skallens placering: over bundnavigationen på mobil. */
 .cms-root .op-fab { bottom: var(--cms-float-bottom); right: var(--cms-float-right); z-index: var(--cms-z-operator); }
 .ui-table td.ui-align-right { white-space: nowrap; }
+
+/* By-faner (Alle byer / pr. by): låste byer og knapper som faner */
+.ui-tab.is-locked, .cms-tab.is-locked { opacity: 0.55; cursor: not-allowed; }

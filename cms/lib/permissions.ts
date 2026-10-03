@@ -6,6 +6,8 @@ export const PERMISSIONS = {
   SUPPORT_READ: "support.read",
   SUPPORT_MANAGE: "support.manage",
   USERS_MANAGE: "users.manage",
+  /** Netværksadgang: må give/fjerne en anden brugers adgang til andre byer (kun byer udføreren selv har). Aldrig via AI-operatøren. */
+  NETWORK_MANAGE: "network.manage",
   HONORAR_VIEW: "honorar.view",
   FRONTPAGE_EDIT: "frontpage.edit",
   MEDIA_MANAGE: "media.manage",

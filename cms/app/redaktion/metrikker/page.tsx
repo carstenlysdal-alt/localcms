@@ -2,18 +2,16 @@ import Link from "next/link";
 import { Activity, BarChart3, BookOpen, CheckCircle2, Clock, Eye, Flame, Megaphone, Newspaper, ShieldAlert, Sparkles, UserPlus } from "lucide-react";
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getNetworkLinks } from "@/lib/site";
-import { networkHref } from "@/lib/network-sites";
+import { loadNavCities, switchableCount } from "@/lib/shell-cities";
+import { CityTabs } from "@/components/admin/city-switcher";
 import { distributeArticles, type ArticleDistributionInput } from "@/lib/distribution-engine";
 import { NoAccess } from "@/components/admin/no-access";
 import { PAGE_PERMISSIONS } from "@/lib/redaktion-access";
 import { Page, PageHeader } from "@/components/ui/Page";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { CityDot } from "@/components/ui/CityDot";
 import { DataTable, type DataTableColumn, type DataTableRow } from "@/components/ui/DataTable";
 import { Grid, Notice } from "@/components/ui/Layout";
-import { LinkTabs } from "@/components/ui/LinkTabs";
 import { SegmentedLinks } from "@/components/ui/SegmentedLinks";
 import { StatCard } from "@/components/ui/StatCard";
 import { Bars, Donut, Heatmap, LineArea, Sparkline } from "@/components/charts";
@@ -57,9 +55,9 @@ export default async function MetrikkerPage({ searchParams }: { searchParams?: P
   const days = periodDays(period);
   const instansId = user.instansId;
 
-  const [instance, network, publishedAll, cohortArticles, slotRows, subscribers, statusCounts, campaigns] = await Promise.all([
+  const [instance, cities, publishedAll, cohortArticles, slotRows, subscribers, statusCounts, campaigns] = await Promise.all([
     db.instance.findUnique({ where: { id: instansId }, select: { domaene: true, navn: true } }),
-    getNetworkLinks().catch(() => []),
+    loadNavCities(user),
     // Til den algoritmiske placering (uændret): alle publicerede artikler med måling.
     db.article.findMany({
       where: { instansId, status: "Publiceret" },
@@ -213,19 +211,8 @@ export default async function MetrikkerPage({ searchParams }: { searchParams?: P
     { key: "handling", header: "Handling", srOnlyHeader: true, align: "right" },
   ];
 
-  // ── By-faner (data er pr. instans) ───────────────────────────────────────
-  const rangeQuery = range === 28 ? "" : `?dage=${range}`;
-  const cityTabs = network.map((site) => {
-    const current = Boolean(instance && (site.domaene === instance.domaene.toLowerCase() || site.navn === instance.navn));
-    return {
-      // På en delt preview-adresse (site.previewBy) findes de andre byers domæner ikke: link til byens offentlige forside i stedet.
-      href: current ? `/redaktion/metrikker${rangeQuery}` : site.previewBy ? networkHref(site) : `${site.origin}/redaktion/metrikker${rangeQuery}`,
-      label: site.by,
-      active: current,
-      lead: <CityDot city={site.by} />,
-    };
-  });
-  const cityName = network.find((s) => instance && (s.domaene === instance.domaene.toLowerCase() || s.navn === instance.navn))?.by ?? instance?.navn ?? "denne redaktion";
+  const cityName = cities.find((c) => c.current)?.by ?? instance?.navn ?? "denne redaktion";
+  const showAll = switchableCount(cities) > 1;
 
   const vsLabel = `mod forrige ${range} dage`;
   const hasAnyData = cur.length > 0 || impCur > 0 || newSubsCur > 0;
@@ -245,10 +232,10 @@ export default async function MetrikkerPage({ searchParams }: { searchParams?: P
         }
       />
 
-      {cityTabs.length > 0 ? <LinkTabs label="By" items={cityTabs} /> : null}
+      {cities.length > 0 ? <CityTabs cities={cities} label="By" allHref={showAll ? `/redaktion/metrikker/alle-byer${range === 28 ? "" : `?dage=${range}`}` : null} /> : null}
 
       <Notice tone="info" className="analytics-note">
-        Tallene gælder kun {cityName}: hver by har sin egen måling. Netværkstotalen (&quot;Alle&quot;) er ikke bygget, fordi den kræver en samlet netværksrolle uden for byens egen adgang. Visninger, læsninger og læsetid er totaler på de artikler, der er publiceret i perioden.
+        Tallene gælder kun {cityName}: hver by har sin egen måling{showAll ? <>. Se <Link href="/redaktion/metrikker/alle-byer">samlede tal for alle dine byer</Link></> : null}. Visninger, læsninger og læsetid er totaler på de artikler, der er publiceret i perioden.
       </Notice>
 
       {!hasAnyData ? <Notice tone="warn" title="Ingen målinger i perioden">Der er ikke publiceret artikler, vist forsideelementer eller tilmeldinger i de seneste {range} dage. Vælg en længere periode.</Notice> : null}

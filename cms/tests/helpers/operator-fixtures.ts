@@ -14,6 +14,7 @@ export function ctxFor(user: DbUser, over: Partial<ToolCtx> = {}): ToolCtx {
       name: user.navn,
       email: user.email,
       instansId: user.instansId,
+      homeInstansId: user.instansId,
       authorId: user.authorId,
       roleName: user.role.navn,
       permissions: Array.isArray(user.role.permissions) ? (user.role.permissions as string[]) : [],

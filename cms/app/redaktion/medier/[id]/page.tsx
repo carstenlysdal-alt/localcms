@@ -3,14 +3,14 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import { MediaEditForm } from "@/components/media/media-edit-form";
 import { MediaPreview } from "@/components/media/media-preview";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { Page, PageHeader } from "@/components/ui/Page";
 import { Card } from "@/components/ui/Card";
 
 export default async function MediaDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   const { id } = await params;
   const media = await db.media.findFirst({ where: { id, instansId: session.user.instansId } });

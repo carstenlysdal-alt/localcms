@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Copy, KeyRound, UserCheck, UserPlus, UserX } from "lucide-react";
+import { Copy, Globe2, KeyRound, UserCheck, UserPlus, UserX } from "lucide-react";
 import {
   changeRoleAction,
   createUserAction,
@@ -10,6 +10,7 @@ import {
   resetPasswordAction,
   type UserAdminResult,
 } from "@/app/redaktion/brugere/actions";
+import { setUserInstanceAccessAction } from "@/app/redaktion/brugere/network-actions";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Dialog } from "@/components/ui/Dialog";
@@ -28,11 +29,29 @@ export type UserRow = {
   deactivated: boolean;
   mustChange: boolean;
   createdLabel: string;
+  /** Ekstra byer (ud over hjemmebyen) brugeren har adgang til — instans-id'er. */
+  extraAccess: string[];
 };
+export type InstanceOption = { id: string; navn: string; key: string };
 
 type Secret = { name: string; email: string; password: string };
 
-export function UserAdmin({ users, roles }: { users: UserRow[]; roles: RoleOption[] }) {
+export function UserAdmin({
+  users,
+  roles,
+  instances = [],
+  canManageNetwork = false,
+  activeInstansId = "",
+}: {
+  users: UserRow[];
+  roles: RoleOption[];
+  /** De byer udføreren selv har adgang til (de eneste der kan gives/fjernes). */
+  instances?: InstanceOption[];
+  canManageNetwork?: boolean;
+  /** Den aktive by = alle viste brugeres hjemmeby. */
+  activeInstansId?: string;
+}) {
+  const [accessFor, setAccessFor] = useState<{ user: UserRow; selected: string[] } | null>(null);
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [secret, setSecret] = useState<Secret | null>(null);
@@ -100,6 +119,7 @@ export function UserAdmin({ users, roles }: { users: UserRow[]; roles: RoleOptio
           <div className="ui-stack">
             <strong>{u.navn}{u.isSelf ? <span className="ui-muted"> (dig)</span> : null}</strong>
             <span className="ui-small ui-muted">{u.email}</span>
+            {u.extraAccess.length > 0 ? <span className="ui-small ui-muted">Har også adgang til: {u.extraAccess.map((id) => instances.find((i) => i.id === id)?.navn ?? "en anden by").join(", ")}</span> : null}
           </div>
         ),
         rolle: u.roleName,
@@ -118,6 +138,11 @@ export function UserAdmin({ users, roles }: { users: UserRow[]; roles: RoleOptio
             {!u.isSelf && !u.deactivated && (
               <button type="button" className="btn btn-secondary btn-sm" disabled={pending} onClick={() => confirmThen(`Nulstil adgangskoden for ${u.navn}? Vedkommende logges ud overalt og får en ny midlertidig adgangskode.`, "Nulstil adgangskode", () => resetPasswordAction(u.id))}>
                 <KeyRound size={14} aria-hidden="true" /> Nulstil adgangskode<span className="sr-only"> for {u.navn}</span>
+              </button>
+            )}
+            {canManageNetwork && !u.isSelf && !u.deactivated && instances.length > 1 && (
+              <button type="button" className="btn btn-secondary btn-sm" disabled={pending} onClick={() => setAccessFor({ user: u, selected: u.extraAccess })}>
+                <Globe2 size={14} aria-hidden="true" /> Byer<span className="sr-only"> for {u.navn}</span>
               </button>
             )}
             {!u.isSelf && (u.deactivated ? (
@@ -188,6 +213,53 @@ export function UserAdmin({ users, roles }: { users: UserRow[]; roles: RoleOptio
           </form>
         </Card>
       </div>
+
+      <Dialog
+        open={accessFor !== null}
+        onClose={() => setAccessFor(null)}
+        title={accessFor ? `Adgang til byer for ${accessFor.user.navn}` : "Adgang til byer"}
+        size="sm"
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setAccessFor(null)}>Annullér</button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={pending}
+              onClick={() => {
+                const ask = accessFor;
+                setAccessFor(null);
+                if (ask) run(async () => {
+                  const res = await setUserInstanceAccessAction(ask.user.id, ask.selected);
+                  return { ok: res.ok, message: res.message };
+                });
+              }}
+            >
+              Gem adgang
+            </button>
+          </>
+        }
+      >
+        <p className="ui-dialog-message">Brugerens rolle gælder i alle valgte byer. Du kan kun give eller fjerne adgang til byer, du selv har adgang til. Hjemmebyen kan ikke fjernes.</p>
+        <fieldset className="ui-stack">
+          <legend className="sr-only">Byer</legend>
+          {instances.map((i) => {
+            const home = i.id === activeInstansId;
+            const checked = home || (accessFor?.selected.includes(i.id) ?? false);
+            return (
+              <label key={i.id} className="user-access-option">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={home}
+                  onChange={(e) => setAccessFor((cur) => (cur ? { ...cur, selected: e.target.checked ? [...cur.selected, i.id] : cur.selected.filter((x) => x !== i.id) } : cur))}
+                />
+                <span>{i.navn}{home ? " (hjemby)" : ""}</span>
+              </label>
+            );
+          })}
+        </fieldset>
+      </Dialog>
 
       <Dialog
         open={confirmAsk !== null}

@@ -34,7 +34,8 @@
     "sections:sync": "tsx scripts/sync-sections.ts",
     "areas:sync": "tsx scripts/sync-areas.ts",
     "user:reset-password": "tsx scripts/reset-password.ts",
-    "user:create-admin": "tsx scripts/create-admin.ts"
+    "user:create-admin": "tsx scripts/create-admin.ts",
+    "user:grant-access": "tsx scripts/grant-access.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

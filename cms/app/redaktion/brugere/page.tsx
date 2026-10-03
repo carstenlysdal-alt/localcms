@@ -1,6 +1,7 @@
 import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PERMISSIONS } from "@/lib/permissions";
+import { can, PERMISSIONS } from "@/lib/permissions";
+import { listAccessibleInstances } from "@/lib/instance-access";
 import { NoAccess } from "@/components/admin/no-access";
 import { UserAdmin, type RoleOption, type UserRow } from "@/components/admin/user-admin";
 import { Users } from "lucide-react";
@@ -15,6 +16,9 @@ const ACTION_LABELS: Record<string, string> = {
   "user.reactivate": "Aktiverede",
   "password.change": "Skiftede egen adgangskode",
   "user.reset_password_cli": "Nulstillede adgangskode (driftsværktøj) for",
+  "user.access_grant": "Gav adgang til denne by til",
+  "user.access_revoke": "Fjernede adgang til denne by for",
+  "instance.switch": "Skiftede til denne by",
 };
 
 const fmt = (d: Date) => d.toLocaleString("da-DK", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Copenhagen" });
@@ -29,6 +33,17 @@ export default async function BrugerePage() {
     db.role.findMany({ orderBy: { navn: "asc" } }),
     db.auditLog.findMany({ where: { instansId: actor.instansId }, orderBy: { createdAt: "desc" }, take: 15 }),
   ]);
+
+  // Netværksadgang: kun med network.manage (users.manage alene giver den ikke). Udførerens egne byer er de eneste valgbare.
+  const canManageNetwork = can(actor, PERMISSIONS.NETWORK_MANAGE);
+  const [instances, accessRows] = canManageNetwork
+    ? await Promise.all([
+        listAccessibleInstances(actor.id, actor.homeInstansId),
+        db.userInstanceAccess.findMany({ where: { userId: { in: users.map((u) => u.id) } }, select: { userId: true, instansId: true } }),
+      ])
+    : [[], []];
+  const accessByUser = new Map<string, string[]>();
+  for (const row of accessRows) accessByUser.set(row.userId, [...(accessByUser.get(row.userId) ?? []), row.instansId]);
 
   const own = new Set(actor.permissions);
   const withinReach = (perms: unknown) => (Array.isArray(perms) ? (perms as string[]) : []).every((p) => own.has(p));
@@ -45,6 +60,7 @@ export default async function BrugerePage() {
     deactivated: Boolean(u.deaktiveretTid),
     mustChange: u.mustChangePassword,
     createdLabel: fmt(u.createdAt),
+    extraAccess: accessByUser.get(u.id) ?? [],
   }));
 
   const auditRows: DataTableRow[] = audit.map((entry) => {
@@ -66,7 +82,7 @@ export default async function BrugerePage() {
         title="Brugere"
         subtitle="Opret brugere, skift roller og udsted midlertidige adgangskoder. Kun brugere i denne redaktion vises."
       />
-      <UserAdmin users={rows} roles={roleOptions} />
+      <UserAdmin users={rows} roles={roleOptions} instances={instances.map((i) => ({ id: i.id, navn: i.navn.replace(/Lokalt$/i, ""), key: i.key }))} canManageNetwork={canManageNetwork} activeInstansId={actor.instansId} />
       <section aria-labelledby="audit-heading" className="page-section">
         <h2 className="ui-section-title" id="audit-heading">Seneste handlinger</h2>
         <DataTable

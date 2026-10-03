@@ -1,5 +1,5 @@
 import { CheckCircle, Clock, Download, Hash, WalletCards } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { approveHonor } from "./actions";
@@ -20,7 +20,7 @@ const COLUMNS: DataTableColumn[] = [
 ];
 
 export default async function HonorPage() {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   const viewAll = can(session.user, PERMISSIONS.HONORAR_VIEW);
   const viewOwn = can(session.user, PERMISSIONS.HONOR_VIEW_OWN) && session.user.authorId;

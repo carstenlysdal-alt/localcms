@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import { AssignmentForm } from "@/components/assignments/assignment-form";
 import { assignmentTransitions } from "@/lib/assignments";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { claimAssignment, transitionAssignment } from "../actions";
@@ -19,7 +19,7 @@ function localInput(date: Date | null) {
 }
 
 export default async function AssignmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   const { id } = await params;
   const assignment = await db.assignment.findFirst({ where: { id, instansId: session.user.instansId }, include: { assignedAuthor: true, article: true, supportAgreement: true, honorEntry: true } });

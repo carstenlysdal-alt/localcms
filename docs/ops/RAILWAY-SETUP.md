@@ -213,9 +213,9 @@ railway variable set PREVIEW_HOSTS=lysdalcms-production.up.railway.app --service
 
 - `PREVIEW_HOSTS` er en kommasepareret liste over hostnavne. Kun disse værter får by-vælgeren; alle andre værter opfører sig præcis som før. Et rigtigt by-domæne (`naestvedlokalt.dk` m.fl.) på listen ignoreres, og opstartsloggen advarer.
 - Besøg `https://lysdalcms-production.up.railway.app/?by=naestved` (nøgler: `slagelse`, `naestved`, `holbaek`, `koege`, `roskilde`, `ringsted`). Serveren sætter cookien `lk_by` (HttpOnly, Secure, SameSite=Lax, 30 dage) og sender dig videre til samme side uden `?by=`. Derefter viser alle sider den valgte by, indtil du vælger en anden. Uden valg vises `FALLBACK_SITE_DOMAIN`-byen (ellers den første by i databasen). Ukendt `?by=`-værdi ignoreres.
-- Byvælgeren (topbar, mobilmenu, bundlinje, emnelinjen) og byerne i redaktionens sidebar linker på preview-adressen til `/?by=<by>`. Redaktionens by-liste viser byernes **offentlige forsider** og mærker din egen by "Din by": man kan ikke redigere en anden by derfra (se nedenfor).
+- Byvælgeren (topbar, mobilmenu, bundlinje, emnelinjen) og byerne i redaktionens sidebar linker på preview-adressen til `/?by=<by>`. Redaktionens by-liste er byskifteren (afsnit 14): byer, du har adgang til, kan vælges; ved siden af hver by er "Se siden" et link til byens **offentlige forside** (`/?by=<by>`).
 - Alt på preview-adressen er `noindex, nofollow` (robots.txt `Disallow: /`, ingen sitemaps, `X-Robots-Tag`) og sendes med `Cache-Control: private, no-store` og `Vary: Cookie`, så ingen cache kan servere én bys side til en anden.
-- Redaktionen (`/redaktion`) følger **brugerens egen by** (instansId på brugeren), aldrig `?by=` eller cookien. API-indtag (`/api/ingest`, nøgle -> instans) og cron-ruterne påvirkes heller ikke.
+- Redaktionen (`/redaktion`) følger **brugerens aktive by** (hjemmeby eller en by, brugeren har fået adgang til, se afsnit 14), aldrig `?by=` eller cookien `lk_by`. API-indtag (`/api/ingest`, nøgle -> instans) og cron-ruterne påvirkes heller ikke.
 - Offentlige formularer (indsend, nyhedsbrev, målinger) gemmes under den by, der er valgt via cookien. Brug ikke preview-adressen som rigtig tilmeldingsside.
 
 **2. Områder (GeoTag) til alle byer** (idempotent, ændrer aldrig eksisterende områder, opfinder aldrig koordinater: nye steder får `lat/lng = null`). Tørkørsel er standard; `--apply` opretter:
@@ -241,7 +241,7 @@ railway ssh --project <projekt-id> --environment production --service lysdalcms 
 - Uden `NODE_ENV=production` kræves `--force` (som `user:reset-password`).
 - Rollerne skal findes (`npm run seed:prod` eller `npm run roles:sync`).
 
-**Log ind og skift by:** man logger ind på `/login` (eller `/redaktion`) på samme adresse; sessionen følger brugerens by. For at redigere en anden by logger man ud og ind med den bys administrator.
+**Log ind og skift by:** man logger ind på `/login` (eller `/redaktion`) på samme adresse. Med netværksadgang (afsnit 14) skifter man by i skifteren i stedet for at logge ud og ind. Én administrator pr. by (ovenfor) er kun nødvendig, hvis hver by skal have sin egen person.
 
 **4. Når de rigtige domæner kommer (afsnit 3):**
 
@@ -250,3 +250,47 @@ railway ssh --project <projekt-id> --environment production --service lysdalcms 
 3. Byvælger og redaktionens by-liste bruger automatisk de rigtige domæner igen; cookien `lk_by` bliver ubrugt (kan ligge i browseren, har ingen virkning).
 4. Brugere og områder ligger allerede i databasen; intet skal migreres. Tjek `https://<by>/api/ready`, `robots.txt` og at forsiden viser den rigtige by.
 
+## 14. Netværksadgang (ét login til alle byer)
+
+Ét login kan arbejde i alle seks byer med en byskifter ("Redigerer: Næstved") i sidebar og topbar. Rollen er den samme i alle byer (roller er globale). Design, trusselsmodel og tests: `docs/review/FIX-netvaerksadgang.md`.
+
+**Efter deploy** (Railway kører `prisma migrate deploy` ved start; migrationen `..._user_instance_access` opretter tabellen `UserInstanceAccess`, additivt):
+
+```bash
+# 1. Den nye rettighed network.manage lægges på rollen Ansvarshavende redaktør (additivt, fjerner intet)
+railway ssh --project <projekt-id> --environment production --service lysdalcms -- npm run roles:sync
+
+# 2. Giv ejerens login adgang til alle byer (hjemmebyen Slagelse er altid med). Idempotent; kan køres igen.
+railway ssh --project <projekt-id> --environment production --service lysdalcms -- \
+  npm run user:grant-access -- --email carstenlysdal@gmail.com --alle-instanser --force
+
+# Én by ad gangen (id, domæne eller by-nøgle):
+railway ssh --project <projekt-id> --environment production --service lysdalcms -- \
+  npm run user:grant-access -- --email carstenlysdal@gmail.com --instans naestved --force
+```
+
+- Ejeren skal **ikke** logge ind igen: byskifteren vises ved næste sideindlæsning, fordi adgangen slås op i databasen. (`roles:sync` giver rettigheden `network.manage` i databasen med det samme; JWT'en bruges ikke til rettigheder.)
+- Skifteren ligger i sidebaren (liste over byer, den aktive er markeret) og i topbaren ("Redigerer: <by>" + "Se siden"). "Se siden" peger på byens offentlige forside; på Railway-adressen er det `/?by=<nøgle>`, så den offentlige forhåndsvisning følger den by, du redigerer. Artikler og Analytics har faner "Alle byer | Slagelse | Næstved | …".
+- Andre kan få adgang i `/redaktion/brugere` (knappen "Byer" ud for en bruger) — kræver rettigheden `network.manage` (kun Ansvarshavende redaktør) og man kan kun give/fjerne byer, man selv har adgang til. `users.manage` alene er ikke nok. AI-operatøren kan ikke give adgang.
+- Alle ændringer og alle skift af by skrives til `AuditLog` (`user.access_grant`, `user.access_revoke`, `instance.switch`; uden hemmeligheder).
+
+**Rollback** (ingen datatab, intet skal deployes om):
+
+```bash
+# Fjern ekstra adgang igen (hjemmebyen bevares):
+railway ssh ... -- npm run user:grant-access -- --email carstenlysdal@gmail.com --alle-instanser --revoke --force
+```
+
+Eller slet rækkerne direkte (`DELETE FROM "UserInstanceAccess" WHERE "userId" = ...`). Den aktive by ligger i brugerens session, men valideres mod tabellen ved hver forespørgsel: er rækken væk, falder brugeren tilbage til hjemmebyen ved næste sideindlæsning (en forældet claim giver aldrig adgang). Tabellen kan blive liggende uden effekt; koden kan rulles tilbage til før ændringen uden at tabellen gør skade.
+
+**Fjern de fem test-administratorer** (`carstenlysdal+naestved|holbaek|koege|roskilde|ringsted@gmail.com`; de har ikke noget indhold). Brugere slettes ellers aldrig i CMS'et (revisioner peger på dem), så de deaktiveres i `/redaktion/brugere` (Deaktivér) — eller slettes helt, når de intet har oprettet, fx i Railway-databasen:
+
+```sql
+-- kontrollér først at ingen af dem har artikler/revisioner/opgaver:
+SELECT u.email, (SELECT count(*) FROM "ArticleRevision" r WHERE r."userId" = u.id) AS revisioner
+FROM "User" u WHERE u.email LIKE 'carstenlysdal+%@gmail.com';
+-- derefter:
+DELETE FROM "User" WHERE email IN ('carstenlysdal+naestved@gmail.com','carstenlysdal+holbaek@gmail.com','carstenlysdal+koege@gmail.com','carstenlysdal+roskilde@gmail.com','carstenlysdal+ringsted@gmail.com');
+```
+
+(`UserInstanceAccess` følger med via `ON DELETE CASCADE`; `AuditLog` har ingen relation og bevares som revisionsspor.) Tjek først, at ejerens eget login (`carstenlysdal@gmail.com`) kan skifte til alle byer.

@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { MediaCreateForm } from "@/components/media/media-create-form";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { Page, PageHeader } from "@/components/ui/Page";
 import { Card } from "@/components/ui/Card";
 
 export default async function NewMediaPage() {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   if (!can(session.user, PERMISSIONS.MEDIA_MANAGE)) {
     return (

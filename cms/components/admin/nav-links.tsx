@@ -2,24 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink } from "lucide-react";
 import { NAV_ICONS } from "./nav-icons";
 import { activeHref, type NavGroup } from "./nav-model";
-import { CityDot } from "@/components/ui/CityDot";
+import { CityRow, useSwitchCity, type NavCity } from "./city-switcher";
+
+export type { NavCity } from "./city-switcher";
 
 /**
- * `preview`: delt preview-adresse (PREVIEW_HOSTS): byerne findes ikke på egne domæner endnu, så alle seks er links til byens OFFENTLIGE
- * forside (`/?by=<nøgle>`), og brugerens egen by mærkes "Din by". Der tilbydes aldrig redigering på tværs af instanser.
- */
-export type NavCity = { by: string; href: string; current: boolean; preview?: boolean };
-
-/**
- * Sidebarens navigation: grupperede links (allerede filtreret efter rettigheder på serveren), by-liste med prikker.
+ * Sidebarens navigation: grupperede links (allerede filtreret efter rettigheder på serveren) og byer med prikker.
  * Aktivt punkt: indigo pille + `aria-current="page"`. Tæller-badges vises hvor data findes (fx Indbakke).
+ * By-listen er byskifteren: byer brugeren har adgang til kan vælges (den aktive er markeret `aria-current`), øvrige er låst;
+ * "Se siden" åbner byens offentlige side (på preview-værten `/?by=<nøgle>`).
  */
 export function NavLinks({ groups, cities = [] }: { groups: NavGroup[]; cities?: NavCity[] }) {
   const path = usePathname();
   const active = activeHref(groups.flatMap((g) => g.items), path);
+  const { switchTo, pending, message } = useSwitchCity();
   return (
     <nav className="shell-nav" aria-label="Primær navigation">
       {groups.map((group) => (
@@ -47,30 +45,11 @@ export function NavLinks({ groups, cities = [] }: { groups: NavGroup[]; cities?:
           <ul className="shell-nav-list">
             {cities.map((city) => (
               <li key={city.by}>
-                {city.preview ? (
-                  <a className={`shell-link shell-link-city${city.current ? " is-current" : ""}`} href={city.href} aria-current={city.current ? "true" : undefined}>
-                    <CityDot city={city.by} />
-                    <span className="shell-link-text">{city.by}</span>
-                    {city.current ? <span className="shell-link-note">Din by</span> : <ExternalLink size={14} aria-hidden="true" className="shell-link-ext" />}
-                    <span className="sr-only">{city.current ? "(åbner din bys offentlige forside som forhåndsvisning)" : "(åbner byens offentlige forside som forhåndsvisning)"}</span>
-                  </a>
-                ) : city.current ? (
-                  <span className="shell-link shell-link-city is-current" aria-current="true">
-                    <CityDot city={city.by} />
-                    <span className="shell-link-text">{city.by}</span>
-                    <span className="shell-link-note">Du er her</span>
-                  </span>
-                ) : (
-                  <a className="shell-link shell-link-city" href={city.href} rel="noopener">
-                    <CityDot city={city.by} />
-                    <span className="shell-link-text">{city.by}</span>
-                    <ExternalLink size={14} aria-hidden="true" className="shell-link-ext" />
-                    <span className="sr-only">(åbner byens redaktion)</span>
-                  </a>
-                )}
+                <CityRow city={city} onSwitch={switchTo} pending={pending} />
               </li>
             ))}
           </ul>
+          <p className="shell-nav-status" role="status" aria-live="polite">{pending ? "Skifter by…" : message}</p>
         </div>
       ) : null}
     </nav>

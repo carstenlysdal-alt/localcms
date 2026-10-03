@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { AssignmentForm } from "@/components/assignments/assignment-form";
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { Page, PageHeader } from "@/components/ui/Page";
 import { Card } from "@/components/ui/Card";
 
 export default async function NewAssignmentPage() {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   if (!can(session.user, PERMISSIONS.TASK_MANAGE)) {
     return (

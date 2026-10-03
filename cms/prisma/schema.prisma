@@ -34,6 +34,7 @@ model Instance {
   updatedAt      DateTime @updatedAt
 
   users             User[]
+  userAccess        UserInstanceAccess[]
   authors           Author[]
   categories        Category[]
   tags              Tag[]
@@ -100,6 +101,26 @@ model User {
   articleRevisions ArticleRevision[]
   createdAssignments Assignment[] @relation("AssignmentCreator")
   approvedHonorEntries HonorEntry[] @relation("HonorApprover")
+  /// Ekstra byer (ud over hjemmeinstansen `instansId`) brugeren må redigere — se UserInstanceAccess.
+  instanceAccess UserInstanceAccess[]
+}
+
+/// Netværksadgang: giver én bruger lov til at arbejde i en ANDEN instans (by) end sin hjemmeinstans (User.instansId).
+/// Hjemmeinstansen er altid implicit tilladt og gemmes ikke her. Brugerens ene globale rolle gælder i alle tilladte instanser.
+/// Den AKTIVE instans (den by redaktøren arbejder i) ligger i sessionens JWT og valideres mod denne tabel ved hver forespørgsel
+/// (lib/instance-access.ts) — slettes en række, falder brugeren tilbage til hjemmeinstansen ved næste forespørgsel.
+model UserInstanceAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instansId String
+  instans   Instance @relation(fields: [instansId], references: [id])
+  /// E-mail på den der gav adgangen (eller "cli"); aldrig hemmeligheder.
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, instansId])
+  @@index([instansId])
 }
 
 /// Revisionsspor for administrative handlinger (brugere, roller, adgangskoder). Aldrig hemmeligheder i `detail`.

@@ -3,12 +3,11 @@ import { headers } from "next/headers";
 import { LayoutGrid, LogOut } from "lucide-react";
 import { getSessionState, signOut } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
-import { getNetworkLinks } from "@/lib/site";
-import { networkHref } from "@/lib/network-sites";
+import { loadNavCities } from "@/lib/shell-cities";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { ChangePasswordForm } from "@/components/admin/change-password-form";
-import { NavLinks, type NavCity } from "@/components/admin/nav-links";
+import { NavLinks } from "@/components/admin/nav-links";
+import { CitySwitcher } from "@/components/admin/city-switcher";
 import { ShellFrame } from "@/components/admin/shell-frame";
 import { BottomNav } from "@/components/admin/bottom-nav";
 import { UserMenu } from "@/components/admin/user-menu";
@@ -56,18 +55,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Forside-forhåndsvisningen indlæses i en iframe i forside-editoren: der skal ikke ligge en ekstra skal omkring den.
   if (await isIframeRequest()) return <div className="cms-root">{children}</div>;
 
-  const [inboxCount, instance, network] = await Promise.all([
+  const [inboxCount, cities] = await Promise.all([
     countNewIntake(user.instansId, countsPartnerBriefs(user)),
-    db.instance.findUnique({ where: { id: user.instansId }, select: { domaene: true, navn: true } }),
-    getNetworkLinks().catch(() => []),
+    // De byer brugeren må redigere (hjem + adgangsrækker) — altid fra databasen. Den aktive by er user.instansId (valideret).
+    loadNavCities(user),
   ]);
   const groups = buildNav(user, { inbox: inboxCount });
-  const cities: NavCity[] = network.map((site) => {
-    const current = Boolean(instance && (site.domaene === instance.domaene.toLowerCase() || site.navn === instance.navn));
-    // Delt preview-adresse (site.previewBy): byens offentlige forside i stedet for et (endnu ikke eksisterende) by-domæne.
-    if (site.previewBy) return { by: site.by, href: networkHref(site), current, preview: true };
-    return { by: site.by, href: `${site.origin}/redaktion`, current };
-  });
   const currentCity = cities.find((c) => c.current)?.by;
   const searchPages = groups.flatMap((g) => g.items.map((i) => ({ href: i.href, label: i.label, group: g.label, icon: i.icon })));
   const operator = can(user, PERMISSIONS.OPERATOR_USE);
@@ -99,6 +92,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/redaktion/artikler" className="shell-topbar-brand">Lysdals</Link>
             <GlobalSearch pages={searchPages} />
             <div className="shell-topbar-spacer" />
+            <CitySwitcher cities={cities} />
             <AiOperatorButton hasPanel={operator} />
           </header>
           <div id="main-content" tabIndex={-1} className="shell-content" data-shell-inert>{children}</div>

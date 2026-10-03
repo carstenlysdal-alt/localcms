@@ -1,4 +1,4 @@
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, PERMISSIONS } from "@/lib/permissions";
 import { CategoryManager } from "@/components/admin/category-manager";
@@ -11,7 +11,7 @@ export const metadata = {
 };
 
 export default async function SectionsAdminPage() {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
 
   const hasAccess =

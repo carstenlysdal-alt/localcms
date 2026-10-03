@@ -50,6 +50,7 @@ export const BLOCKED_TOOLS: readonly BlockedTool[] = [
   { names: ["delete_user", "slet_bruger"], label: "Sletning af brugere", href: "/redaktion/brugere", why: "Brugere deaktiveres i brugeradministrationen, aldrig via AI." },
   { names: ["change_own_role", "set_own_role", "change_role", "set_role", "grant_permission", "update_role"], label: "Ændring af roller og rettigheder", href: "/redaktion/brugere", why: "Roller og rettigheder ændres kun af en administrator i brugeradministrationen." },
   { names: ["delete_correction", "remove_correction", "slet_rettelse"], label: "Sletning af rettelser", href: "/redaktion/artikler", why: "Rettelser er et offentligt, sporbart register og må ikke fjernes via AI." },
+  { names: ["grant_access", "revoke_access", "set_instance_access", "grant_network_access", "give_city_access", "switch_instance", "switch_city", "skift_by", "giv_adgang_til_by"], label: "Adgang til andre byer", href: "/redaktion/brugere", why: "Adgang på tværs af byer gives kun af en ansvarlig redaktør med rettigheden Netværksadgang i brugeradministrationen, aldrig via AI." },
   { names: ["reset_password", "change_password", "set_password", "nulstil_adgangskode"], label: "Skift eller nulstilling af adgangskoder", href: "/redaktion/brugere", why: "Adgangskoder håndteres kun af brugeren selv eller en administrator." },
   { names: ["get_secret", "read_env", "get_api_key", "show_token", "hent_hemmelighed"], label: "Hemmeligheder og nøgler", href: "/redaktion/konto", why: "AI har aldrig adgang til nøgler, adgangskoder eller tokens." },
 ];

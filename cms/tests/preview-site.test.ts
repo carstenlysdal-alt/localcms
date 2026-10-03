@@ -171,23 +171,27 @@ test("SiteFooter (server): søstermedier linker til /?by=<nøgle> på preview-v�
   assert.ok(!real.some((h) => h.includes("?by=")));
 });
 
-test("Redaktionens by-liste: på preview-vært seks links til byens offentlige forside, egen by = 'Din by', ingen redigering på tværs", async () => {
+test("Redaktionens by-liste (netværksadgang): byer med adgang er knapper, andre er låst; 'Se siden' peger på /?by=<nøgle> på preview-vært", async () => {
   const { NavLinks } = await import("../components/admin/nav-links");
   const { networkHref } = await import("../lib/network-sites");
   const links = await networkLinks(RAILWAY);
-  const cities = links.map((l) => ({ by: l.by, href: networkHref(l), current: l.key === "naestved", preview: true }));
+  // Brugeren har adgang til Slagelse (hjem) og Næstved (aktiv); de øvrige er låst.
+  const access: Record<string, string> = { slagelse: "inst-s", naestved: "inst-n" };
+  const cities = links.map((l) => ({ by: l.by, instansId: access[l.key as string] ?? null, current: l.key === "naestved", home: l.key === "slagelse", publicHref: networkHref(l) }));
   const html = renderToStaticMarkup(createElement(NavLinks, { groups: [], cities }));
   const all = hrefs(html);
-  for (const key of ["slagelse", "naestved", "holbaek", "koege", "roskilde", "ringsted"]) assert.ok(all.includes(`/?by=${key}`), key);
+  for (const key of ["slagelse", "naestved", "holbaek", "koege", "roskilde", "ringsted"]) assert.ok(all.includes(`/?by=${key}`), `Se siden for ${key}`);
   assert.ok(!all.some((h) => h.includes("/redaktion")), "ingen links til andre byers redaktion");
-  assert.equal((html.match(/Din by/g) ?? []).length, 1, "kun egen by er mærket Din by");
-  assert.match(html, /Næstved<\/span><span class="shell-link-note">Din by/);
+  assert.equal((html.match(/aria-current="true"/g) ?? []).length, 1, "kun den aktive by er markeret");
+  assert.match(html, /<button[^>]*aria-current="true"[^>]*disabled[^>]*>.*?Næstved<\/span><span class="shell-link-note">Redigeres nu/);
+  assert.equal((html.match(/shell-link-city is-locked/g) ?? []).length, 4, "byer uden adgang er ikke klikbare");
+  assert.equal((html.match(/<button/g) ?? []).length, 2, "kun byer med adgang er knapper");
+  assert.doesNotMatch(html, /Din by/);
 
-  // Rigtige domæner: uændret opførsel (links til byens /redaktion på eget domæne, egen by 'Du er her')
+  // Rigtige domæner: Se siden peger på byens eget domæne (uændret opførsel for den offentlige side)
   const real = renderToStaticMarkup(
-    createElement(NavLinks, { groups: [], cities: [{ by: "Næstved", href: "https://naestvedlokalt.dk/redaktion", current: true }, { by: "Holbæk", href: "https://holbaeklokalt.dk/redaktion", current: false }] }),
+    createElement(NavLinks, { groups: [], cities: [{ by: "Næstved", instansId: "x", current: true, publicHref: "https://naestvedlokalt.dk/" }, { by: "Holbæk", instansId: null, current: false, publicHref: "https://holbaeklokalt.dk/" }] }),
   );
-  assert.ok(hrefs(real).includes("https://holbaeklokalt.dk/redaktion"));
-  assert.match(real, /Du er her/);
+  assert.ok(hrefs(real).includes("https://holbaeklokalt.dk/"));
   assert.doesNotMatch(real, /Din by/);
 });

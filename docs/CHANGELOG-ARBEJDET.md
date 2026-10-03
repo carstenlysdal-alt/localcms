@@ -17,6 +17,9 @@ Baseline: `fc7c5d7` (1. okt. 2026). Alt ligger på branchen `review-fixes` (push
 | `2155d16` | 3. okt. 01:57 | Redesign (designsystem/shell), AI-operatør, editor med metadata/SoMe/AI, standardsektioner, analytics |
 | `989fd4a` | 3. okt. 01:59 | LocalRating Fase 0 (arkitektur, 15 ADR'er, kilderegistre) |
 | `5e66129` | 3. okt. 08:16 | LocalRating: kilder hentes kun manuelt (ADR-016) |
+| `7499e99` | 3. okt. | AI på DeepSeek: fælles AI-gateway (`lib/ai/provider`), operatør på DeepSeek, maskering af persondata |
+| `6a92093` | 3. okt. | Alle seks lokalsites på Railway-adressen: preview-by (`?by=`), områder og admin pr. by |
+| `d7e1ca7` | 3. okt. | Railway-crash rettet: Prisma-skema vælges efter `DATABASE_URL` (`scripts/db-provider.mjs`, postinstall + selvhelbredende prestart) |
 
 ## 2. Ændringer pr. område
 **Review (T1–T9):** statisk site, CMS-crawl (99 sider/by), design (Næstved), SEO/schema/SoMe (score Google 3/10 før), kode- og sikkerhedsreview, governance (34 regler), agent-integration, kildematrix og aI-library/Knowledge OS. Samlet oversigt og P0–P3-backlog: `docs/review/00-oversigt.md`.
@@ -51,6 +54,10 @@ Baseline: `fc7c5d7` (1. okt. 2026). Alt ligger på branchen `review-fixes` (push
 
 ## 3. Railway (ændringer uden for git)
 Nyt projekt `Lysdal-local-cms`: services `lysdalcms` (fra GitHub, rod `cms`), Postgres, Redis, volumen på `/data`, offentligt domæne `lysdalcms-production.up.railway.app`, `cron-frontpage` (hver 3. time; kun forslag). Variabler: `DATABASE_URL`/`REDIS_URL` (referencer), `AUTH_SECRET`, `CRON_SECRET`, `ADMIN_EMAIL`, `NEXT_PUBLIC_APP_URL`, m.fl. Migrationer anvendt: `user_password_flags`, `operator_log`, `article_meta_social` m.fl. Rettigheder synkroniseret og sektioner oprettet. Gamle CMS-services i `lucky-happiness` slettet; to duplikerede Redis-services oprettet ved en fejl og slettet igen.
+
+**Preview af alle byer (Railway-adressen):** `?by=<by>` sætter cookien `lk_by` og viser den valgte bys offentlige side; omdirigeringen er nu absolut (relativ `Location` gav 500). Områder og en admin pr. by oprettet i produktion. **Crash-fix:** `railway.json` blev ikke altid læst, så Prisma kørte med SQLite-skema mod Postgres-URL ("URL must start with protocol file:"); `db-provider.mjs` vælger nu skema ved install og start.
+
+**Under arbejde — netværksadgang:** ét CMS-login (ejeren) med adgang til alle byer og by-skifter i CMS'et (`UserInstanceAccess`, aktiv by i JWT, valideret mod DB ved hver forespørgsel). De fem midlertidige plus-adresse-admins fjernes efter udrulning. Se `docs/review/FIX-netvaerksadgang.md`, når agenten er færdig.
 
 ## 4. Beslutninger taget undervejs
 AI foreslår, mennesket godkender (forside, signaler, kilder); kun globale AI-nøgler som Railway-variabler; engangsportering af Y (Y uændret); Local-navne kun i localcms; kilder hentes kun manuelt; hosting Railway bag Cloudflare (ejerens opsætning); nye topsektioner som ovenfor.

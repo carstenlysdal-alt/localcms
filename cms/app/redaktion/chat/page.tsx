@@ -1,10 +1,10 @@
-import { auth } from "@/lib/auth";
+import { getFreshSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ChatInterface } from "./chat-interface";
 import { randomUUID } from "crypto";
 
 export default async function ChatPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const session = await auth();
+  const session = await getFreshSession();
   if (!session?.user) return null;
   const params = await searchParams;
   const sessionId = typeof params.session === "string" ? params.session : randomUUID();

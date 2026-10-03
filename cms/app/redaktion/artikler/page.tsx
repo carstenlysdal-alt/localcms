@@ -9,8 +9,8 @@ import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { can, canEditArticle, PERMISSIONS } from "@/lib/permissions";
 import { searchOr } from "@/lib/search";
-import { getNetworkLinks } from "@/lib/site";
-import { networkHref } from "@/lib/network-sites";
+import { loadNavCities, switchableCount } from "@/lib/shell-cities";
+import { CityTabs } from "@/components/admin/city-switcher";
 import { ALL_STATUSES, buildWhere, listHref, parseListParams, type ListTab } from "@/lib/editor/list-query";
 import { loadArticleValue, loadEditorOptions } from "@/lib/editor/load";
 
@@ -24,7 +24,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
   const p = parseListParams(await searchParams);
 
   const where = buildWhere(p, user.instansId, (fields, q) => searchOr(fields, q));
-  const [rows, authors, instance, network, options] = await Promise.all([
+  const [rows, authors, instance, cities, options] = await Promise.all([
     db.article.findMany({
       where,
       include: { forfatter: true, coverMedia: true, kategori: { select: { id: true, navn: true } } },
@@ -33,7 +33,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
     }),
     db.author.findMany({ where: { instansId: user.instansId }, orderBy: { navn: "asc" }, select: { id: true, navn: true } }),
     db.instance.findUnique({ where: { id: user.instansId }, select: { navn: true, domaene: true } }),
-    getNetworkLinks(),
+    loadNavCities(user),
     loadEditorOptions(user),
   ]);
 
@@ -105,14 +105,7 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
             <Link key={t} className="cms-tab" aria-current={p.tab === t ? "page" : undefined} href={listHref({ ...base, tab: t, status: "" })} scroll={false}>{t}</Link>
           ))}
           <span className="cms-tab-sep" aria-hidden="true" />
-          {network.map((n) => {
-            const own = n.domaene === instance?.domaene;
-            return own ? (
-              <span key={n.domaene} className="cms-tab is-city" aria-current="true"><span className="cms-city-dot" data-city={slugifyCity(n.by)} aria-hidden="true" /> {n.by}</span>
-            ) : (
-              <a key={n.domaene} className="cms-tab is-city" href={n.previewBy ? networkHref(n) : `${n.origin}/redaktion/artikler`} rel="noopener noreferrer" title={n.previewBy ? `Se ${n.by}s offentlige forside (forhåndsvisning)` : `Skift til ${n.by} (egen login)`}><span className="cms-city-dot" data-city={slugifyCity(n.by)} aria-hidden="true" /> {n.by}</a>
-            );
-          })}
+          <CityTabs bare cities={cities} variant="cms" label="By" allHref={switchableCount(cities) > 1 ? "/redaktion/artikler/alle-byer" : null} />
         </nav>
 
         <form className="cms-filters" action="/redaktion/artikler" method="get">
@@ -170,8 +163,4 @@ export default async function ArticlesPage({ searchParams }: { searchParams: Pro
     );
   }
   return workspace;
-}
-
-function slugifyCity(by: string): string {
-  return by.toLowerCase().replace(/æ/g, "ae").replace(/ø/g, "oe").replace(/å/g, "aa").replace(/[^a-z0-9]+/g, "");
 }

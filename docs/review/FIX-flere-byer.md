@@ -108,3 +108,5 @@ Nyt: `lib/preview.ts`, `lib/default-areas.ts`, `lib/default-areas-sync.ts`, `scr
 - Emnelinjens by-dropdown er kun testet via `networkHref` (menuen er lukket i statisk rendering); header, mobilark, bundlinje og redaktionens by-liste er render-testet.
 - Ikke kørt: `next build` og live-røgtest i browser (lead). Preview kan ikke afprøves lokalt uden at sætte `PREVIEW_HOSTS=localhost` og genstarte dev-serveren.
 - `areas:sync` tilføjer navne til `Instance.geografiskDækning`. Ønskes det ikke, fjern det afsnit i `applyAreaSync`; GeoTags er upåvirkede.
+
+> **Opdatering (netværksadgang):** Redaktionens by-liste/faner og "Din by"-adfærd beskrevet ovenfor er erstattet af byskifteren i `FIX-netvaerksadgang.md`: ét login kan redigere flere byer (medlemskaber), og "Se siden" peger på `/?by=<nøgle>`. Offentlig by-valg via `?by=`/`lk_by` er uændret og uafhængig af redaktionens aktive by.
