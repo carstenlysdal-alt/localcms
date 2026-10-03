@@ -18,6 +18,7 @@ import { can, canEditArticle, PERMISSIONS } from "@/lib/permissions";
 import { rateLimit } from "@/lib/ratelimit";
 import { countWords } from "@/lib/blocks/text";
 import type { AiCallResult, AiFailureReason, AiTextClient } from "@/lib/frontpage/ai-client";
+import { createAiTextClient, NO_AI_MESSAGE } from "./provider";
 import {
   commentOnSeo,
   EDITORIAL_PROMPT_VERSION,
@@ -48,7 +49,7 @@ import {
 } from "./editorial-schemas";
 import { SOCIAL_PLATFORMS } from "../article-meta";
 
-const NO_KEY = "AI er ikke sat op endnu: der mangler en API-nøgle (ANTHROPIC_API_KEY). Kontakt administratoren.";
+const NO_KEY = `${NO_AI_MESSAGE}. Kontakt administratoren: der mangler en API-nøgle i Railway.`;
 
 const FAILURE_TEXT: Record<AiFailureReason, string> = {
   "ingen-noegle": NO_KEY,
@@ -78,7 +79,12 @@ export function taskAllowedInCategory(task: EditorialTask, restricted: boolean):
   return !(restricted && isTextGeneratingTask(task));
 }
 
-async function audit(user: AuthorizedUser, task: EditorialTask, articleId: string | null | undefined, outcome: string) {
+/** Udbyderen bag en klient, til audit: rigtige klienter bærer `providerId`; en injiceret test-klient hedder "injiceret"; ingen klient = null. */
+function providerOf(client: AiTextClient | null | undefined): string | null {
+  return client ? (client.providerId ?? "injiceret") : null;
+}
+
+async function audit(user: AuthorizedUser, task: EditorialTask, articleId: string | null | undefined, outcome: string, extra: { udbyder?: string | null; tokens?: { input: number; output: number } } = {}) {
   try {
     await writeAudit(db, {
       instansId: user.instansId,
@@ -87,7 +93,8 @@ async function audit(user: AuthorizedUser, task: EditorialTask, articleId: strin
       action: "article.ai.suggest",
       targetId: articleId ?? null,
       targetLabel: TASK_INFO[task].label,
-      detail: { task, promptVersion: EDITORIAL_PROMPT_VERSION, udfald: outcome },
+      // Aldrig indhold: kun opgave, promptversion, udfald, udbyder og tokental (til senere forbrugsmåling).
+      detail: { task, promptVersion: EDITORIAL_PROMPT_VERSION, udfald: outcome, ...(extra.udbyder !== undefined ? { udbyder: extra.udbyder } : {}), ...(extra.tokens ? { tokensInd: extra.tokens.input, tokensUd: extra.tokens.output } : {}) },
     });
   } catch (error) {
     console.error("[article-ai] auditlog fejlede", error instanceof Error ? error.message : "ukendt");
@@ -106,6 +113,9 @@ export async function runEditorialTask(user: AuthorizedUser, request: EditorialR
     return tooBig ? fail("for-stor", "Teksten er for lang til AI-forslag. Marker et mindre afsnit.") : fail("ugyldig", "Ugyldig AI-forespørgsel.");
   }
   const { task, articleId, context, params } = parsed.data;
+  // Én klient pr. kald (gateway vælger DeepSeek/Claude efter EDITOR_AI_PROVIDER/AI_PROVIDER/nøgler); tests injicerer en falsk.
+  const client = deps.client === undefined ? createAiTextClient({ task: "editor" }) : deps.client;
+  const udbyder = providerOf(client);
 
   if (!deps.skipRateLimit) {
     const limited = await rateLimit({ bucket: "article-ai", key: user.id, limit: 40, windowMs: 10 * 60_000 });
@@ -126,7 +136,7 @@ export async function runEditorialTask(user: AuthorizedUser, request: EditorialR
     for (const categoryId of new Set([context.kategoriId, storedCategoryId].filter((v): v is string => Boolean(v)))) {
       const tree = await loadCategoryTree(user.instansId, categoryId);
       if (tree && isAiRestrictedCategoryTree(tree)) {
-        await audit(user, task, articleId, "spaerret-kategori");
+        await audit(user, task, articleId, "spaerret-kategori", { udbyder });
         return fail("forbudt", "AI-forslag til tekst (overskrift, underrubrik, resumé, omskrivning) er ikke tilladt i Krimi og retsvæsen samt Sundhed.");
       }
     }
@@ -159,7 +169,7 @@ export async function runEditorialTask(user: AuthorizedUser, request: EditorialR
     availableGeo: allGeo.map((g) => g.navn),
   };
 
-  const ai = { client: deps.client, timeoutMs: deps.timeoutMs, retries: deps.retries, sleep: deps.sleep };
+  const ai = { client, timeoutMs: deps.timeoutMs, retries: deps.retries, sleep: deps.sleep };
   let result: AiCallResult<unknown>;
   switch (task) {
     case "headlines": result = await suggestHeadlines(input, ai); break;
@@ -178,10 +188,11 @@ export async function runEditorialTask(user: AuthorizedUser, request: EditorialR
   }
 
   if (!result.ok) {
-    await audit(user, task, articleId, `fejl:${result.reason}`);
-    return fail(result.reason === "ingen-noegle" ? "ingen-noegle" : "ai-fejl", FAILURE_TEXT[result.reason]);
+    await audit(user, task, articleId, `fejl:${result.reason}`, { udbyder });
+    // Dansk udbydertekst (fx "kontoen mangler saldo") vises kun for api-fejl; ellers den faste tekst.
+    return fail(result.reason === "ingen-noegle" ? "ingen-noegle" : "ai-fejl", result.reason === "api-fejl" && result.userMessage ? result.userMessage : FAILURE_TEXT[result.reason]);
   }
-  await audit(user, task, articleId, "ok");
+  await audit(user, task, articleId, "ok", { udbyder, tokens: result.usage ? { input: result.usage.inputTokens, output: result.usage.outputTokens } : undefined });
   return {
     ok: true,
     task,

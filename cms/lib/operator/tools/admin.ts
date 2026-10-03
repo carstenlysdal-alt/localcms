@@ -43,6 +43,7 @@ export const listUsers = defineTool({
   risk: "read",
   permissions: [PERMISSIONS.USERS_MANAGE],
   audit: true,
+  externalLlm: { dropKeys: ["navn"] },
   summarize: () => "Henter brugerne",
   async execute(ctx) {
     const [users, roles] = await Promise.all([
@@ -63,6 +64,7 @@ export const createUser = defineTool({
   risk: "confirm",
   permissions: [PERMISSIONS.USERS_MANAGE],
   audit: true,
+  externalLlm: { dropKeys: ["navn"], summaryOnOk: "Brugeren er oprettet. Den midlertidige adgangskode vises kun for redaktøren." },
   summarize: (input) => `Opretter brugeren ${input.navn} med rollen ${input.rolle}`,
   async details(ctx, input) {
     const role = await db.role.findUnique({ where: { navn: input.rolle }, select: { permissions: true } });

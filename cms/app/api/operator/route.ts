@@ -9,11 +9,12 @@ import { normalizeHistory, type ChatTurn } from "@/lib/chat";
 import { encodeEvent, type OperatorEvent } from "@/lib/operator/events";
 import { runOperatorTurn } from "@/lib/operator/loop";
 import { MAX_MESSAGE_CHARS, RATE_LIMIT } from "@/lib/operator/policy";
-import { getOperatorClient, getToolDeps } from "@/lib/operator/runtime";
+import { getToolDeps, resolveOperatorProvider } from "@/lib/operator/runtime";
 
 /**
  * POST /api/operator  { sessionId, message }   (kun indloggede brugere med operator.use)
  * Svarer med NDJSON-hændelser (se lib/operator/events.ts). Samtalens tekst gemmes i ChatMessage.
+ * Modeludbyder: OPERATOR_PROVIDER / DEEPSEEK_API_KEY / ANTHROPIC_API_KEY (lib/operator/llm/select.ts); uden nøgle 503.
  * Grænser: besked ≤ 2000 tegn, 30 ture / 10 min pr. bruger, højst 8 værktøjskald og 60 s pr. tur.
  */
 const bodySchema = z.object({
@@ -34,8 +35,9 @@ export async function POST(req: Request) {
   const limited = await rateLimit({ ...RATE_LIMIT, key: user.id, failMode: "closed" });
   if (!limited.ok) return json({ error: "For mange beskeder. Vent lidt og prøv igen." }, 429, rateLimitHeaders(limited));
 
-  const client = getOperatorClient();
-  if (!client) return json({ error: "AI-operatøren er ikke konfigureret (ANTHROPIC_API_KEY mangler)." }, 503);
+  const llm = resolveOperatorProvider();
+  if (!llm.ok) return json({ error: llm.message }, llm.status);
+  const provider = llm.provider;
 
   const raw = await readJsonBody(req, 16 * 1024);
   if (!raw.ok) return json({ error: raw.error }, raw.status);
@@ -57,7 +59,7 @@ export async function POST(req: Request) {
   await db.chatMessage.create({ data: { sessionId, role: "user", content: message, instansId: user.instansId, userId: user.id } });
 
   const encoder = new TextEncoder();
-  const ctx = { user, instansId: user.instansId, now: new Date(), sessionId, ip: getClientIp(req.headers), deps: getToolDeps() };
+  const ctx = { user, instansId: user.instansId, now: new Date(), sessionId, provider: provider.id, ip: getClientIp(req.headers), deps: getToolDeps() };
 
   const readable = new ReadableStream({
     async start(controller) {
@@ -72,7 +74,7 @@ export async function POST(req: Request) {
       };
       let text = "";
       try {
-        const result = await runOperatorTurn({ client, ctx, history, message, emit, signal: req.signal });
+        const result = await runOperatorTurn({ client: provider.stream, ctx, history, message, emit, signal: req.signal, providerId: provider.id, minimiseData: provider.minimiseData });
         text = result.text;
       } catch (error) {
         console.error("[operator] uventet fejl:", error instanceof Error ? error.name : "ukendt");

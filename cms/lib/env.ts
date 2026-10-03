@@ -11,7 +11,10 @@ import { z } from "zod";
  * forfalske CF-Connecting-IP og omgå rate limit/lockout/bans), og ORIGIN_SECRET kortere end 24 tegn.
  * Kun advarsel: REDIS_URL, AUTH_TRUST_HOST/AUTH_URL, DATABASE_URL ikke postgres, uploads på flygtigt filsystem,
  * ORIGIN_SECRET mangler, TURNSTILE_SECRET_KEY mangler, TRUST_FORWARDED_HOST slået til, delt IP-bucket bag Cloudflare.
- * Valgfri: ANTHROPIC_API_KEY m.fl.
+ * Valgfri: ANTHROPIC_API_KEY, DEEPSEEK_API_KEY (+ DEEPSEEK_MODEL, DEEPSEEK_BASE_URL, OPERATOR_PROVIDER) m.fl.
+ * AI-operatøren bruger DeepSeek hvis DEEPSEEK_API_KEY er sat, ellers Anthropic (se lib/operator/llm/select.ts).
+ * Editor-AI, chat og forside-AI vælger udbyder via AI_PROVIDER / EDITOR_AI_PROVIDER / CHAT_AI_PROVIDER / FRONTPAGE_AI_PROVIDER
+ * (samme regel; se lib/ai/provider/select.ts).
  */
 
 /** Tom streng og kun-mellemrum behandles som "ikke sat" (.env.example har tomme pladsholdere). */
@@ -42,6 +45,14 @@ const productionSchema = z.object({
 const optionalSchema = z.object({
   REDIS_URL: optionalText,
   ANTHROPIC_API_KEY: optionalText,
+  DEEPSEEK_API_KEY: optionalText,
+  DEEPSEEK_MODEL: optionalText,
+  DEEPSEEK_BASE_URL: optionalText,
+  OPERATOR_PROVIDER: optionalText,
+  AI_PROVIDER: optionalText,
+  EDITOR_AI_PROVIDER: optionalText,
+  CHAT_AI_PROVIDER: optionalText,
+  FRONTPAGE_AI_PROVIDER: optionalText,
   AUTH_TRUST_HOST: optionalText,
   AUTH_URL: optionalText,
   UPLOAD_DIR: optionalText,
@@ -124,7 +135,40 @@ export function checkEnv(env: NodeJS.ProcessEnv = process.env): EnvReport {
   if (!opt.TURNSTILE_SECRET_KEY) {
     warnings.push("TURNSTILE_SECRET_KEY mangler — formularer har kun honeypot og rate limit (Turnstile er slået fra)");
   }
-  if (!opt.ANTHROPIC_API_KEY) warnings.push("ANTHROPIC_API_KEY mangler — AI-assistent og AI-forslag til forsiden er slået fra (valgfri)");
+  if (!opt.ANTHROPIC_API_KEY && !opt.DEEPSEEK_API_KEY) {
+    warnings.push("Hverken ANTHROPIC_API_KEY eller DEEPSEEK_API_KEY er sat — AI-operatør, AI-assistent og AI-forslag til forsiden er slået fra (valgfri)");
+  }
+  // AI-operatørens udbyder (kun navne i beskederne, aldrig værdier).
+  const operatorProvider = opt.OPERATOR_PROVIDER?.trim().toLowerCase();
+  if (operatorProvider && operatorProvider !== "deepseek" && operatorProvider !== "anthropic") {
+    warnings.push("OPERATOR_PROVIDER skal være 'deepseek' eller 'anthropic' — AI-operatøren er slået fra indtil det er rettet");
+  } else if (operatorProvider === "deepseek" && !opt.DEEPSEEK_API_KEY) {
+    warnings.push("OPERATOR_PROVIDER=deepseek, men DEEPSEEK_API_KEY mangler — AI-operatøren er slået fra");
+  } else if (operatorProvider === "anthropic" && !opt.ANTHROPIC_API_KEY) {
+    warnings.push("OPERATOR_PROVIDER=anthropic, men ANTHROPIC_API_KEY mangler — AI-operatøren er slået fra");
+  } else if (!operatorProvider && opt.DEEPSEEK_API_KEY && opt.ANTHROPIC_API_KEY) {
+    warnings.push("Både DEEPSEEK_API_KEY og ANTHROPIC_API_KEY er sat uden OPERATOR_PROVIDER — AI-operatøren bruger DeepSeek (persondata maskeres); sæt OPERATOR_PROVIDER=anthropic for at bruge Claude");
+  }
+  // Fælles AI-gateway (editor-AI, chat, forside-AI): AI_PROVIDER og override pr. opgave (lib/ai/provider/select.ts).
+  for (const [name, value, what] of [
+    ["AI_PROVIDER", opt.AI_PROVIDER, "editor-AI, chat og forside-AI"],
+    ["EDITOR_AI_PROVIDER", opt.EDITOR_AI_PROVIDER, "editor-AI"],
+    ["CHAT_AI_PROVIDER", opt.CHAT_AI_PROVIDER, "AI-chatten"],
+    ["FRONTPAGE_AI_PROVIDER", opt.FRONTPAGE_AI_PROVIDER, "forside-AI"],
+  ] as const) {
+    const provider = value?.trim().toLowerCase();
+    if (!provider) continue;
+    if (provider !== "deepseek" && provider !== "anthropic") {
+      warnings.push(`${name} skal være 'deepseek' eller 'anthropic' — ${what} er slået fra indtil det er rettet`);
+    } else if (provider === "deepseek" && !opt.DEEPSEEK_API_KEY) {
+      warnings.push(`${name}=deepseek, men DEEPSEEK_API_KEY mangler — ${what} er slået fra`);
+    } else if (provider === "anthropic" && !opt.ANTHROPIC_API_KEY) {
+      warnings.push(`${name}=anthropic, men ANTHROPIC_API_KEY mangler — ${what} er slået fra`);
+    }
+  }
+  if (opt.DEEPSEEK_BASE_URL && !/^https:\/\//i.test(opt.DEEPSEEK_BASE_URL)) {
+    warnings.push("DEEPSEEK_BASE_URL bør være en https://-URL (ellers sendes AI-trafikken ukrypteret eller til en forkert vært)");
+  }
 
   return { ok: missing.length === 0 && invalid.length === 0, production, missing, invalid, warnings };
 }

@@ -18,7 +18,7 @@ export const operatorEventSchema = z.discriminatedUnion("type", [
     expiresAt: z.string().max(40),
   }),
   z.object({ type: z.literal("undo"), undoId: z.string().max(80), label: z.string().max(200) }),
-  z.object({ type: z.literal("done"), promptVersion: z.string().max(40), toolCalls: z.number().int().min(0).max(100) }),
+  z.object({ type: z.literal("done"), promptVersion: z.string().max(40), toolCalls: z.number().int().min(0).max(100), provider: z.enum(["anthropic", "deepseek"]).optional() }),
   z.object({ type: z.literal("error"), message: z.string().max(400) }),
 ]);
 

@@ -3,6 +3,7 @@ import type { AuthorizedUser } from "../auth";
 import type { Permission } from "../permissions";
 import type { AiTextClient } from "../frontpage/ai-client";
 import type { Risk } from "./policy";
+import type { ExternalLlmSpec } from "./redact";
 
 /** Afhængigheder der kan injiceres i tests (ingen netværk). */
 export interface ToolDeps {
@@ -19,6 +20,8 @@ export interface ToolCtx {
   instansId: string;
   now: Date;
   sessionId: string | null;
+  /** Aktiv modeludbyder (anthropic | deepseek) når handlingen udløses af en model; skrives i revisionssporet (aldrig indhold). */
+  provider?: string | null;
   ip?: string | null;
   deps: ToolDeps;
 }
@@ -57,6 +60,12 @@ export interface ToolDef<S extends z.ZodType = z.ZodType> {
   permissions: readonly Permission[];
   /** ...og ALLE disse (fx forsidens AI-kommandoer kræver to rettigheder). */
   alsoRequires?: readonly Permission[];
+  /**
+   * Dataminimering til eksterne udbydere (DeepSeek): hvad der IKKE må forlade processen for dette værktøj (fx navnet på en
+   * indsender eller bruger). Kontaktfelter (e-mail, telefon, afsender, adresse …) fjernes altid generelt; tekst maskeres altid.
+   * Et værktøj der returnerer persondata SKAL erklære sine felter her (se redact.ts og ADR-017).
+   */
+  externalLlm?: ExternalLlmSpec;
   /** Læse-værktøjer skrives kun til AuditLog når dette er sat (fx brugerlister). Skrivende værktøjer logges altid. */
   audit?: boolean;
   /** Kort dansk resumé af hvad kaldet gør (vises i tool_call og i bekræftelseskortet). Uden hemmeligheder. */

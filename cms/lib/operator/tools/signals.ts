@@ -144,6 +144,7 @@ export const listInbox = defineTool({
   category: "Indbakke",
   risk: "read",
   permissions: READ,
+  externalLlm: { dropKeys: ["afsender", "navn", "uddrag", "tekst"] },
   summarize: () => "Henter indbakken",
   async execute(ctx, input) {
     const rows = await db.submission.findMany({

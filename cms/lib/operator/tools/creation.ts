@@ -109,6 +109,7 @@ export const createAssignment = defineTool({
   category: "Opgaver",
   risk: "confirm",
   permissions: [PERMISSIONS.TASK_MANAGE],
+  externalLlm: { summaryOnOk: "Opgaven er oprettet." },
   summarize: (input) => `Opretter opgaven '${input.titel}'`,
   async details(ctx, input) {
     const author = input.forfatter ? await resolveAuthor(ctx.instansId, input.forfatter) : null;
@@ -217,6 +218,7 @@ export const createSourceQa = defineTool({
   category: "Kilde-Q&A",
   risk: "confirm",
   permissions: WRITE,
+  externalLlm: { summaryOnOk: "Kildeforespørgslen er oprettet. Svarlinket findes på siden Kilde-Q&A." },
   summarize: (input) => `Opretter kildeforespørgslen '${input.titel}' til ${input.kildeNavn}`,
   details: (_ctx, input) => [`Kilde: ${input.kildeNavn}${input.kildeRolle ? ` (${input.kildeRolle})` : ""}`, `Emne: ${input.emne}`, `${input.spoergsmaal.length} spørgsmål`, "Der oprettes et privat svarlink på siden Kilde-Q&A. Intet sendes automatisk."],
   async execute(ctx, input) {
@@ -237,6 +239,7 @@ export const listMedia = defineTool({
   category: "Medier",
   risk: "read",
   permissions: [PERMISSIONS.MEDIA_MANAGE, PERMISSIONS.ARTICLE_CREATE],
+  externalLlm: { dropKeys: ["ophavsperson"] },
   summarize: () => "Henter medier",
   async execute(ctx, input) {
     const rows = await db.media.findMany({ where: { instansId: ctx.instansId, ...(input.filtype ? { filtype: input.filtype } : {}) }, orderBy: { createdAt: "desc" }, take: input.antal ?? 10, select: { id: true, filtype: true, filnavn: true, altTekst: true, ophavsperson: true } });

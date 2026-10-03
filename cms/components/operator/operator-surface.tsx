@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { AlertTriangle, ArrowDown, Check, CheckCircle2, Copy, Loader2, Mic, Send, ShieldCheck, Square, Undo2, XCircle } from "lucide-react";
 import type { CapabilityGroup } from "@/lib/operator/capabilities";
+import type { ProviderInfo } from "@/lib/operator/llm/types";
 import { Markdown } from "./markdown";
 import { initialState, plainTranscript, reduce, type Item } from "./reducer";
 import { collectTranscript, getSpeechRecognition, mergeDictation, SPEECH_UNSUPPORTED, speechErrorMessage, type SpeechRecognitionLike } from "./speech";
@@ -40,7 +41,17 @@ function minutesLeft(iso: string): number {
   return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 60_000));
 }
 
-export function OperatorSurface({ capabilities, roleName, variant, active = true }: { capabilities: CapabilityGroup[]; roleName: string; variant: "panel" | "page"; active?: boolean }) {
+/** Lille note når en ekstern udbyder (DeepSeek) er aktiv: persondata maskeres, før noget sendes. */
+export function ProviderNotice({ provider }: { provider: ProviderInfo | null | undefined }) {
+  if (!provider?.minimiseData) return null;
+  return (
+    <p className="op-provider-note" role="note">
+      <ShieldCheck size={13} aria-hidden="true" /> Bruger {provider.label} — persondata maskeres før de sendes
+    </p>
+  );
+}
+
+export function OperatorSurface({ capabilities, roleName, provider = null, variant, active = true }: { capabilities: CapabilityGroup[]; roleName: string; provider?: ProviderInfo | null; variant: "panel" | "page"; active?: boolean }) {
   const [state, dispatch] = useReducer(reduce, initialState);
   const [input, setInput] = useState("");
   const [announce, setAnnounce] = useState("");
@@ -240,6 +251,12 @@ export function OperatorSurface({ capabilities, roleName, variant, active = true
           <ShieldCheck size={14} aria-hidden="true" /> Hvad må AI for dig? <span className="op-caps-role">({roleName})</span>
         </summary>
         <div className="op-caps-body">
+          {provider && (
+            <p>
+              <strong>Udbyder:</strong> {provider.label} ({provider.model}).{" "}
+              {provider.minimiseData ? "E-mail, telefonnumre, CPR-lignende numre og kontaktfelter (indsendere, brugere, kilder) maskeres eller udelades, før noget sendes. Skriv ikke personoplysninger i dine beskeder, hvis det kan undgås." : "Data behandles hos udbyderen efter aftale."}
+            </p>
+          )}
           <p>AI-operatøren kan kun det, du selv har rettighed til. Publicering, afsendelse, betaling, sletning af brugere og ændring af adgangskoder eller roller sker aldrig via AI; du gør det selv på den relevante side.</p>
           {capabilities.length === 0 ? (
             <p>Din rolle har ingen handlinger, som AI kan udføre for dig.</p>

@@ -1,7 +1,8 @@
 /**
  * AI-forslag til artikelarbejdet: ÉN funktion pr. opgave. Alle funktioner
- *  - kalder Claude via den tynde adapter (`callJson`/`createAnthropicTextClient`, lib/frontpage/ai-client.ts: timeout, ét
- *    genforsøg, circuit breaker) og returnerer ALTID et resultat-objekt (aldrig throw ind i UI),
+ *  - kalder modellen (DeepSeek eller Claude) via den fælles gateway (`createAiTextClient({task:"editor"})`, lib/ai/provider)
+ *    og den tynde adapter `callJson` (lib/frontpage/ai-client.ts: timeout, ét genforsøg, circuit breaker) og returnerer
+ *    ALTID et resultat-objekt (aldrig throw ind i UI),
  *  - validerer svaret med zod (ugyldigt svar = fejl, aldrig delvist resultat),
  *  - behandler alt hentet indhold (artikeltekst, kilder, billedtekster) som DATA i en adskilt <data>-blok; systemprompten
  *    siger at data aldrig er instruktioner,
@@ -10,7 +11,8 @@
  * Systempromptens indhold er en stabil, versioneret konstant (`EDITORIAL_PROMPT_VERSION`) — klar til det kommende
  * prompt-bibliotek: opgave-instruktionerne ligger i `EDITORIAL_PROMPTS` (nøglet på opgave), uden data.
  */
-import { callJson, createAnthropicTextClient, extractJson, schemaError, type AiCallResult, type AiTextClient } from "../frontpage/ai-client";
+import { callJson, extractJson, schemaError, type AiCallResult, type AiTextClient } from "../frontpage/ai-client";
+import { createAiTextClient } from "./provider";
 import {
   TASK_SCHEMAS,
   type AltTextResult,
@@ -182,7 +184,7 @@ async function runTask<K extends EditorialTask, T>(
   post: (value: never) => T,
   opts: { maxTokens?: number } = {},
 ): Promise<AiCallResult<T>> {
-  const client = deps.client === undefined ? createAnthropicTextClient() : deps.client;
+  const client = deps.client === undefined ? createAiTextClient({ task: "editor" }) : deps.client;
   const schema = TASK_SCHEMAS[task];
   return callJson<T>(
     client,

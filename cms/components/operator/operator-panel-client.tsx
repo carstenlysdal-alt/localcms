@@ -4,11 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sparkles, X } from "lucide-react";
 import type { CapabilityGroup } from "@/lib/operator/capabilities";
-import { OperatorSurface } from "./operator-surface";
+import type { ProviderInfo } from "@/lib/operator/llm/types";
+import { OperatorSurface, ProviderNotice } from "./operator-surface";
 import "./operator.css";
 
 /** Flydende AI-operatør på alle /redaktion-sider. Åbnes med knappen eller Cmd/Ctrl+K; Esc lukker. */
-export function OperatorPanelClient({ capabilities, roleName }: { capabilities: CapabilityGroup[]; roleName: string }) {
+export function OperatorPanelClient({ capabilities, roleName, provider = null }: { capabilities: CapabilityGroup[]; roleName: string; provider?: ProviderInfo | null }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const path = usePathname();
@@ -58,7 +59,8 @@ export function OperatorPanelClient({ capabilities, roleName }: { capabilities: 
             <X size={18} aria-hidden="true" />
           </button>
         </header>
-        <OperatorSurface capabilities={capabilities} roleName={roleName} variant="panel" active={open} />
+        <ProviderNotice provider={provider} />
+        <OperatorSurface capabilities={capabilities} roleName={roleName} provider={provider} variant="panel" active={open} />
       </section>
     </>
   );

@@ -106,6 +106,9 @@ const help = defineTool({
         kan: groups.map((g) => ({ omraade: g.category, vaerktoejer: g.tools.map((t) => ({ navn: t.name, hvad: t.description.slice(0, 160), niveau: RISK_LABEL[t.risk] })) })),
         blokeret: BLOCKED_TOOLS.map((b) => ({ hvad: b.label, hvorfor: b.why, side: b.href })),
         princip: "Du kan kun bede om det, du selv har lov til i systemet.",
+        udbyder: ctx.provider
+          ? { navn: ctx.provider === "deepseek" ? "DeepSeek" : "Claude (Anthropic)", persondata: ctx.provider === "deepseek" ? "Persondata (e-mail, telefon, CPR, kontaktfelter) maskeres eller udelades, før noget sendes til DeepSeek. Navne i brugerens egne beskeder kan ikke genkendes automatisk." : "Almindelig behandling hos Anthropic." }
+          : null,
       },
     };
   },

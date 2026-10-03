@@ -24,22 +24,39 @@ export interface AiRequest {
   user: string;
   maxTokens: number;
   signal: AbortSignal;
+  /**
+   * Kalderen forventer ét JSON-objekt som svar (sat af `callJson`). DeepSeek-klienten slår så JSON-tilstand til
+   * (`response_format: json_object`) og tilføjer en eksplicit JSON-instruktion; Anthropic-klienten ignorerer feltet.
+   */
+  json?: boolean;
+}
+
+export interface AiUsage {
+  inputTokens: number;
+  outputTokens: number;
 }
 
 export interface AiResponse {
   text: string;
   modelId?: string;
+  /** Tokenforbrug, hvis udbyderen oplyser det (til senere forbrugsmåling). */
+  usage?: AiUsage;
+  /** Udbyderens id ("anthropic" | "deepseek"). */
+  provider?: string;
 }
 
-/** Afkoblet kontrakt: (request) -> tekst. Tests giver en fake; produktion bruger createAnthropicTextClient(). */
-export type AiTextClient = (req: AiRequest) => Promise<AiResponse>;
+/**
+ * Afkoblet kontrakt: (request) -> tekst. Tests giver en fake; produktion bruger createAiTextClient() (lib/ai/provider),
+ * som vælger udbyder, eller createAnthropicTextClient() direkte. `providerId` er sat af de rigtige klienter (til audit).
+ */
+export type AiTextClient = ((req: AiRequest) => Promise<AiResponse>) & { providerId?: string };
 
 export function createAnthropicTextClient(opts: { apiKey?: string; model?: string } = {}): AiTextClient | null {
   const apiKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
   const model = opts.model ?? resolveModel();
   const sdk = new Anthropic({ apiKey, maxRetries: 0 });
-  return async ({ system, user, maxTokens, signal }) => {
+  const client: AiTextClient = async ({ system, user, maxTokens, signal }) => {
     // Circuit breaker: efter gentagne fejl/timeouts springes kaldet over i 30 s (forsiden falder tilbage til score/seneste nyt).
     const res = await getBreaker("anthropic").exec(
       () =>
@@ -55,15 +72,25 @@ export function createAnthropicTextClient(opts: { apiKey?: string; model?: strin
       isBreakerFailure,
     );
     const text = res.content.map((b) => (b.type === "text" ? b.text : "")).join("");
-    return { text, modelId: res.model };
+    const usage = res.usage ? { inputTokens: res.usage.input_tokens ?? 0, outputTokens: res.usage.output_tokens ?? 0 } : undefined;
+    return { text, modelId: res.model, usage, provider: "anthropic" };
   };
+  client.providerId = "anthropic";
+  return client;
 }
 
 export type AiFailureReason = "ingen-noegle" | "timeout" | "ugyldig-json" | "schema" | "api-fejl" | "tomt-svar";
 
 export type AiCallResult<T> =
-  | { ok: true; value: T; modelId: string; attempts: number }
-  | { ok: false; reason: AiFailureReason; detail?: string; attempts: number };
+  | { ok: true; value: T; modelId: string; attempts: number; usage?: AiUsage; provider?: string }
+  | {
+      ok: false;
+      reason: AiFailureReason;
+      detail?: string;
+      /** Dansk, brugervendt tekst fra udbyderen (fx "DeepSeek-kontoen mangler saldo (402)"). Aldrig nøgler eller svarindhold. */
+      userMessage?: string;
+      attempts: number;
+    };
 
 /** Udtræk første JSON-objekt fra modelsvar (tåler ```json-hegn og indledende tekst). */
 export function extractJson(text: string): unknown {
@@ -97,6 +124,8 @@ export function schemaError(message: string): never {
 }
 
 function retryable(error: unknown): boolean {
+  // Transporten (DeepSeek) har allerede genforsøgt 429/5xx én gang: ikke endnu et lag genforsøg ovenpå.
+  if ((error as { transportRetried?: boolean } | null)?.transportRetried) return false;
   if (error instanceof TimeoutError || error instanceof ParseError) return true;
   const status = (error as { status?: number })?.status;
   if (typeof status === "number") return status >= 500 || status === 429 || status === 408 || status === 409;
@@ -118,7 +147,7 @@ export async function callJson<T>(client: AiTextClient | null | undefined, req: 
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const retries = opts.retries ?? 1;
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
-  let last: { reason: AiFailureReason; detail?: string } = { reason: "api-fejl" };
+  let last: { reason: AiFailureReason; detail?: string; userMessage?: string } = { reason: "api-fejl" };
 
   for (let attempt = 1; attempt <= retries + 1; attempt++) {
     const controller = new AbortController();
@@ -130,18 +159,21 @@ export async function callJson<T>(client: AiTextClient | null | undefined, req: 
           reject(new TimeoutError(timeoutMs));
         }, timeoutMs);
       });
-      const call = client({ system: req.system, user: req.user, maxTokens: opts.maxTokens ?? 4096, signal: controller.signal });
+      const call = client({ system: req.system, user: req.user, maxTokens: opts.maxTokens ?? 4096, signal: controller.signal, json: true });
       call.catch(() => undefined); // undgå unhandled rejection når timeout vinder racet
       const res = await Promise.race([call, timeout]);
       if (!res.text.trim()) throw new ParseError("Tomt svar.", "tomt-svar");
       const value = opts.parse(res.text);
-      return { ok: true, value, modelId: res.modelId ?? resolveModel(), attempts: attempt };
+      return { ok: true, value, modelId: res.modelId ?? resolveModel(), attempts: attempt, usage: res.usage, provider: res.provider ?? client.providerId };
     } catch (error) {
       if (error instanceof CircuitOpenError) return { ok: false, reason: "api-fejl", detail: "AI er midlertidigt sat på pause (for mange fejl).", attempts: attempt };
       if (error instanceof TimeoutError) last = { reason: "timeout", detail: error.message };
       else if (error instanceof ParseError) last = { reason: error.reason, detail: error.message };
       else if (error instanceof SyntaxError) last = { reason: "ugyldig-json", detail: error.message };
-      else last = { reason: "api-fejl", detail: error instanceof Error ? error.message.slice(0, 200) : "ukendt fejl" };
+      else {
+        const userMessage = (error as { userMessage?: unknown } | null)?.userMessage;
+        last = { reason: "api-fejl", detail: error instanceof Error ? error.message.slice(0, 200) : "ukendt fejl", ...(typeof userMessage === "string" ? { userMessage } : {}) };
+      }
       const isParse = error instanceof SyntaxError || error instanceof ParseError;
       if (attempt > retries || !(isParse || retryable(error))) return { ok: false, ...last, attempts: attempt };
       await sleep(attempt * 400);

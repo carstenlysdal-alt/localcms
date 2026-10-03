@@ -24,7 +24,7 @@ export interface SecretRule {
 
 const PLACEHOLDER = /^(?:password|passwd|\*+|x+|<.*>|\$.*|\{.*|your.*|change.?me.*|example.*|secret|placeholder.*|dummy.*|test.*|\.\.\.+|…)$/i;
 
-const SECRET_NAMES = "(?:AUTH_SECRET|NEXTAUTH_SECRET|CRON_SECRET|ANTHROPIC_API_KEY|SEED_DEMO_PASSWORD|REDIS_PASSWORD|S3_SECRET_ACCESS_KEY|TURNSTILE_SECRET_KEY)";
+const SECRET_NAMES = "(?:AUTH_SECRET|NEXTAUTH_SECRET|CRON_SECRET|ANTHROPIC_API_KEY|DEEPSEEK_API_KEY|SEED_DEMO_PASSWORD|REDIS_PASSWORD|S3_SECRET_ACCESS_KEY|TURNSTILE_SECRET_KEY)";
 
 export const RULES: SecretRule[] = [
   { id: "aws-access-key", description: "AWS access key id", re: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/ },

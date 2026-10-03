@@ -49,6 +49,22 @@ export function ChatInterface({ sessionId, initialMessages, getContext }: {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, message: text.trim(), mode, ...(getContext ? { context: getContext() } : {}) }),
       });
+      if (!res.ok) {
+        // Fejl før streamen starter kommer som dansk JSON ({ error }) — vis den som besked i stedet for rå JSON.
+        let msg = "AI-assistenten kunne ikke svare. Prøv igen.";
+        try {
+          const j = (await res.json()) as { error?: string };
+          if (j?.error) msg = j.error;
+        } catch {
+          /* behold standardteksten */
+        }
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: msg };
+          return copy;
+        });
+        return;
+      }
       if (!res.body) throw new Error("No stream");
       const reader = res.body.getReader();
       const decoder = new TextDecoder();

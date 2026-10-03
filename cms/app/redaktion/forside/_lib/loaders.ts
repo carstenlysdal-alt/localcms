@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { calculateSupportedContentQuota } from "@/lib/frontpage-governance";
 import { labelFor } from "@/lib/frontpage/guardrails";
-import { createAnthropicTextClient } from "@/lib/frontpage/ai-client";
+import { isAiConfigured } from "@/lib/ai/provider";
 import { getModuleDef } from "@/lib/frontpage/modules";
 import { getSlotMetrics, getSnapshot, listLayoutVersions, listLayouts, listSnapshots, loadCandidates, resolveFrontpageForRender, type FrontpageUser } from "@/lib/frontpage/service";
 import { parseModules } from "@/lib/frontpage/layout-schema";
@@ -164,7 +164,7 @@ export async function loadEditorData(user: FrontpageUser, site: { id: string; na
     metrics: await loadMetrics(user, 7),
     quota: { percentage: quota.percentage, supportedCount: quota.supportedCount, totalCount: quota.totalCount, kvoteloftProcent: quota.kvoteloftProcent, isExceeded: quota.isExceeded },
     pins: pinRows.map((p) => ({ id: p.id, articleId: p.articleId, zone: p.zone, position: p.position, udloebTid: iso(p.udloebTid) })),
-    aiConfigured: Boolean(createAnthropicTextClient()),
+    aiConfigured: isAiConfigured("frontpage"),
   };
 }
 

@@ -6,7 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { cancelConfirmation } from "@/lib/operator/confirm";
 import { applyConfirmed } from "@/lib/operator/dispatch";
 import { RATE_LIMIT_CONFIRM } from "@/lib/operator/policy";
-import { getToolDeps } from "@/lib/operator/runtime";
+import { getOperatorProviderInfo, getToolDeps } from "@/lib/operator/runtime";
 
 /**
  * POST /api/operator/confirm  { token, action: "apply" | "cancel" }
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     return json({ ok: cancelled, message: cancelled ? "Handlingen er annulleret." : "Bekræftelsen er ugyldig eller allerede brugt." }, cancelled ? 200 : 404);
   }
 
-  const res = await applyConfirmed({ user, instansId: user.instansId, now: new Date(), sessionId: null, ip: getClientIp(req.headers), deps: getToolDeps() }, parsed.data.token);
+  const res = await applyConfirmed({ user, instansId: user.instansId, now: new Date(), sessionId: null, provider: getOperatorProviderInfo()?.id ?? null, ip: getClientIp(req.headers), deps: getToolDeps() }, parsed.data.token);
   if (!res.ok) return json({ ok: false, code: res.code, message: res.message }, res.code === "forbudt" ? 403 : res.code === "udloebet" ? 410 : 404);
   const r = res.result;
   // clientSecret (fx midlertidig adgangskode) vises kun her, til brugerens egen browser, og gemmes/logges aldrig.

@@ -105,6 +105,7 @@ export const searchArticles = defineTool({
   category: "Artikler",
   risk: "read",
   permissions: ARTICLE_PERMISSIONS,
+  externalLlm: { dropKeys: ["forfatter"] },
   summarize: (input) => (input.soeg ? `Søger artikler efter '${input.soeg}'` : "Henter artikler"),
   async execute(ctx, input) {
     const rows = await db.article.findMany({
@@ -124,6 +125,7 @@ export const getArticle = defineTool({
   category: "Artikler",
   risk: "read",
   permissions: ARTICLE_PERMISSIONS,
+  externalLlm: { dropKeys: ["forfatter"] },
   summarize: () => "Henter en artikel",
   async execute(ctx, input) {
     const a = await db.article.findFirst({ where: { id: input.artikel, instansId: ctx.instansId }, include: { kategori: true, tags: true, geoTags: true } });

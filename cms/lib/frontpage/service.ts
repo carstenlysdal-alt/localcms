@@ -4,7 +4,8 @@ import { calculateSupportedContentQuota } from "../frontpage-governance";
 import { validateMarking } from "../marking";
 import { can, PERMISSIONS } from "../permissions";
 import { rateLimit } from "../ratelimit";
-import { createAnthropicTextClient, type AiTextClient } from "./ai-client";
+import type { AiTextClient } from "./ai-client";
+import { createAiTextClient, NO_AI_MESSAGE } from "../ai/provider";
 import { buildAiInput, rankWithAi } from "./ai-ranker";
 import { composeFrontpage, placementsToPins } from "./compose";
 import { resolveFrontpage, type ApprovedSnapshotInput, type ResolvedFrontpage } from "./fallback";
@@ -164,7 +165,7 @@ export type ProposalActor = { kind: "cron" } | { kind: "user"; user: FrontpageUs
 
 export interface CreateProposalOptions {
   actor: ProposalActor;
-  /** Brug Claude som re-ranker (kræver ANTHROPIC_API_KEY eller injiceret klient). Standard: true. */
+  /** Brug AI (DeepSeek/Claude, jf. lib/ai/provider) som re-ranker (kræver en AI-nøgle eller injiceret klient). Standard: true. */
   useAi?: boolean;
   aiClient?: AiTextClient | null;
   aiTimeoutMs?: number;
@@ -215,7 +216,7 @@ export async function createProposal(instansId: string, opts: CreateProposalOpti
     const inputHash = sha(`${built.hash}|${layout.id}|${layout.version}|${pinSig}|${quota.isExceeded}|${wantAi ? 1 : 0}`);
 
     if (wantAi) {
-      const client = opts.aiClient === undefined ? createAnthropicTextClient() : opts.aiClient;
+      const client = opts.aiClient === undefined ? createAiTextClient({ task: "frontpage" }) : opts.aiClient;
       const ai = await rankWithAi({ modules: layout.modules, ranked, now }, { client, timeoutMs: opts.aiTimeoutMs, retries: opts.aiRetries });
       if (ai.ok) {
         result = composeFrontpage({ ...base, ai: ai.suggestions });
@@ -500,8 +501,8 @@ export async function interpretEditorCommand(user: FrontpageUser, text: string, 
   if (!parsed.ok) return fail("invalid", "Layoutet er ugyldigt.", { details: parsed.errors });
   const limited = await rateLimit({ bucket: "frontpage-nl", key: user.id, limit: 20, windowMs: 10 * 60_000 });
   if (!limited.ok) return fail("rate-limited", "For mange AI-kommandoer. Vent lidt.");
-  const client = opts.client === undefined ? createAnthropicTextClient() : opts.client;
-  if (!client) return fail("ai-unavailable", "AI er ikke konfigureret (ANTHROPIC_API_KEY mangler).");
+  const client = opts.client === undefined ? createAiTextClient({ task: "frontpage" }) : opts.client;
+  if (!client) return fail("ai-unavailable", `${NO_AI_MESSAGE}.`);
   const now = new Date();
   const [candidates, quota] = await Promise.all([loadCandidates(user.instansId, { now, limit: 60 }), getQuota(user.instansId)]);
   const ctx: GuardContext = { instansId: user.instansId, now, kvoteloftProcent: quota.kvoteloftProcent, quotaExceeded: quota.isExceeded };
@@ -509,7 +510,7 @@ export async function interpretEditorCommand(user: FrontpageUser, text: string, 
   const res = await interpretCommand(text, { modules: parsed.value, ranked, now }, { client, timeoutMs: opts.timeoutMs, retries: opts.retries });
   await logAiAction(user, {
     handling: "nl-kommando",
-    begrundelse: res.ok ? `"${text.slice(0, 200)}" -> ${res.ops.length} operation(er), ${res.rejected.length} afvist` : `"${text.slice(0, 200)}" -> fejl (${res.reason})`,
+    begrundelse: `${res.ok ? `"${text.slice(0, 200)}" -> ${res.ops.length} operation(er), ${res.rejected.length} afvist` : `"${text.slice(0, 200)}" -> fejl (${res.reason})`}${client.providerId ? ` [udbyder: ${client.providerId}]` : ""}`,
   }).catch(() => undefined);
   return { ...res, candidateIds: ranked.map((r) => r.candidate.id) };
 }

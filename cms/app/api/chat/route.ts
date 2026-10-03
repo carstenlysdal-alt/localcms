@@ -4,13 +4,19 @@ import { getAuthorizedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rateLimit, rateLimitHeaders } from "@/lib/ratelimit";
 import { isSameOrigin, readJsonBody } from "@/lib/http";
-import { getBreaker, isBreakerFailure } from "@/lib/resilience";
+import { CircuitOpenError, getBreaker, isBreakerFailure } from "@/lib/resilience";
+import { noAiMessage, selectAiProvider } from "@/lib/ai/provider";
+import { openDeepseekChatStream } from "@/lib/ai/provider/deepseek-stream";
+import { resolveDeepseekTextBaseUrl, resolveDeepseekTextModel } from "@/lib/ai/provider/deepseek-text";
+import { isLlmError } from "@/lib/operator/llm/errors";
 import { cleanText } from "@/lib/validation/text";
 import { normalizeHistory, type ChatTurn } from "@/lib/chat";
 
 /**
  * POST /api/chat  { sessionId, message, mode }   (kun indloggede redaktionsbrugere)
- * Streamer ren tekst. Model: ANTHROPIC_MODEL (default claude-sonnet-4-6). Nøgle: ANTHROPIC_API_KEY.
+ * Streamer ren tekst. Udbyder vælges af lib/ai/provider (CHAT_AI_PROVIDER / AI_PROVIDER / nøgler):
+ *  - deepseek: DEEPSEEK_API_KEY, model DEEPSEEK_MODEL (default deepseek-chat); persondata i historik og kontekst maskeres før kaldet
+ *  - anthropic: ANTHROPIC_API_KEY, model ANTHROPIC_MODEL (default claude-sonnet-4-6)
  * Grænser: besked ≤ 4000 tegn, 20 beskeder/10 min pr. bruger, sessionId = [A-Za-z0-9_-]{8,64},
  * sessionen skal tilhøre brugeren (og instansen).
  */
@@ -49,7 +55,8 @@ export async function POST(req: Request) {
   const limited = await rateLimit({ bucket: "chat", key: user.id, limit: 20, windowMs: 10 * 60_000 });
   if (!limited.ok) return json({ error: "For mange beskeder. Vent lidt og prøv igen." }, 429, rateLimitHeaders(limited));
 
-  if (!process.env.ANTHROPIC_API_KEY) return json({ error: "AI-assistenten er ikke konfigureret (ANTHROPIC_API_KEY mangler)." }, 503);
+  const selection = selectAiProvider("chat");
+  if (!selection.ok) return json({ error: noAiMessage(selection) }, 503);
 
   const raw = await readJsonBody(req, 64 * 1024);
   if (!raw.ok) return json({ error: raw.error }, raw.status);
@@ -77,9 +84,11 @@ export async function POST(req: Request) {
     data: { sessionId, role: "user", content: message, instansId: user.instansId, userId: user.id },
   });
 
+  // Dataminimering: en ekstern udbyder (DeepSeek) får ikke redaktørens navn.
+  const who = selection.id === "deepseek" ? "journalisten" : user.name;
   const systemPrompt = mode === "auto"
-    ? `Du er en redaktionel AI-assistent for ${user.name}. Du hjælper med at skrive, undersøge og redigere journalistiske historier. Brug en professionel, dansk journalistisk tone. Svar kortfattet og præcist.`
-    : `Du er en research-assistent for ${user.name}. Du undersøger påstande, finder vinkler og identificerer kilder. Svar på dansk med fakta og nuancer.`;
+    ? `Du er en redaktionel AI-assistent for ${who}. Du hjælper med at skrive, undersøge og redigere journalistiske historier. Brug en professionel, dansk journalistisk tone. Svar kortfattet og præcist.`
+    : `Du er en research-assistent for ${who}. Du undersøger påstande, finder vinkler og identificerer kilder. Svar på dansk med fakta og nuancer.`;
 
   // Artikelkontekst (editor-docken): indsættes som DATA i en adskilt blok — aldrig som instruktioner.
   const ctx = parsed.data.context;
@@ -88,6 +97,10 @@ export async function POST(req: Request) {
     : "";
 
   const messages = normalizeHistory([...history, { role: "user", content: message }]);
+
+  if (selection.id === "deepseek") {
+    return respondWithDeepseek({ req, system: systemPrompt + contextBlock, messages, sessionId, user, extraHeaders: rateLimitHeaders(limited) });
+  }
 
   // Circuit breaker + korte grænser: er Anthropic nede, svarer vi hurtigt 503 frem for at hænge forbindelser.
   const breaker = getBreaker("anthropic");
@@ -149,5 +162,86 @@ export async function POST(req: Request) {
 
   return new Response(readable, {
     headers: { "Content-Type": "text/plain; charset=utf-8", "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", ...rateLimitHeaders(limited) },
+  });
+}
+
+/**
+ * DeepSeek-grenen: samme svarkontrakt som Anthropic-grenen (ren tekst, streamet), samme persistens og afbrydelseshåndtering.
+ * Forbindelsesfejl (401/402/429/5xx, breaker åben) besvares med JSON og dansk tekst FØR strømmen starter. Historik og
+ * artikelkontekst maskeres i openDeepseekChatStream (persondata forlader aldrig processen); det streamede svar gendannes lokalt.
+ */
+async function respondWithDeepseek(args: {
+  req: Request;
+  system: string;
+  messages: ChatTurn[];
+  sessionId: string;
+  user: { id: string; instansId: string };
+  extraHeaders: Record<string, string>;
+}): Promise<Response> {
+  const { req, system, messages, sessionId, user, extraHeaders } = args;
+  let stream: Awaited<ReturnType<typeof openDeepseekChatStream>>;
+  try {
+    stream = await openDeepseekChatStream({
+      apiKey: process.env.DEEPSEEK_API_KEY!.trim(),
+      model: resolveDeepseekTextModel(),
+      baseUrl: resolveDeepseekTextBaseUrl(),
+      system,
+      messages,
+      maxTokens: 1024,
+      signal: req.signal,
+    });
+  } catch (error) {
+    if (error instanceof CircuitOpenError) return json({ error: "AI-tjenesten er midlertidigt utilgængelig. Prøv igen om lidt." }, 503, { "Retry-After": "30" });
+    if (req.signal.aborted) return json({ error: "Afbrudt." }, 499);
+    if (isLlmError(error)) {
+      console.error("Chat: DeepSeek-fejl", error.message);
+      return json({ error: error.userMessage }, error.kind === "rate_limit" ? 429 : error.kind === "timeout" ? 504 : 502);
+    }
+    console.error("Chat: kunne ikke starte stream", error instanceof Error ? error.message : "ukendt");
+    return json({ error: "AI-tjenesten er midlertidigt utilgængelig." }, 502);
+  }
+  req.signal.addEventListener("abort", () => stream.abort());
+
+  const encoder = new TextEncoder();
+  let fullContent = "";
+  const readable = new ReadableStream({
+    async start(controller) {
+      const safeEnqueue = (text: string) => {
+        try {
+          controller.enqueue(encoder.encode(text));
+        } catch {
+          /* klienten er afbrudt */
+        }
+      };
+      try {
+        for await (const text of stream.chunks) {
+          fullContent += text;
+          safeEnqueue(text);
+        }
+      } catch (error) {
+        if (!req.signal.aborted) {
+          console.error("Chat: stream-fejl", isLlmError(error) ? error.message : error instanceof Error ? error.message : "ukendt");
+          safeEnqueue("\n\n[Svaret blev afbrudt af en fejl. Prøv igen.]");
+        }
+      } finally {
+        if (fullContent.trim()) {
+          try {
+            await db.chatMessage.create({
+              data: { sessionId, role: "assistant", content: fullContent, instansId: user.instansId, userId: user.id },
+            });
+          } catch (error) {
+            console.error("Chat: kunne ikke gemme svar", error);
+          }
+        }
+        try { controller.close(); } catch { /* allerede lukket */ }
+      }
+    },
+    cancel() {
+      stream.abort();
+    },
+  });
+
+  return new Response(readable, {
+    headers: { "Content-Type": "text/plain; charset=utf-8", "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", ...extraHeaders },
   });
 }

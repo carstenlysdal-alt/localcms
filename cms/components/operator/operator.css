@@ -25,6 +25,9 @@
 .op-page { border: 1px solid var(--cms-border); border-radius: var(--cms-radius-lg); height: calc(100dvh - 190px); min-height: 480px; max-width: 880px; }
 .op-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
+.op-provider-note { display: flex; align-items: center; gap: 6px; margin: 0; padding: 6px var(--cms-space-4); background: var(--cms-surface-sunken); border-bottom: 1px solid var(--cms-border); color: var(--cms-text-muted); font-size: 12px; }
+.page-heading .op-provider-note { margin-top: 6px; padding: 4px 8px; border: 1px solid var(--cms-border); border-radius: var(--cms-radius-sm); width: fit-content; }
+
 .op-caps { border-bottom: 1px solid var(--cms-border); font-size: var(--cms-text-sm, 13px); }
 .op-caps > summary { display: flex; align-items: center; gap: 6px; min-height: var(--cms-touch); padding: 0 var(--cms-space-4); cursor: pointer; color: var(--cms-text-muted); list-style: none; }
 .op-caps > summary::-webkit-details-marker { display: none; }

@@ -42,7 +42,11 @@ Mål: CMS'et kører som ét Railway-service `lysdalcms` i projektet **Lysdal-loc
 | `AUTH_TRUST_HOST` | ja i praksis | `true` (Auth.js bag Railways proxy og flere domæner; uden den fejler login med UntrustedHost) |
 | `PORT` | anbefalet | `3000` (så Cron-servicen kan referere `${{lysdalcms.PORT}}`) |
 | `ADMIN_EMAIL` | til `seed:prod` | den første administrators e-mail (valgfrit `ADMIN_NAME`, `ADMIN_INSTANCE_DOMAIN`) |
-| `ANTHROPIC_API_KEY` | valgfri | AI-assistent og AI-forslag til forsiden (uden: deterministisk fallback / 503 på /api/chat) |
+| `ANTHROPIC_API_KEY` | valgfri | Anthropic som AI-udbyder (alternativ til DeepSeek). Uden nogen AI-nøgle: deterministisk fallback / 503 på /api/chat |
+| `AI_PROVIDER`, `EDITOR_AI_PROVIDER`, `CHAT_AI_PROVIDER`, `FRONTPAGE_AI_PROVIDER` | valgfri | `deepseek` eller `anthropic`. Uden: DeepSeek hvis `DEEPSEEK_API_KEY` er sat, ellers Anthropic hvis `ANTHROPIC_API_KEY` er sat. Pr.-opgave-variablen overstyrer `AI_PROVIDER` |
+| `DEEPSEEK_API_KEY` | valgfri | AI-operatøren bruger DeepSeek når den er sat (se afsnit 12; sættes fra egen terminal, aldrig i chat/git). Persondata maskeres før de sendes |
+| `OPERATOR_PROVIDER` | valgfri | `deepseek` eller `anthropic`: eksplicit valg til AI-operatøren. Uden den: DeepSeek hvis `DEEPSEEK_API_KEY` er sat, ellers Anthropic |
+| `DEEPSEEK_MODEL` / `DEEPSEEK_BASE_URL` | valgfri | defaults `deepseek-chat` og `https://api.deepseek.com` |
 | `SEO_SITE_CONFIG` | valgfri | JSON pr. domæne (sameAs, logo, adresse m.m.; se `lib/seo/config.ts`) |
 | `UPLOAD_DIR` | ved volume | `/data/uploads` (se afsnit 5) |
 | `FALLBACK_SITE_DOMAIN` | kun test/staging | `slagelselokalt.dk` — lader et ukendt domæne (fx `*.up.railway.app`) vise den by. **Fjern i produktion**, ellers viser alle ukendte værter Slagelse (duplicate content). |
@@ -163,3 +167,34 @@ railway run -s Postgres -- sh -c 'pg_restore --no-owner --clean --if-exists -d "
 - Efter nulstilling vælger brugeren selv en adgangskode i `/redaktion/konto`; gamle sessioner er ugyldige.
 - Lockout: 5 forkerte nuværende adgangskoder pr. 15 minutter pr. bruger; udløber automatisk.
 - Kør ikke `seed:prod` igen for at få en ny adgangskode: den udskriver kun en adgangskode, når admin-brugeren oprettes første gang.
+
+## 12. AI-operatørens modeludbyder (DeepSeek eller Anthropic)
+
+AI-operatøren (`/redaktion/operator`, Cmd/Ctrl+K) kan bruge **DeepSeek** eller **Anthropic**. Al øvrig AI (editorens forslag, AI-dock-chatten og forsidens AI-forslag) går gennem den fælles gateway (`lib/ai/provider`) og vælger udbyder efter samme regel: DeepSeek hvis `DEEPSEEK_API_KEY` er sat, ellers Anthropic; hver opgave kan overstyres med `EDITOR_AI_PROVIDER`/`CHAT_AI_PROVIDER`/`FRONTPAGE_AI_PROVIDER`. Beslutning og GDPR-vurdering: `docs/localrating/adr/ADR-017.md`.
+
+**Valg af udbyder** (alt er Railway-variabler; ingen nøgler i databasen):
+
+| Situation | Resultat |
+|---|---|
+| `OPERATOR_PROVIDER=deepseek` | DeepSeek (kræver `DEEPSEEK_API_KEY`, ellers 503 — der falder aldrig stille tilbage til Anthropic) |
+| `OPERATOR_PROVIDER=anthropic` | Anthropic (kræver `ANTHROPIC_API_KEY`) |
+| ikke sat, `DEEPSEEK_API_KEY` sat | DeepSeek |
+| ikke sat, kun `ANTHROPIC_API_KEY` sat | Anthropic |
+| ingen nøgle | `/api/operator` svarer 503 med besked om begge variabler |
+
+**Sæt nøglen uden at den vises i chat eller historik** (kør i din egen terminal i det linkede Railway-projekt; scriptet læser nøglen skjult og sender den via stdin, så den ikke står i kommandolinjen):
+
+```bash
+# zsh (macOS): beskeden "DeepSeek-nøgle:" vises, indtastningen vises ikke
+read -rs "DEEPSEEK_KEY?DeepSeek-nøgle: "; echo
+printf %s "$DEEPSEEK_KEY" | railway variable set DEEPSEEK_API_KEY --stdin --service lysdalcms --environment production
+unset DEEPSEEK_KEY
+```
+
+Valgfrit (ikke hemmeligt): `railway variable set DEEPSEEK_MODEL=deepseek-chat --service lysdalcms --environment production`. Railway genudruller servicen, når en variabel ændres; tilføj `--skip-deploys`, hvis du vil samle flere ændringer. Tilbage til Claude: `railway variable set OPERATOR_PROVIDER=anthropic ...` (eller fjern `DEEPSEEK_API_KEY`).
+
+**Kontrol:** åbn `/redaktion/operator`: ved DeepSeek står der "Bruger DeepSeek — persondata maskeres før de sendes", og "Hvad må AI for dig?" viser udbyder og model. `help` i operatøren nævner også udbyderen. Opstartsloggen advarer, hvis `OPERATOR_PROVIDER` peger på en udbyder uden nøgle, eller hvis begge nøgler er sat uden `OPERATOR_PROVIDER`.
+
+**Omkostning og model (ikke verificeret):** standardmodellen er `deepseek-chat` med OpenAI-kompatibel function calling. DeepSeeks modelnavne, priser og regionsplacering ændrer sig; tjek deres aktuelle dokumentation og prisside og sæt et forbrugsloft/saldo-advarsel på kontoen, før du går i produktion. Saldo 0 giver HTTP 402, som operatøren viser som "kontoen mangler saldo". Ratelimit i CMS'et (30 beskeder pr. 10 min pr. bruger, højst 9 modelkald pr. besked) gælder uændret.
+
+**Databehandling:** DeepSeek behandler data uden for EU/EØS. Operatøren maskerer e-mail, telefon, CPR-lignende numre og nøgler og udelader kontaktfelter (indsendere, brugere, kilder), men kan ikke genkende navne i fri tekst, som redaktøren selv skriver. Ejeren skal selv vurdere databehandleraftale og overførselsgrundlag (ikke juridisk rådgivning).
