@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "prestart": "node scripts/db-provider.mjs prestart",
     "start": "next start",
     "lint": "eslint",
     "test": "tsx scripts/test-runner.ts",
@@ -21,7 +22,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/db-provider.mjs generate",
     "roles:sync": "tsx prisma/sync-roles.ts",
     "ingest:key": "tsx scripts/create-ingest-key.ts",
     "prisma:pg:schema": "tsx scripts/gen-pg-schema.ts",
